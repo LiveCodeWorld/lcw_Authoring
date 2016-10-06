@@ -1,0 +1,629 @@
+﻿script "lib_HandlerCalls"
+--> MetaData
+-
+license: GPLv3
+name: lib_HandlerCalls
+type: library
+version: 0.1
+
+/*
+This library is the central place to organise all code that deals with extracting script calls from a handler.
+It was taken from "libOPN_Calls".
+
+There are several ways to refer to handlers:
+-  as a handler of a sript object "handler"
+-  using an hKey reference
+-  using the global hArray database
+
+Call links in the library are stored a simple short hkeys.
+They are stored in two places, a a simple link.txt file with a list of CR separated short hKeys,
+and in the projects metadata array file as metadataArray ["filteredCalls"], and metadataArray ["allCalls"].
+
+Eventually should decide which to use (probably get rid of links.txt, and maybe loose both and replace with an sqLite db.
+*/
+
+
+--> Calls | Props
+-
+getprop hkey_Calls [shortHkey]
+   put the object_Hkey [shortHkey] of the target into hKey
+   return hkey_FetchShortCalls (hKey)
+end hkey_Calls
+
+getprop script_HkeyArrayFromExportedCalls [pSetName]
+   local hkeyArray
+   put the script_Hkeys of the target into hKeys
+   repeat for each line hKey in hKeys
+      hkey_RecurseLongCallArrayFromExported hKey, hkeyArray, pSetName
+   end repeat
+   return hkeyArray
+end script_HkeyArrayFromExportedCalls
+
+
+--> Hkey | Calls
+-
+function hkey_ExtractShortCalls hKey
+   put hArray_GetHandler (hKey) into callHandler
+   put handler_ExtractCalls (callHandler) into shortCalls
+   return shortCalls
+end hkey_ExtractShortCalls
+
+
+--> Handler | Calls
+-
+function handler_ExtractCalls someHandler, pSkipHkeyComponents, pSkipHkeyProps
+   put handler_ConstructCallArray (someHandler, pSkipHkeyComponents, pSkipHkeyProps) into metadataArray 
+   return metadataArray ["hkeyCalls"]
+end handler_ExtractCalls
+
+function handler_ExtractFilteredCalls someHandler, pSkipHkeyComponents, pSkipHkeyProps
+   put handler_ConstructCallArray (someHandler, pSkipHkeyComponents, pSkipHkeyProps) into metadataArray 
+   return metadataArray ["filteredCalls"]
+end handler_ExtractFilteredCalls
+
+function handler_ConstructMetadataArray hKey, pHandler, pSkipHkeyComponents, pSkipHkeyProps
+   if pHandler is empty then
+      if the number of items of hKey = 2 then
+         put library_FetchHandler (hKey) into pHandler
+      else
+         put hkey_ExtractHandlerFromObject (hKey) into pHandler
+      end if
+   end if
+   put handler_ConstructCallArray (pHandler) into metadataArray
+   hkey_AddToKeyWordArray metadataArray, hKey, handlerHash
+   return metadataArray
+end handler_ConstructMetadataArray
+
+
+--> Handler | Calls | Old
+-
+-- getprop hkey_Calls [hKey]
+put the long id of the target into scriptObject
+put hkey_FindAndExtractCalls (hKey, scriptObject) into handlerCalls
+return handlerCalls
+end hkey_Calls
+
+function hkey_ExtractCalls hKey, pSetName
+   breakPoint -- old
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   if exists (hObject) is false then return empty
+   
+   put the script_Handler [hKey] of hObject into someHandler
+   put handler_ExtractCalls (someHandler) into shortCalls
+   put hkey_ShortToLongCalls (shortCalls, hObject, pSetName) into longHkeyCalls
+   return longHkeyCalls
+   
+   -- old "hkey_ExtractCalls hKey, pIncludePass, pEnvironmentFilter"
+   put the hkey_SearchHierarchy of hObject into scriptHierarchy
+   put script_ParseHandlerForCalls (someHandler, scriptHierarchy, hObject) into handlerCalls
+   
+   if pIncludePass is not true then return handlerCalls
+   
+   -- now lets look for message passing
+   if script_HandlerContainsPass (hName, someHandler) is true then
+      put the hkey_SearchHierarchy [pEnvironmentFilter] of hObject into passHierarchy
+      put hkey_SearchObjectHierarchy (hKey, passHierarchy) into foundHierarchy
+      
+      put line -1 of foundHierarchy into passObject
+      put hkey_Construct (hName, hType, passObject) into pKey
+      line_Insert pKey, handlerCalls
+   end if
+   return handlerCalls
+end hkey_ExtractCalls
+
+/*
+Old and dodgy handlers that try to follow getprop and setprop references to objects (not used anymore?)
+*/
+
+function hkey_ConstructPropertyCall linkCall, linkName, linkType, linkObject, linkNum, someHandler
+   -- total hack !!!
+   put script_GetPropertyTarget (linkName, someHandler, someObject) into propertyTarget
+   if exists (propertyTarget) is false then
+      put "script_GetPropertyTarget" && linkName & "," && someObject into someError
+      lcw_Notify someError, true
+      put someObject into propertyTarget -- total hack !!!
+   end if
+   
+   -- now find property linkName in the hkey_SearchHierarchy of propertyTarget
+   put hkey_Construct (linkName, linkType, propertyTarget, linkNum) into testKey
+   put the hkey_InHierarchy [testKey] of propertyTarget into propertyHandlerObject
+   
+   if exists (propertyHandlerObject) is false then
+      -- it is a plain custom property
+      put propertyTarget into propertyHandlerObject 
+      put "Custom property of" && propertyHandlerObject into missingPropertyCall
+      put hkey_Construct (linkName, linkType, missingPropertyCall, linkNum) into linkCall
+   else
+      -- we have found a custom property handler in the hierarchy
+      -- not sure how but should mark property as plain custom property (not handled by a custom handler)
+      put hkey_Construct (linkName, linkType, propertyHandlerObject, linkNum) into linkCall
+   end if
+   return linkCall
+end hkey_ConstructPropertyCall
+
+function script_ParseHandlerForCalls someHandler, scriptHierarchy, someObject
+   put empty into allCalls
+   put someHandler into oHandler
+   script_CleanForCalls someHandler -- clean and remove first and last lines
+   
+   repeat for each line someLine in someHandler
+      set the itemdelimiter to "#"
+      put word 1 to -1 of item 1 of someLine into someLine
+      if char 1 to 2 of someLine is "--" then next repeat
+      
+      put token 1 of someLine into testComand
+      if testComand is empty then next repeat
+      
+      if ide_IsDictionaryTerm (testComand) is false then
+         script_AddToExtractCalls testComand, "c", scriptHierarchy, allCalls
+      end if
+      
+      put script_ExtractFunctionCalls (someLine, false) into fNames
+      -- script_ExtractFunctionCallOfLine someLine, fName, bracketedStuff
+      -- if fName is "(" then breakpoint
+      script_AddToExtractCalls fNames, "f", scriptHierarchy, allCalls
+      
+      set the wholematches to true
+      -- could still have other stufff on line
+      put wordoffset ("the", someLine) into wordNum
+      if wordNum is 0 then next repeat
+      
+      put word (wordNum + 1) of someLine into handlerName
+      -- get word (wordNum + 1) to -1 of someLine
+      -- put token 1 of it into handlerName
+      if ide_IsDictionaryTerm (handlerName) is true then next repeat
+      
+      -- now check getprop / setprop calls
+      -- "the xxx [zzz] of"  (should change to use tokens)
+      put wordNum + 2 into ofWordNum
+      get word ofWordNum of someLine
+      if it contains "[" then
+         put wordNum + 5 into ofWordNum
+         get word ofWordNum of someLine
+      end if
+      if it is "of" then
+         put word (wordNum - 1) of someLine into setGetPut
+         put scriptHierarchy into sendHierarchy -- default
+         
+         -- Here we can "try" to work out which object is being called
+         put word (ofWordNum + 1) of someLine into objectWord
+         if ide_IsDictionaryTerm(objectWord) is true then
+            -- probably "stack,background,group etc
+            -- give up for now
+         else
+            -- lets assume it is a customproperty
+            -- find the line which defines the object objectWord int the handler
+            script_ExtractPutTheInto someHandler, objectWord, objectReference, targetObject
+            if objectReference is empty then
+               lcw_Notify ("Can't find reference for object" && kwote(objectWord))
+            else
+               if targetObject is among the items of "me,target" then put someObject into targetObject
+               
+               if exists(targetObject) is false then
+                  lcw_Notify someHandler
+               else
+                  put the objectReference of targetObject into sendObject
+                  if exists(sendObject) then
+                     put the hkey_SearchHierarchy of sendObject into sendHierarchy
+                  end if
+               end if
+            end if
+         end if
+         
+         if setGetPut is "set" and "to" is among the words of someLine then
+            script_AddToExtractCalls handlerName, "s", sendHierarchy, allCalls
+         else -- if setGetPut is among the items of "case,if,get,put" then
+            script_AddToExtractCalls handlerName, "g", sendHierarchy, allCalls
+         end if
+      end if
+   end repeat
+   
+   -- sort allCalls
+   return allCalls
+end script_ParseHandlerForCalls
+
+command script_AddToExtractCalls handlerNames, handlerType, scriptHierarchy, @allCalls
+   put false into notPrivate -- bug! Need to change so it only searches objects script for private
+   repeat for each line handlerName in handlerNames
+      if scriptHierarchy is empty then
+         put handlerName,handlerType into hKey
+      else
+         put hkey_SearchHierarchy (handlerName, handlerType, scriptHierarchy, notPrivate) into hKey
+      end if
+      line_Add hKey, allCalls
+   end repeat
+end script_AddToExtractCalls
+
+function script_ExtractFunctionCalls scriptLine, pIncludeBuiltinFunctions
+   local fNames
+   
+   put text_StripQuoted (scriptLine) into scriptLine
+   -- put "(\w+)\s*" & "\((.*)\)" into greedyExpression -- error with handlers that use "." notation
+   -- if matchtext(scriptLine, greedyExpression, wordBefore, bracketedStuff) is true then
+   
+   put "\((.*)\)" into bracketExpression
+   if matchchunk (scriptLine, bracketExpression, startBracketedStuff, endBracketedStuff) is true then
+      put char startBracketedStuff to endBracketedStuff of scriptLine into bracketedStuff
+      get char 1 to (startBracketedStuff - 1) of scriptLine
+      put token -2 of it into wordBefore
+      if wordBefore is among the chars of "[()]" then
+         -- hack
+         put empty into wordBefore
+      end if
+      
+      if bracketedStuff contains "(" then
+         put script_ExtractFunctionCalls (bracketedStuff, pIncludeBuiltinFunctions) into innerFunctions
+         
+         if pIncludeBuiltinFunctions is true then
+            repeat for each line innerFunction in innerFunctions
+               line_Add innerFunction, fNames
+            end repeat
+         else
+            repeat for each line innerFunction in innerFunctions
+               if ide_IsDictionaryTerm(innerFunction) is false then
+                  line_Add innerFunction, fNames
+               end if
+            end repeat
+         end if
+      end if
+      
+      if wordBefore is not empty then
+         if pIncludeBuiltinFunctions is true then
+            line_Add wordBefore, fNames
+         else
+            if ide_IsDictionaryTerm (wordBefore) is false then
+               line_Add wordBefore, fNames
+            end if
+         end if
+      end if
+      return word 1 to -1 of fNames
+   else
+      return empty
+   end if
+end script_ExtractFunctionCalls
+
+
+--> Calls
+-
+function library_FetchHkeyCalls shortHkey
+   -- could also get from "library_FetchHandlerMetadata"
+   put library_CallsFile (shortHkey) into scriptFile
+   if there is not a file scriptFile then return empty
+   
+   put script_FetchRaw (scriptFile) into hKeyCalls
+   return hKeyCalls
+end library_FetchHkeyCalls
+
+command library_StoreHkeyCalls hKey, hKeyCalls
+   put library_CallsFile (hKey, false) into someFile
+   if hKeyCalls is empty then
+      delete file someFile
+      return empty
+   else
+      put hKeyCalls into url ("binfile:" & someFile)
+      return someFile
+   end if
+end library_StoreHkeyCalls
+
+function library_GetFilteredCalls hKey
+   put library_FetchHandlerMetadata (hKey) into metadataArray
+   put metadataArray ["filteredCalls"] into filteredCalls
+   return filteredCalls
+end library_GetFilteredCalls
+
+command library_SetFilteredCalls hKey, filteredCalls
+   put library_FetchHandlerMetadata (hKey) into metadataArray
+   put filteredCalls into metadataArray ["filteredCalls"]
+   library_FetchHandlerMetadata hKey, metadataArray
+   return metadataArray
+end library_SetFilteredCalls
+
+function library_GetCalls hKey
+   put library_FetchHandlerMetadata (hKey) into metadataArray
+   put metadataArray ["hKeyCalls"] into hKeyCalls
+   return hKeyCalls
+end library_GetCalls
+
+command library_SetCalls hKey, hKeyCalls
+   put library_FetchHandlerMetadata (hKey) into metadataArray
+   put hKeyCalls into metadataArray ["hKeyCalls"]
+   library_FetchHandlerMetadata hKey, metadataArray
+   return metadataArray
+end library_SetCalls
+
+command hkey_StoreCalls hKey, hKeyCalls
+   put hkey_CallsFile (hKey, false) into someFile
+   if hKeyCalls is empty then
+      delete file someFile
+      return empty
+   else
+      put hKeyCalls into url ("binfile:" & someFile)
+      return someFile
+   end if
+end hkey_StoreCalls
+
+
+--> Library | Handler | DatabaseArray
+-
+function library_FetchHandlerMetadata hKey
+   put item 1 to 2 of hKey into shortHkey
+   put library_FetchHandlerDatabaseArray() into hKeyData
+   return hKeyData [shortHkey]
+end library_FetchHandlerMetadata
+
+command library_StoreHandlerMetadata hKey, handlerMetadata
+   put item 1 to 2 of hKey into shortHkey
+   put library_FetchHandlerDatabaseArray() into hKeyData
+   put handlerMetadata into hKeyData [shortHkey]
+   library_StoreHandlerDatabaseArray hkeyData
+end library_StoreHandlerMetadata
+
+function library_GetHandlerDatabaseMetadata
+   put library_FetchHandlerDatabaseArray() into handlerDatabaseArray
+   put handlerDatabaseArray ["metadata"] into dbMetaData
+   return dbMetaData
+end library_GetHandlerDatabaseMetadata
+
+command library_SetHandlerDatabaseMetadata dbMetaData
+   put library_FetchHandlerDatabaseArray() into handlerDatabaseArray
+   put dbMetaData into handlerDatabaseArray ["metadata"]
+   library_StoreHandlerDatabaseArray handlerDatabaseArray
+   return handlerDatabaseArray
+end library_SetHandlerDatabaseMetadata
+
+function library_ListHkeys
+   put library_FetchHandlerDatabaseArray() into handlerDatabaseArray
+   put keys (handlerDatabaseArray) into hkeys
+   sort hKeys by item 1 of each
+   return hKeys
+end library_ListHkeys
+
+function library_FetchHandlerDatabaseArray
+   put library_FetchArray ("Hkey_Library") into handlerDatabaseArray
+   return handlerDatabaseArray
+end library_FetchHandlerDatabaseArray
+
+command library_StoreHandlerDatabaseArray handlerDatabaseArray
+   library_StoreArray "Hkey_Library", handlerDatabaseArray
+end library_StoreHandlerDatabaseArray
+
+
+--> Hkey Calls | Harray
+-
+function hkey_GetCalls hKey, pSetName, pAllCalls
+   put project_GetHkeyDeps (hKey, false, pSetName, pAllCalls) into hkeyCalls
+   return hkeyCalls
+end hkey_GetCalls
+
+function hkey_GetCallsFromObject hKey, pSetName, pAllCalls
+   put project_GetHkeyDeps (hKey, true, pSetName, pAllCalls) into hkeyCalls
+   return hkeyCalls
+end hkey_GetCallsFromObject
+
+function hkey_FetchShortCalls hKey, pReindex
+   -- first lets fetch a mainstack hArray
+   put item 3 of hKey into hObject
+   put the textStack_Folder of hObject into mainStackFolder
+   put mainStack_FetchHarray (mainStackFolder) into hArray
+   
+   if hArray is not an array and pReindex is not false then
+      mainStack_ExportAsFiles hObject -- fix:  should just redo hArray here
+      put the result into mainStackMetaArray
+      put mainStackMetaArray ["hArray"] into hArray
+      -- put mainStack_FetchHarray (mainStackFolder) into hArray
+   end if
+   
+   -- found on disk from stack export
+   put hArray_GetCalls (hKey, hArray) into shortCalls
+   return shortCalls
+end hkey_FetchShortCalls
+
+function hArray_GetCalls hKey, hArray
+   put hArray_GetHandlerHash (hKey, hArray) into handlerHash
+   put hArray ["handlerHashArray"]["cached"][handlerHash]["shortCalls"] into shortCalls
+   return shortCalls
+end hArray_GetCalls
+
+function hArray_GetShortCalls hKey, pHArray
+   /* or another ways
+   put hArray_GetHandler (hKey, hArray) into callHandler
+   put sha1_Hash (callHandler) into handlerHash
+   */
+   put hArray_GetHandlerHash (hKey, pHArray) into handlerHash
+   if pHArray is empty then
+      -- not sure this option should be in this handler
+      return hkey_FetchShortCalls (hKey)
+   else
+      put pHArray ["handlerHashArray"]["cached"][handlerHash]["shortCalls"] into shortCalls
+   end if
+   return shortCalls
+end hArray_GetShortCalls
+
+command hArray_SetShortCalls hkey, hArray, shortCalls
+   put hArray_GetHandlerHash (hKey, hArray) into handlerHash
+   if shortCalls is empty then
+      delete variable hArray ["handlerHashArray"]["cached"][handlerHash]["shortCalls"]
+   else
+      put shortCalls into hArray ["handlerHashArray"]["cached"][handlerHash]["shortCalls"]
+   end if
+   return shortCalls
+end hArray_SetShortCalls
+
+
+--> hKey  | Calls | Model
+-
+/*
+Use these handlers to interface with handler calls stored as text files with the handler.
+*/
+
+function hArray_GetHkeyCalls hKey
+   -- ugly, use hkey_Calls, or hKey_GetCalls, or hKey_FetchCalls
+   
+   put hArray_GetHkeyDataArray (hKey) into handlerArray
+   put handlerArray ["sha1"] into handlerHash
+   
+   if handlerHash is empty then
+      -- maybe the index is old?
+      -- could check scripts sha1?
+      put item 3 of hKey into hObject
+      object_AddToGlobalArray hObject 
+      put hArray_GetHandlerHash (hKey) into handlerHash
+      if handlerHash is empty then
+         -- it's not there
+         return empty
+      end if
+   end if
+   
+   put library_FetchHandler (hKey) into someHandler
+   if someHandler is empty then
+      -- handler has not been exported
+      put hArray_GetHandler (hKey) into someHandler
+      put handler_ExtractCalls (someHandler) into hkeyCalls
+      hkey_StoreCallsAndHandler hkey, someHandler, hKeyCalls
+      return hkeyCalls
+   else if sha1_Hash (someHandler) = handlerHash then
+      return hkey_FetchShortCalls (hKey)
+   else
+      -- the exported handler is different
+      -- let's return a value derived from the actual handler
+      -- but not export
+      put hArray_GetHandler (hKey) into someHandler
+      put handler_ExtractCalls (someHandler) into hkeyCalls
+      return hkeyCalls
+   end if
+end harray_GetHkeyCalls
+
+command hkey_DeleteFolder hKey
+   put hkey_Folder (hKey) into hkeyFolder
+   revDeleteFolder hkeyFolder
+end hkey_DeleteFolder
+
+function script_ExtractFunctionCalls scriptLine, pIncludeBuiltinFunctions
+   local fNames
+   
+   put text_StripQuoted (scriptLine) into scriptLine
+   -- put "(\w+)\s*" & "\((.*)\)" into greedyExpression -- error with handlers that use "." notation
+   -- if matchtext(scriptLine, greedyExpression, wordBefore, bracketedStuff) is true then
+   
+   put "\((.*)\)" into bracketExpression
+   if matchchunk (scriptLine, bracketExpression, startBracketedStuff, endBracketedStuff) is true then
+      put char startBracketedStuff to endBracketedStuff of scriptLine into bracketedStuff
+      get char 1 to (startBracketedStuff - 1) of scriptLine
+      put token -2 of it into wordBefore
+      if wordBefore is among the chars of "[()]" then
+         -- hack
+         put empty into wordBefore
+      end if
+      
+      if bracketedStuff contains "(" then
+         put script_ExtractFunctionCalls (bracketedStuff, pIncludeBuiltinFunctions) into innerFunctions
+         
+         if pIncludeBuiltinFunctions is true then
+            repeat for each line innerFunction in innerFunctions
+               line_Add innerFunction, fNames
+            end repeat
+         else
+            repeat for each line innerFunction in innerFunctions
+               if ide_IsDictionaryTerm(innerFunction) is false then
+                  line_Add innerFunction, fNames
+               end if
+            end repeat
+         end if
+      end if
+      
+      if wordBefore is not empty then
+         if pIncludeBuiltinFunctions is true then
+            line_Add wordBefore, fNames
+         else
+            if ide_IsDictionaryTerm (wordBefore) is false then
+               line_Add wordBefore, fNames
+            end if
+         end if
+      end if
+      return word 1 to -1 of fNames
+   else
+      return empty
+   end if
+end script_ExtractFunctionCalls
+
+
+--> Hkey | MetaData | Array
+-
+function hkey_GetMetadataArray hKey
+   put hkey_GetOverlayData (hKey) into overlayData
+   put overlayData ["metadata"] into metadataArray
+   return metadataArray
+end hkey_GetMetadataArray
+
+command hkey_SetMetadataArray hKey, metadataArray
+   put hkey_GetOverlayData (hKey) into overlayData
+   put metadataArray into overlayData ["metadata"]
+   hkey_SetOverlayData hKey, overlayData
+   return overlayData
+end hkey_SetMetadataArray
+
+
+--> Old Mixed | Hkey | Deps
+-
+function hkey_ConstructCallArray hKey, pFetchHow
+   -- fetch from "links.txt" file recursively
+   local hkeyArray
+   hkey_RecurseCallArray hKey, hkeyArray, pFetchHow
+   return hkeyArray
+end hkey_ConstructCallArray
+
+function scriptArray_ConstructShortHkeyArray dataArray
+   -- fetch from "links.txt" for all hKeys in the scriptArray "dataArray"
+   local hkeyArray
+   repeat for each element recordArray in dataArray
+      set the cursor to busy
+      put recordArray ["hkey"] into hkey
+      if hKey is empty then next repeat
+      if hKey is among the keys of hkeyArray then next repeat
+      
+      hkey_RecurseCallArray hKey, hkeyArray
+   end repeat
+   return hkeyArray
+end scriptArray_ConstructShortHkeyArray
+
+function hkey_CallArrayFromExported hKey, pSetName
+   local hkeyArray
+   hkey_RecurseLongCallArrayFromExported hKey, hkeyArray, pSetName
+   return hkeyArray
+end hkey_CallArrayFromExported
+
+command hkey_RecurseLongCallArrayFromExported hKey, @hkeyArray, pSetName
+   -- fetch from "links.txt" file recursively
+   local foundHkey, foundHandler
+   if hKey is among the keys of hkeyArray then return "Already indexed! Skipping to avoid recursion."
+   
+   put item 3 of hKey into hObject
+   put hkey_GetCalls (hKey) into shortCalls
+   repeat for each line shortCall in shortCalls
+      put item 1 of shortCall into cName
+      put item 2 of shortCall into cType
+      put hkey_FindAndIndex (cName, cType, hObject, pSetName) into foundHkey
+      put foundHkey & CR after longCalls
+   end repeat
+   delete char -1 of longCalls
+   put longCalls into hkeyArray [hKey]
+   
+   repeat for each line longCall in longCalls
+      -- hkey_RecurseShortCallArrayFromExported longCall, hkeyArray, pSetName
+   end repeat
+end hkey_RecurseLongCallArrayFromExported
+
+function script_ExtractSubGraphArray shortHkey, scriptHkey, pSetName, pTestExceptions
+   put hkey_GetLinkArray (scriptHkey) into scriptHkeyArray
+   put hkeyArray_ExtractSubArray (shortHkey, hkeyArray) into hKeySubGraphArray
+   return hKeySubGraphArray
+end script_ExtractSubGraphArray
+
+function hkey_ConstructShortKeyArray hKeys
+   repeat for each line hKey in hKeys
+      hkey_Deconstruct hKey, hName, hType, hObject, hNum
+      put hName,hType into shortHkey
+      put empty into shortHkeyArray [shortHkey][hKey]
+   end repeat
+   return shortHkeyArray
+end hkey_ConstructShortKeyArray
