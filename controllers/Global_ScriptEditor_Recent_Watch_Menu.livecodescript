@@ -88,48 +88,30 @@ on menu_SaveEditedStacks mTarget, editedStackName
    stack_SaveEdited editedStackName
 end menu_SaveEditedStacks
 
+on _
+end _
+
 on menu_ObjectProperties scriptObject
    object_Inspect scriptObject
 end menu_ObjectProperties
-
-on _
-end _
-
--- on submenu_Git
-   return "Global | GIT | Menu"
-end submenu_Git
-
-on menu_DisplayGitStatus scriptObject
-   display_GitStatus scriptObject
-end menu_DisplayGitStatus
-
-on menu_LoadGit
-   -- first we should check it is available locally... (not done yet)
-   
-   project_Start "lcw_Git"
-end menu_LoadGit
-
-on _
-end _
-
-on menu_EnvironmentTools scriptObject
-   display_ProjectList
-end menu_EnvironmentTools
-
-on menu_StackDeps scriptObject
-   display_StackDeps scriptObject
-end menu_StackDeps
 
 on menu_DisplayModule scriptObject
    put the module_Folder of scriptObject into moduleFolder
    display_Module moduleFolder
 end menu_DisplayModule
 
-on menu_LibraryProjectData
-   put library_FetchProjectData() into libraryProjectData
-   display_Array libraryProjectData, "library_FetchProjectData()", "Global | Library | Project | Model | Menu", "Global | Library | Project | Model | Line | Menu"
-end menu_LibraryProjectData
- 
+on menu_GitStatus scriptObject
+   display_GitStatus scriptObject
+end menu_GitStatus
+
+on menu_LoadGit   
+   project_Start "lcw_Git"
+end menu_LoadGit
+
+on menu_Environment scriptObject
+   display_ProjectList
+end menu_Environment
+
 on _
 end _
 
@@ -157,6 +139,9 @@ on menu_Go scriptObject, whichStack
    end switch
 end menu_Go
 
+on _
+end _
+
 on submenu_Create
    return "Global | ScriptEditor | Create | Menu"
 end submenu_Create
@@ -164,9 +149,6 @@ end submenu_Create
 on submenu_Template
    return "Global | Script | Template | Menu"
 end submenu_Template
-
-on _
-end _
 
 on submenu_Behavior
    return "Global | Behavior | Menu"
@@ -179,52 +161,9 @@ end submenu_Hacks
 on _
 end _
 
-on insert_CustomMenu
+on submenu_Custom
    return "Global | ScriptEditor | Recent | Custom | Menu"
-end insert_CustomMenu
-
-on _
-end _
-
-on submenu_Snapshot
-   return "Global | View | Wireframe | Menu"
-end submenu_Snapshot
-
--- on submenu_View
-   return "Global | View | Authoring | Menu"
-end submenu_View
-
-on _
-end _
-
--- on submenu_Prefs
-   return "Global | Pref | Menu"
-end submenu_Prefs
-
--- on submenu_LivecodePrefs
-   return "Global | Rev | Prefs | Menu"
-end submenu_LivecodePrefs
-
--- on menu_FindFromKeywords
-   put lcw_Ask ("Input some handler names or keywords seperated by commas...", "path,array") into keywordList
-   put hArray_KeywordHkeys (keywordList) into hKeys
-   display_HkeyIndex hKeys
-end menu_FindFromKeywords
-
-on _
-end _
-
-on submenu_Gist
-   return "Global | Gist | Menu"
-end submenu_Gist
-
-on submenu_GitScript
-   return "Global | GIT | Script | Menu"
-end submenu_GitScript
-
--- on submenu_GitFiles
-   return "Global | GIT | Files | Menu"
-end submenu_GitFiles
+end submenu_Custom
 
 on _
 end _
@@ -273,13 +212,13 @@ end recent_Objects
 
 --> Global | ScriptEditor | Recent | Watch | Menu | Disabled
 -
-getprop disabled_DisplayGitStatus [scriptObject]
+getprop disabled_GitStatus [scriptObject]
    if project_IsActive ("lcw_GIT") is true then
       return false
    else
       return "delete"
    end if 
-end disabled_DisplayGitStatus
+end disabled_GitStatus
 
 getprop disabled_LoadGit
    if project_IsActive ("lcw_GIT") is true then
@@ -303,12 +242,12 @@ getprop disabled_DisplayModule [scriptObject]
    put the view_Name of scriptObject into vName
    put vName is empty into someBoolean
    if someBoolean is true then
-      return true
+      return "delete"
    else
       return false
    end if
 end disabled_DisplayModule
-   
+
 getprop disabled_Dev
    if the optionKey is "Down" then
       return false
@@ -415,33 +354,36 @@ end object_MakeFriendly
 
 --> Dev | Menu
 -
-on submenu_ProjectTools
-   return "Global | Project | Menu"
-end submenu_ProjectTools
+on menu_RevealDataFolder scriptObject
+   put the data_Folder [true] of scriptObject into dataFolder
+   finder_Reveal dataFolder
+end menu_RevealDataFolder
 
-on submenu_Library
-   return "Global | Library | Menu"
-end submenu_Library
-
-on submenu_ManageLibrary
-   return "Global | Library | Manage | Menu"
-end submenu_ManageLibrary
-
-on submenu_Archive
-   return "Global | OPN | Save Count | Menu"
-end submenu_Archive
-
-on submenu_Mainstack
-   return "Global | Script | Mainstack | Menu"
-end submenu_Mainstack
+on menu_RevealProjectFolder scriptObject
+   put the project_Folder of scriptObject into projectFolder
+   finder_Reveal projectFolder
+end menu_RevealProjectFolder
 
 on _
 end _
 
-on submenu_Teamster
-   return "Global | Teamster | Menu"
-end submenu_Teamster
+-- on submenu_View
+return "Global | View | Authoring | Menu"
+end submenu_View
 
-on submenu_TextStack
-   return "Global | Object | Export | Test | Menu"
-end submenu_TextStack
+-- on submenu_Prefs
+   return "Global | Pref | Menu"
+end submenu_Prefs
+
+-- on submenu_LivecodePrefs
+   return "Global | Rev | Prefs | Menu"
+end submenu_LivecodePrefs
+
+-- on menu_FindFromKeywords
+   put lcw_Ask ("Input some handler names or keywords seperated by commas...", "path,array") into keywordList
+   put hArray_KeywordHkeys (keywordList) into hKeys
+   display_HkeyIndex hKeys
+end menu_FindFromKeywords
+
+
+
