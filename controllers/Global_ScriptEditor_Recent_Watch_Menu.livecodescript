@@ -95,23 +95,19 @@ end menu_ObjectProperties
 on _
 end _
 
-on submenu_Git
+-- on submenu_Git
    return "Global | GIT | Menu"
 end submenu_Git
+
+on menu_DisplayGitStatus scriptObject
+   display_GitStatus scriptObject
+end menu_DisplayGitStatus
 
 on menu_LoadGit
    -- first we should check it is available locally... (not done yet)
    
    project_Start "lcw_Git"
 end menu_LoadGit
-
-getprop disabled_LoadGit
-   if project_IsActive ("lcw_GIT") is true then
-      return "delete"
-   else
-      return false
-   end if 
-end disabled_LoadGit
 
 on _
 end _
@@ -277,6 +273,22 @@ end recent_Objects
 
 --> Global | ScriptEditor | Recent | Watch | Menu | Disabled
 -
+getprop disabled_DisplayGitStatus [scriptObject]
+   if project_IsActive ("lcw_GIT") is true then
+      return false
+   else
+      return "delete"
+   end if 
+end disabled_DisplayGitStatus
+
+getprop disabled_LoadGit
+   if project_IsActive ("lcw_GIT") is true then
+      return "delete"
+   else
+      return false
+   end if 
+end disabled_LoadGit
+
 getprop disabled_ObjectProperties [scriptObject]
    put the stack_Name of scriptObject into stackName
    if the scriptonly of stack stackName is true then
