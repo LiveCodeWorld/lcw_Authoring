@@ -21,7 +21,7 @@ and any handler that dispatches one of the commands below will work as long as y
 --> Global | Pref | Menu
 -
 on menu_RevealLibraryArrayFolder
-   put library_ArrayFolder() into arrayFolder  
+   put lcw_ArrayFolder() into arrayFolder  
    finder_Reveal arrayFolder
 end menu_RevealLibraryArrayFolder
 
@@ -132,7 +132,7 @@ on menu_SaveGlobalHarray
    
    project_SaveGlobalHarray
    put the result into hArrayFile
-   put library_GetArrayFile ("Hkey_Data") into hArrayFile  
+   put lcw_GetArrayFile ("Hkey_Data") into hArrayFile  
    finder_Reveal hArrayFile
 end menu_SaveGlobalHarray
 

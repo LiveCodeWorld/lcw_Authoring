@@ -1313,17 +1313,6 @@ getprop handler_model
    return the long id of card 1 of me
 end handler_model
 
--- function handler_GetIndexArray
-put the handler_model of me into modelObject
-put model_GetArray("uOPN_UniqueHandlers", modelObject) into handlerIndexArray
-return handlerIndexArray
-end handler_GetIndexArray
-
--- on handler_SetIndexArray handlerIndexArray
-put the handler_model of me into modelObject
-model_SetArray "uOPN_UniqueHandlers", modelObject, handlerIndexArray
-end handler_SetIndexArray
-
 
 --> Hkey | Keywords
 -

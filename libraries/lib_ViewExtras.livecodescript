@@ -371,17 +371,6 @@ getprop templateStack_View
    return templateObject
 end templateStack_View
 
-getprop view_IsTemplate
-   -- this is an old default
-   -- best method is to have the behavior of the templates card return true
-   -- using it's own "getprop view_IsTemplate" handler
-   
-   put the view_Name of the target into vName
-   if vName is empty then return false
-   
-   return the stack_IsTemplate of the target
-end view_IsTemplate
-
 getprop stack_IsTemplate
    put the stack_Name of the target into vName
    put the filename of stack vName into viewStackFile
@@ -703,20 +692,6 @@ function view_GetStackBackgroundID vName, stackName
    return empty
 end view_GetStackBackgroundID
 
-getprop view_AboveTarget
-   -- use when you don't want a "view_Object" to trap things
-   -- like when a datagrid is within a view object
-   -- works even for datagrids, and objects without "view_Object" handlers
-   put the long id of the target into targetObject
-   repeat
-      if the uRIP ["type"] of targetObject is "view" then return targetObject
-      if word 1 of targetObject = "group" and the selectGroupedControls of targetObject then return targetObject 
-      if word 1 of targetObject = "stack" or targetObject = empty then return empty
-      
-      delete word 1 to 4 of targetObject -- does not work for substacks
-   end repeat
-end view_AboveTarget
-
 getprop view_TopObject
    -- which is the top (highest) someView in the current layout
    put the long id of the target into testGroup
@@ -910,6 +885,10 @@ function view_AskPublicValue someProp, someView, pQuestion
          return it
       default
          put the someProp of someView into oldValue
+         if oldValue is a boolean then
+            return oldValue
+         end if
+         
          ask pQuestion with oldValue
          if the result is "Cancel" then exit to top
          put it into publicValue
@@ -953,21 +932,6 @@ end view_IsMemberOfClass
 
 --> View | Hierarchy
 -
-getprop view_Objects
-   put the view_Object of the target into someView
-   if someView is empty then return empty
-   
-   put object_SearchGroup(someView, "object_IsView", true) into searchArray
-   put empty into viewObjects
-   repeat for each key someObject in searchArray
-      if searchArray [someObject] is true then
-         put someObject & CR after viewObjects
-      end if
-   end repeat
-   delete last char of viewObjects
-   return viewObjects
-end view_Objects
-
 private function _ViewOutlineBit someView, outlineType, vName, someIndent
    switch outlineType 
       case "names"

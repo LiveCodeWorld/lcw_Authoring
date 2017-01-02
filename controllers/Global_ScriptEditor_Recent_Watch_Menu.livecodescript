@@ -95,10 +95,9 @@ on menu_ObjectProperties scriptObject
    object_Inspect scriptObject
 end menu_ObjectProperties
 
-on menu_DisplayModule scriptObject
-   put the module_Folder of scriptObject into moduleFolder
-   display_Module moduleFolder
-end menu_DisplayModule
+on menu_Environment scriptObject
+   display_ProjectList
+end menu_Environment
 
 on menu_GitStatus scriptObject
    display_GitStatus scriptObject
@@ -108,9 +107,21 @@ on menu_LoadGit
    project_Start "lcw_Git"
 end menu_LoadGit
 
-on menu_Environment scriptObject
-   display_ProjectList
-end menu_Environment
+on menu_ViewTools scriptObject
+   -- put the module_Folder of scriptObject into moduleFolder
+   -- display_Module moduleFolder
+   display_View scriptObject   
+end menu_ViewTools
+
+getprop disabled_DisplayView [scriptObject]
+   put the view_Name of scriptObject into vName
+   put vName is empty into someBoolean
+   if someBoolean is true then
+      return "delete"
+   else
+      return false
+   end if
+end disabled_DisplayView
 
 on _
 end _
@@ -236,17 +247,6 @@ getprop disabled_ObjectProperties [scriptObject]
       return false
    end if
 end disabled_ObjectProperties
-
-getprop disabled_DisplayModule [scriptObject]
-   -- put the template_View of scriptObject into templateView
-   put the view_Name of scriptObject into vName
-   put vName is empty into someBoolean
-   if someBoolean is true then
-      return "delete"
-   else
-      return false
-   end if
-end disabled_DisplayModule
 
 getprop disabled_Dev
    if the optionKey is "Down" then

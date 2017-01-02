@@ -599,10 +599,12 @@ function xml_Nodes someXml, startNode, includeChildCount
 end xml_Nodes
 
 function xml_NodeOutline someXml, startNode, includeChildCount
-    put revCreateXMLTree(someXml, false, true, false) into treeID
-    put xml_TreeNodeOutline(treeID, startNode, includeChildCount) into nodeOutline
-    revDeleteXMLTree treeID
-    return nodeOutline
+   put revCreateXMLTree(someXml, false, true, false) into treeID
+   -- put xml_TreeNodeOutline(treeID, startNode, includeChildCount) into nodeOutline
+   if startNode is empty then put revXMLRootNode (treeID) into startNode
+   put revXMLTree (treeID, startNode, CR, tab, includeChildCount, -1) into nodeOutline
+   revDeleteXMLTree treeID
+   return nodeOutline
 end xml_NodeOutline
 
 function xml_GetNodeContents someXml, someNode

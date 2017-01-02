@@ -65,12 +65,12 @@ command hArray_DeleteArrayDatabase
 end hArray_DeleteArrayDatabase
 
 function hArray_FetchData
-   put library_FetchArray ("Hkey_Data") into hArray
+   put lcw_FetchArray ("Hkey_Data.array") into hArray
    return hArray
 end hArray_FetchData
 
 command hArray_StoreData hArray
-   library_StoreArray "Hkey_Data", hArray
+   lcw_StoreArray "Hkey_Data.array", hArray
 end hArray_StoreData
 
 
@@ -82,12 +82,12 @@ Like the lcw_User folder?
 */
 
 function project_FetchHarray
-   put library_FetchArray ("Hkey_Data") into hArray
+   put lcw_FetchArray ("Hkey_Data.array") into hArray
    return hArray
 end project_FetchHarray
 
 command project_SaveHarray hArray
-   library_StoreArray "Hkey_Data", hArray
+   lcw_StoreArray "Hkey_Data.array", hArray
    put the result into arrayFile
    return arrayFile
 end project_SaveHarray

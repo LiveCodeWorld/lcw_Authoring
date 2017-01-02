@@ -34,6 +34,8 @@ on project_Init
    project_InitialiseFolder projectHomeStackFile
    project_LoadModules projectHomeStackFile
    
+   -- custom
+   send "display_ProjectList" to me in 2 ticks
    _setAuthoringMenus
 end project_Init
 

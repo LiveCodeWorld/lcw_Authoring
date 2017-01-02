@@ -136,10 +136,8 @@ on menu_DiffStackBinaries treeField
    put the tree_SelectedLink of treeField into commitHash
    put the displayed_Object of treeField into stackObject
    
-   put the filename of stackObject into thisFile
-   put the git_RelativeFile of stackObject into relativePath
-   
-   git_ExportFileRevision relativePath, commitHash
+   put the effective filename of stackObject into stackPath   
+   git_ExportFileRevision stackPath, commitHash
    put the result into toFile
    
    diff_Files thisFile, toFile
@@ -177,7 +175,7 @@ on menu_RevertCommit
    
    if shellResult is not empty then
       beep
-      opn_Notify shellResult
+      lcw_Notify shellResult
    end if
 end menu_RevertCommit
 
@@ -193,7 +191,7 @@ on menu_ThrowAwayUncommittedChanges
    git_RefreshDisplay true, "Git Status"
    
    if shellResult is not empty then
-      opn_Notify shellResult, true
+      lcw_Notify shellResult, true
    end if
 end menu_ThrowAwayUncommittedChanges
 

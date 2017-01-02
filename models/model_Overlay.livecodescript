@@ -7,6 +7,66 @@ type: model
 version: 0.4
 
 
+--> Working on
+-
+getprop model_LinkArray [modelName]
+   breakpoint -- old model
+   put the long id of the target into modelObject
+   if modelName is empty then put "model_LinkArray" into modelName
+   put the model_Array [modelName] of modelObject into linkArray
+   return linkArray
+end model_LinkArray
+
+setprop model_LinkArray [modelName] linkArray
+   breakpoint -- old model
+   put the long id of the target into modelObject
+   if modelName is empty then put "model_LinkArray" into modelName
+   set the model_Array [modelName] of modelObject to linkArray
+end model_LinkArray
+
+getprop model_IdArray [modelName]
+   breakpoint -- old model
+   put the long id of the target into modelObject
+   if modelName is empty then put "model_IdArray" into modelName
+   put the model_Array [modelName] of modelObject into idArray
+   return idArray
+end model_IdArray
+
+getprop model_IdLinkArray [modelName]
+   breakpoint -- old model
+   put the long id of the target into modelObject
+   if modelName is empty then put "model_IdLinkArray" into modelName
+   put the model_Array [modelName] of modelObject into idArray
+   return idArray
+end model_IdLinkArray
+
+
+--> LinkArray | Model
+-
+/*
+This is old!
+Use overlay_Folder related stuff now.
+
+A LinkArray is used to graph arrays. To do this LinkArrays provide a suite of tools that take complex keys and convert them into simple IDs,
+and dictionaries to translate from these IDS to the orginal keys.
+
+This new model uses default custom properties that can be used to get and set each of the three inter-connected arrays.
+As these are default custom properties, they can be over-ridden locally.
+
+The default behavior is to store the array in a file, in a default folder (named after the object), inside the opn_Model folder.
+Later this folder can be moved, and the scripts re-directed to this model folder using the "model_Folder" property (see model_File).
+*/
+
+on linkArray_Get modelObject, @idLinkArray, @idArray, pModelName
+   put the model_IdArray [pModelName] of modelObject into idArray
+   put the model_IdLinkArray [pModelName] of modelObject into idLinkArray
+end linkArray_Get
+
+command linkArray_Set modelObject, idLinkArray, idArray
+   set the model_IdArray [pModelName] of modelObject to idArray
+   set the model_IdLinkArray [pModelName] of modelObject to idLinkArray
+end linkArray_Set
+
 --> Overlay | Hkey | Links
 -
 /*
@@ -1047,60 +1107,6 @@ function overlayData_ConstructDotClusters objectIDArray, idArray, pNotIfEmpty
    delete char -1 of clusterSection
    return clusterSection
 end overlayData_ConstructDotClusters
-
-
---> LinkArray | Model
--
-/*
-This is old!
-Use overlay_Folder related stuff now.
-
-A LinkArray is used to graph arrays. To do this LinkArrays provide a suite of tools that take complex keys and convert them into simple IDs,
-and dictionaries to translate from these IDS to the orginal keys.
-
-This new model uses default custom properties that can be used to get and set each of the three inter-connected arrays.
-As these are default custom properties, they can be over-ridden locally.
-
-The default behavior is to store the array in a file, in a default folder (named after the object), inside the opn_Model folder.
-Later this folder can be moved, and the scripts re-directed to this model folder using the "model_Folder" property (see model_File).
-*/
-
-on linkArray_Get modelObject, @idLinkArray, @idArray, pModelName
-   put the model_IdArray [pModelName] of modelObject into idArray
-   put the model_IdLinkArray [pModelName] of modelObject into idLinkArray
-end linkArray_Get
-
-command linkArray_Set modelObject, idLinkArray, idArray
-   set the model_IdArray [pModelName] of modelObject to idArray
-   set the model_IdLinkArray [pModelName] of modelObject to idLinkArray
-end linkArray_Set
-
-getprop model_LinkArray [modelName]
-   put the long id of the target into modelObject
-   if modelName is empty then put "model_LinkArray" into modelName
-   put model_GetArray (modelName, modelObject, "file") into linkArray
-   return linkArray
-end model_LinkArray
-
-setprop model_LinkArray [modelName] linkArray
-   put the long id of the target into modelObject
-   if modelName is empty then put "model_LinkArray" into modelName
-   model_SetArray modelName, modelObject, linkArray, "file"
-end model_LinkArray
-
-getprop model_IdArray [modelName]
-   put the long id of the target into modelObject
-   if modelName is empty then put "model_IdArray" into modelName
-   put model_GetArray (modelName, modelObject, "file") into idArray
-   return idArray
-end model_IdArray
-
-getprop model_IdLinkArray [modelName]
-   put the long id of the target into modelObject
-   if modelName is empty then put "model_IdLinkArray" into modelName
-   put model_GetArray (modelName, modelObject, "file") into idArray
-   return idArray
-end model_IdLinkArray
 
 
 --> Deps

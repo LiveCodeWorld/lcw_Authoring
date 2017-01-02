@@ -19,6 +19,19 @@ with the "script_" extension being replaces by "hkey_"
 
 --> Currently Working On
 -
+function hkeyArray_GetFiltered
+   breakpoint -- old model
+   put the linkArray_Model of me into modelObject
+   put the model_Array ["Filtered_hkeyArray"] of modelObject into hkeyArray
+   return hkeyArray
+end hkeyArray_GetFiltered
+
+command hkeyArray_SetFiltered hkeyArray
+   breakpoint -- old model
+   put the linkArray_Model of me into modelObject
+   set the model_Array ["Filtered_hkeyArray"] of modelObject to hkeyArray
+end hkeyArray_SetFiltered
+
 
 
 --> HkeyArray | Objects
@@ -967,17 +980,6 @@ function hkeyArray_ExtractCalls hkeyArray, hKeys
     end repeat
     return hKeyCalls
 end hkeyArray_ExtractCalls
-
-function hkeyArray_GetFiltered
-    put the linkArray_Model of me into modelObject
-    put model_GetArray("Filtered_hkeyArray", modelObject, "array") into hkeyArray
-    return hkeyArray
-end hkeyArray_GetFiltered
-
-command hkeyArray_SetFiltered hkeyArray
-    put the linkArray_Model of me into modelObject
-    model_SetArray "Filtered_hkeyArray", modelObject, hkeyArray, "array"
-end hkeyArray_SetFiltered
 
 function hkeyArray_ConstructDot hkeyArray, graphName, graphStyle, graphSize
     local graphDirection, graphOrder, defaultShape

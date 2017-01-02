@@ -16,6 +16,10 @@ and they may want to be examined before they are saved!
 -
 local LocalArray
 
+on menu_Init tObject
+   put the tree_View of tObject into LocalArray ["tree_View"]
+end menu_Init
+
 
 --> Global | HkeyArray | Tree | Deps | Menu
 -
@@ -28,6 +32,8 @@ on submenu_Place
 end submenu_Place
 
 on menu_ProjectDepStacks treeView, callProjectName
+   put LocalArray ["tree_View"] into treeView
+   
    put the displayed_Array of treeView into  displayedArray
    put displayedArray ["Calls"][callProjectName] into stackNameArray
    repeat for each key stackObject in stackNameArray
@@ -39,6 +45,8 @@ on menu_ProjectDepStacks treeView, callProjectName
 end menu_ProjectDepStacks
 
 getprop call_ProjectNames [treeView]
+   put LocalArray ["tree_View"] into treeView
+   
    put the displayed_Array of treeView into  displayedArray
    put displayedArray ["Calls"] into callProjectArray
    return keys (callProjectArray)

@@ -19,19 +19,30 @@ Some basic tools for manipulating stacks, and windows.
 
 --> Global | Stack | Menu
 -
+on menu_StackProperties scriptObject
+   revIDEInspectObjects scriptObject
+end menu_StackProperties
+         
 on menu_StackHistory scriptObject
    display_StackHistory scriptObject
 end menu_StackHistory
 
-on menu_StackDeps scriptObject
-   display_StackDeps scriptObject
-end menu_StackDeps
+on _
+end _
 
 on menu_EditOpenStack scriptObject, openStackName
    put the name of stack openStackName into stackObject
    object_Inspect stackObject
    edit the script of stack openStackName
 end menu_EditOpenStack
+
+on menu_StackIsUsed stackObject, someBoolean
+   if someBoolean is true then
+      start using stackObject 
+   else
+      stop using stackObject
+   end if
+end menu_StackIsUsed
 
 on _
 end _
@@ -41,11 +52,11 @@ on menu_RevealStack mTarget
    stack_RevealInFinder stackName
 end menu_RevealStack
 
-on menu_PaceOnScreen scriptObject, whichScreen
+on menu_PlaceOnScreen scriptObject, whichScreen
    put the stack_Name of scriptObject into stackName
    put system_GetScreenRect (whichScreen) into pScreenRect
    stack_SetToMainScreen stackName, pScreenRect
-end menu_PaceOnScreen
+end menu_PlaceOnScreen
 
 on menu_PlaceOnMainScreen mTarget, openStackName
    switch openStackName
@@ -111,6 +122,10 @@ end menu_StackTitleStyle
 on _
 end _
 
+on menu_StackDeps scriptObject
+   display_StackDeps scriptObject
+end menu_StackDeps
+
 on submenu_ViewSnapshot
    return "Global | View | Wireframe | Menu"
 end submenu_ViewSnapshot
@@ -130,6 +145,12 @@ end submenu_Dev
 
 --> Global | Stack | Menu | Props
 -
+getprop stack_IsUsed [stackObject]
+   put the short name of stackObject into stackName
+   put stackName is among the lines of the stacksinuse into someBoolean
+   return someBoolean
+end stack_IsUsed
+
 getprop which_Screens
    put system_ListScreenNames() into screenNames
    return screenNames

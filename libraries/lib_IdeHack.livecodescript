@@ -57,23 +57,6 @@ function object_FilterRev objectIndex
 end object_FilterRev
 
 
---> Object | Refs
--
-getprop rugged_ID
-   -- could also be called "rugged_Object"
-   put the long id of the target into pObject
-   put revRuggedId (pObject) into ruggedObject
-   return ruggedObject
-end rugged_ID
-
-function rev_BehaviorID someObject
-   put the long id of someObject into longIDObject
-   put revRuggedID (longIDObject) into behaviorObject
-   put word 1 of longIDObject into word 1 of behaviorObject
-   return behaviorObject
-end rev_BehaviorID
-
-
 --> Rev | App Browser
 -
 command rev_RefreshAppBrowser

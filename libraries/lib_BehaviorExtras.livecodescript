@@ -44,11 +44,6 @@ command behavior_SetNameHierarchy targetObject, bNames
    return the result
 end behavior_SetNameHierarchy
 
-function behavior_ListNames
-   put hArray_ListBehaviorNames() into bNames
-   return bNames
-end behavior_ListNames
-
 function hArray_ListBehaviorNames
    put hArray_ListObjectNamesOfType ("behavior") into bNames
    sort bNames
@@ -448,7 +443,7 @@ end hArray_GetName
 -
 /*
 These handlers use a unique stored file based array for each Library Set.
-put library_FetchArray ("OPN_Behavior") into behaviorArray
+put lcw_FetchArray ("OPN_Behavior") into behaviorArray
 
 The new model has moved over to the more general object types of hArray.
 */
@@ -627,7 +622,7 @@ function behaviorModel_GetArray pWhichArray
    breakpoint
    
    -- this is the old file based array model
-   put library_FetchArray ("OPN_Behavior") into behaviorArray
+   put lcw_FetchArray ("OPN_Behavior.array") into behaviorArray
    switch
       case char 1 of pWhichArray is empty or char 1 of pWhichArray is "n" -- default for nameArray
          return behaviorArray ["nameArray"]
@@ -645,17 +640,17 @@ command behaviorModel_SetArray someArray, pWhichArray
    
    switch
       case char 1 of pWhichArray is empty or char 1 of pWhichArray is "n" -- default for nameArray
-         put library_FetchArray ("OPN_Behavior") into behaviorArray
+         put lcw_FetchArray ("OPN_Behavior.array") into behaviorArray
          put someArray into behaviorArray ["nameArray"]
          break
       case char 1 of pWhichArray is "o" -- for objectArray
-         put library_FetchArray ("OPN_Behavior") into behaviorArray
+         put lcw_FetchArray ("OPN_Behavior.array") into behaviorArray
          put someArray into behaviorArray ["objectArray"]
          break
       default -- "full"
          put someArray into behaviorArray
    end switch
-   library_StoreArray "OPN_Behavior", behaviorArray
+   lcw_StoreArray "OPN_Behavior.array", behaviorArray
    return behaviorArray
 end behaviorModel_SetArray
 

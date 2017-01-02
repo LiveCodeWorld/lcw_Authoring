@@ -24,7 +24,7 @@ on menu_GitRevertHkeyData
    put it into newFile
    if it is empty then exit to top
    
-   put library_GetArrayFile ("Hkey_Data") into someFile  
+   put lcw_GetArrayFile ("Hkey_Data") into someFile  
    put git_GetLastRevision (someFile, 0) into encodedDataArray
    put encodedDataArray into url ("binfile:" & newFile)
    put newFile

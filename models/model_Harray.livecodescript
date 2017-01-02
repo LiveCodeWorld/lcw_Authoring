@@ -476,12 +476,12 @@ command hArray_DeleteArrayDatabase
 end hArray_DeleteArrayDatabase
 
 function hArray_FetchData
-   put library_FetchArray ("Hkey_Data") into hArray
+   put lcw_FetchArray ("Hkey_Data.array") into hArray
    return hArray
 end hArray_FetchData
 
 command hArray_StoreData hArray
-   library_StoreArray "Hkey_Data", hArray
+   lcw_StoreArray "Hkey_Data.array", hArray
 end hArray_StoreData
 
 

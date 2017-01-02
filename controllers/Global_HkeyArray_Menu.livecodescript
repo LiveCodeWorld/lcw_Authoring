@@ -68,6 +68,8 @@ getprop disabled_DisplayHandlerDeps [treeView]
 end disabled_DisplayHandlerDeps
 
 on menu_AddToDictionary treeView
+   breakpoint
+   
    put the displayed_Object of treeView into stackObject
    put the selected_Value of treeView into selectedValue
    put the hilited_Element of treeView into pathItems
@@ -94,7 +96,6 @@ on menu_AddToDictionary treeView
    
    put ide_ListExtraDicTerms()
    script_ExportHandlersAndCalls stackObject, true
-   menu_Do "menu_ShortHkeyArray", stackObject
 end menu_AddToDictionary
 
 on _

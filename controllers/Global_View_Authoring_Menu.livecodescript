@@ -6,9 +6,25 @@ name: Global_View_Authoring_Menu
 type: controller
 version: 0.1
 
+--> Variables
+-
+local LocalArray
+
 
 --> Menu | Props
 -
+on menu_Init tObject
+   put the index_View of tObject into indexView
+   put indexView into LocalArray ["indexView"]
+   
+   put the view_Index of indexView into LocalArray ["viewProps"]
+   
+   put the displayed_ProjectName of indexView into LocalArray ["projectName"]
+   put the displayed_ProjectFolder of indexView into LocalArray ["projectFolder"]
+   put the displayed_ModuleFolder of indexView into LocalArray ["moduleFolder"]
+   put the displayed_ModuleName of indexView into LocalArray ["moduleName"]
+   put the displayed_ModuleHomeStackPath of indexView into LocalArray ["moduleHomeStackPath"]   
+end menu_Init
 
 
 --> Global | View | Authoring | Menu
@@ -18,6 +34,19 @@ on menu_Clone someView
    stack_Clone stackName
    put it into clonedStack
 end menu_Clone
+
+on _
+end _
+
+on menu_CreateModuleMenu someView
+   put LocalArray ["moduleFolder"] into moduleFolder
+   put LocalArray ["moduleName"] into moduleName
+   put _askMenuTitle (moduleName) into globalMenuTitle
+   
+   project_CreateMenu moduleFolder, globalMenuTitle
+   put the result into controllerStackObject
+   edit the script of controllerStackObject
+end menu_CreateModuleMenu
 
 on submenu_Assets
    return "Global | View | Assets | Menu"
@@ -149,23 +178,11 @@ on menu_FixView someView
    
    menu_DisplayView someView
    
-   put the filename of stack stackName into oFileName
-   put the script of stack stackName into oStackScript
-   put the rect of stack stackName into oRect
    put the script of cd 1 of stack stackName into oCardScript
    
-   breakpoint
+   stack_ConvertScriptOnly stackName
+   put the result into tempStackFileName
    
-   set the destroystack of stack stackName to true
-   set the destroywindow of stack stackName to true
-   put the tempname & ".livecodescript" into tempFileName
-   set the filename of stack stackName to tempFileName
-   set the name of stack stackName to ("temp_" & stackName)
-   
-   create invisible stack stackName
-   set the rect of stack stackName to oRect
-   set the filename of stack stackName to oFileName
-   set the script of stack stackName to oStackScript
    set the script of cd 1 of stack stackName to oCardScript
    set the behavior of cd 1 of stack stackName to the name of stack "behavior_ViewTemplateCard"
    save stack stackName
@@ -220,3 +237,19 @@ getprop disabled_SetViewMetadata [templateView]
    end if
 end disabled_SetViewMetadata
 
+
+--> Private
+-
+private function _askMenuTitle projectName
+   put line 1 of the clipboarddata ["text"] into maybeMenuTitle
+   if word -1 of maybeMenuTitle = "Menu" then
+      put maybeMenuTitle into suggestedAnswer
+   else
+      set the itemdelimiter to "_"
+      put "Global |" && item -1 of projectName && "| Menu" into suggestedAnswer
+   end if
+   
+   put "What is the name of your global menu...." into someQuestion
+   put lcw_Ask (someQuestion, suggestedAnswer) into globalMenuTitle
+   return globalMenuTitle
+end _askMenuTitle

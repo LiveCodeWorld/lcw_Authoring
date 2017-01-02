@@ -60,7 +60,7 @@ end project_IndexAfterUsed
 command project_LoadAfterUsing projectFolder
    -- the code below requires the above libraries to be used
    -- should be stored as arrays in the projects folder
-   put project_GetName (projectFolder) into projectName
+   put project_GetHomeStackName (projectFolder) into projectName
    
    project_LoadGlobalPrefs projectName
    project_LoadGlobalHarray projectName -- this clobbers any previously loaded hArray

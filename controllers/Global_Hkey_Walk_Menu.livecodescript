@@ -37,8 +37,10 @@ on menu_WalkHkey hKey, projectName
    */
    
    local pSetName, pAllCalls
-   project_WalkAndStoreObjectDependencies hKey, true, projectName
-   put the result into hKeyArray
+   -- project_WalkAndStoreObjectDependencies hKey, true, projectName
+   -- put the result into hKeyArray
+   put hkey_DependencyArrayFromObjects (hKey, projectName, true) into hKeyArray
+   
    display_HKeyArray hKeyArray, hkey
    
    -- this shoud be an hKey graph (not a script graph)
@@ -100,7 +102,7 @@ end disabled_FetchStoredHkeyArray
 -
 command project_WalkAndStoreObjectDependencies hKey, pAllCalls, pSetName 
    put hkey_DependencyArrayFromObjects (hKey, pSetName, pAllCalls) into hKeyArray
-   
+      
    -- let's store the overlay in the project handler metadata folder (and create a hierarchical graph)
    put empty into pOverlayName 
    put item 3 of hKey into hObject
@@ -108,6 +110,14 @@ command project_WalkAndStoreObjectDependencies hKey, pAllCalls, pSetName
    project_StoreHkeyArray hKey, hkeyArray, pOverlayName, mainstackHash, "hierarchical"
    return hkeyArray
 end project_WalkAndStoreObjectDependencies
+
+command project_StoreHkeyArray hKey, hkeyArray, pOverlayName, pMainstackHash, pGraphStyle
+   -- store hKeyArray in hkey project metadata folder
+   if pOverlayName is empty then put "hierarchical" into pOverlayName
+   put project_HandlerMetadataFolder (hKey) into overlayFolder
+   overlay_SetLinkArray overlayFolder, hkeyArray, pOverlayName, pGraphStyle, pMainstackHash
+   return hkeyArray
+end project_StoreHkeyArray
 
 -- function project_HackExtractHkeyArray hKey, pReIndexFromObjects, pSetName, pAllCalls
    -- was "project_GetHkeyArray"

@@ -188,8 +188,7 @@ end main_Stack
 command hkey_AddDevelopmentHierarchy @scriptHierarchy, projectName, targetObject
    local frontObjects, usedStacks, backObjects
    
-   put library_FetchProjectFolder (projectName) into projectFolder
-   put project_ListUsedStackPaths (projectFolder) into stackPaths
+   put project_ListUsedStacks (projectName) into usedStacks
    if hkey_IncludeDepsInSearch() is true then object_AddBehaviors usedStacks
    
    script_AddLibrariesToHierarchy scriptHierarchy, frontObjects, usedStacks, backObjects
@@ -335,8 +334,11 @@ command script_HandlerFromTableOffsets shortHkey, handlerTable, @startLineNum, @
       return false
    end if
    
-   put item 1 of shortHkey into hName
-   put item 2 of shortHkey into hType
+   -- put item 1 of shortHkey into hName
+   -- put item 2 of shortHkey into hType
+   -- hKeyLine_Deconstruct hKeyLine, @hName, @hType, @hObject
+   hkey_Deconstruct shortHkey, hName, hType, xObject, xNum
+   
    switch char -1 of hType
       case "c"
          put "M" into char -1 of hType
@@ -382,8 +384,9 @@ function hkey_FindInHierarchy shortHKey, tObject, pProjectName
 end hkey_FindInHierarchy
 
 function hkey_FoundArray shortHKey, tObject, pProjectName
-   put item 1 of shortHKey into hName
-   put item 2 of shortHKey into hType
+   -- put item 1 of shortHKey into hName
+   -- put item 2 of shortHKey into hType
+   hkey_Deconstruct shortHKey, hName, hType, xObject, xNum
    put the hkey_SearchHierarchy [pProjectName] of tObject into searchHierarchy
    
    put the long id of tObject into tObject

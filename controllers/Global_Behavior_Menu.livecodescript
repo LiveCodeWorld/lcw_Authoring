@@ -109,7 +109,7 @@ getprop behavior_StackNames [scriptObject]
    put the behavior_Objects of scriptObject into bObjects
    repeat for each line bObject in bObjects
       if word 1 of bObject is not "stack" then
-         breakpoint
+         -- it's a button not a stack behavior
          next repeat
       end if
       

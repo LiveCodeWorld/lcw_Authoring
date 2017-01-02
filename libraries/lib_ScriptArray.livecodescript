@@ -9,10 +9,39 @@ version: 0.5
 
 --> Working on
 -
+getprop script_Handlers [whichType]
+   try -- not in order found in script
+      put the long id of the target into tObject
+      put the revAvailableHandlers of tObject into handlerTable
+      sort numeric handlerTable by word 3 of each
+      repeat for each line someLine in handlerTable
+         put word 1 of someLine into item 2 of shortHkey
+         put word 2 of someLine into item 1 of shortHkey
+         
+         switch whichType
+            case "markdown"
+               --    - [G mobile_VerticalScroller](../blob/master/libraries/lib_MobileControls.livecodescript#L35-L42)
+               put "- [" & word 1 to 2 of someLine & "]" & CR after hLines
+               -- put "* [[" & shortHkey & "]]" & CR after hLines
+               break
+            case "start line"
+               put handler_ConstructStartLine (shortHkey) into hLine
+               put hLine & CR after hLines
+            default
+               put word 2 of someLine & CR after hLines
+         end switch
+      end repeat
+      delete char -1 of hLines
+      return hLines
+   catch someError
+      return empty -- a locked stack
+   end try
+end script_Handlers
+
 getprop script_ExternalHkeys
    put the script_Calls [true] of the target into hTableLines
    put script_FetchHkeyPlaceArray() into hkeyPlaceArray
-
+   
    repeat for each line hTableLine in hTableLines
       put hkey_GetPlace (hTableLine, hkeyPlaceArray) into cObject
       put hTableLine,cObject into externalKey
@@ -466,33 +495,3 @@ function script_ConstructArray someScript, rObject, pIsExpanded
    end repeat
    return dataArray
 end script_ConstructArray
-
-
---> Script | Handler
--
-getprop script_Handers [whichType]
-   try -- not in order found in script
-      put the long id of the target into tObject
-      put the revAvailableHandlers of tObject into handlerTable
-      sort numeric handlerTable by word 3 of each
-      repeat for each line someLine in handlerTable
-         put word 1 of someLine into item 2 of shortHkey
-         put word 2 of someLine into item 1 of shortHkey
-         
-         switch whichType
-            case "markdown"
-               put "[[*" && hLine & "]]" & CR after hLines
-               break
-            case "start line"
-               put handler_ConstructStartLine (shortHkey) into hLine
-               put hLine & CR after hLines
-            default
-               put word 2 of someLine & CR after hLines
-         end switch
-      end repeat
-      delete char -1 of hLines
-      return hLines
-   catch someError
-      return empty -- a locked stack
-   end try
-end script_Handers

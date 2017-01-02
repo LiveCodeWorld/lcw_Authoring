@@ -13,7 +13,22 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
-command project_MoveStack oldStackPath, newStackPath
+function project_NameToShortFolder moduleName
+   -- factor this out. This is only a hack for menu naming
+   set the itemdelimiter to "|"
+   repeat for each item someItem in moduleName
+      put word 1 to -1 of someItem & "_" after shortFolder
+   end repeat
+   delete char -1 of shortFolder
+   return shortFolder
+end project_NameToShortFolder
+
+function project_ShortFolderToName moduleFolderName
+   replace "_" with "|" in moduleFolderName
+   return moduleFolderName
+end project_ShortFolderToName
+
+command project_MoveStack oldStackPath, newStackPath, pLeaveAlias
    if exists (stack oldStackPath) is false then
       answer warning "View does not exist!"
       breakpoint
@@ -22,6 +37,13 @@ command project_MoveStack oldStackPath, newStackPath
    end if
    if newStackPath = oldStackPath then
       answer warning "The paths are the same!"
+      return false
+   end if
+   if there is a file newStackPath then
+      answer warning "A file already exists in that location. Remove it first."
+      put newStackPath
+      finder_Reveal newStackPath
+      exit to top
       return false
    end if
    
@@ -40,6 +62,10 @@ command project_MoveStack oldStackPath, newStackPath
    end if
    --
    set the stack_IsKnown of stack newStackPath to true
+   
+   if pLeaveAlias is true then
+      create alias oldStackPath to file newStackPath
+   end if
    return true
 end project_MoveStack
 
@@ -82,20 +108,6 @@ function project_NameToShortFile moduleName
    return shortFile
 end project_NameToShortFile
 
-function project_NameToShortFolder moduleName
-   set the itemdelimiter to "|"
-   repeat for each item someItem in moduleName
-      put word 1 to -1 of someItem & "_" after shortFolder
-   end repeat
-   delete char -1 of shortFolder
-   return shortFolder
-end project_NameToShortFolder
-
-function project_ShortFolderToName moduleFolderName
-   replace "_" with "|" in moduleFolderName
-   return moduleFolderName
-end project_ShortFolderToName
-
 
 --> Project | Stackfiles
 -
@@ -103,11 +115,10 @@ getprop stack_IsKnown [projectName]
    put the stack_Name of the target into stackName
    put the effective filename of stack stackName into stackPath
    if stackPath is empty then return false
-   
    if projectName is empty then put the project_Name of the target into projectName
    if projectName is empty then return false
    
-   project_FindFromPath stackPath, homeStackName, projectFolder, homeStackStackPath
+   put project_FindHomeStackPath (stackPath) into homeStackStackPath
    
    put the stackfile_Array of stack homeStackStackPath into stackFileArray  
    put stackFileArray [stackName] into knownRelativeFile
@@ -133,7 +144,6 @@ command project_RemoveFromStackFiles stackName, projectName, pDontSave
    if exists (stack projectName) is true then
       put the filename of stack projectName into homeStackStackPath
    else
-      -- project_FindFromPath stackPath, homeStackName, projectFolder, homeStackStackPath
       put project_GetHomeStackPath (projectName) into homeStackStackPath
    end if
    if exists (stack homeStackStackPath) is false then return empty
@@ -152,7 +162,6 @@ command project_AddToStackFiles stackName, projectName, pDontSave
    if exists (stack projectName) is true then
       put the filename of stack projectName into homeStackStackPath
    else
-      -- project_FindFromPath stackPath, homeStackName, projectFolder, homeStackStackPath
       put project_GetHomeStackPath (projectName) into homeStackStackPath
    end if
    if exists (stack homeStackStackPath) is false then return empty
@@ -174,9 +183,6 @@ end project_AddToStackFiles
 --> Project | Create
 -
 command project_CreateScriptOnlyStack shortFolder, pQuestion, pExample, pProjectName
-   -- phase out and replace with simpler and more direct "project_CreateStack"
-   breakpoint
-   
    -- this handler creates a script only stack in the corresponding folder of the Livecode World Library
    if pProjectName is empty then put env_GetProjectFocus() into pProjectName
    if pQuestion is empty then put "Give your library a name" into pQuestion
@@ -186,8 +192,8 @@ command project_CreateScriptOnlyStack shortFolder, pQuestion, pExample, pProject
    put project_GetFolder (pProjectName) into projectFolder
    
    project_CreateStack projectFolder, stackName, shortFolder
+   put the result into newStackPath
    
-   put the result into stackObject
    switch shortFolder
       case "libraries"
       case "models"
@@ -196,8 +202,8 @@ command project_CreateScriptOnlyStack shortFolder, pQuestion, pExample, pProject
          break
    end switch
    
-   edit the script of stackObject
-   return stackObject
+   edit the script of stack stackName
+   return newStackPath
 end project_CreateScriptOnlyStack
 
 command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, pScript, pNotScriptOnly
@@ -215,7 +221,7 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
       end if
    end if
    
-   put project_ConstructStandardFile (pStackName, projectFolder, pShortFolder, someExtension) into homeStackPath
+   put project_ConstructStandardFile (pStackName, projectFolder, pShortFolder, someExtension) into newStackPath
    
    _CheckCreateStack pStackName, projectFolder
    
@@ -226,7 +232,7 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
       show stack pStackName
    end if
    
-   set the filename of stack pStackName to homeStackPath
+   set the filename of stack pStackName to newStackPath
    
    put metadata_ConstructUripArray (pStackName, pLibType) into uRipArray
    -- set the script_MetaData of stack pStackName to uRipArray
@@ -237,7 +243,7 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
    save stack pStackName
    
    set the stack_IsKnown of stack pStackName to true -- this also saves the stack
-   return homeStackPath
+   return newStackPath
 end project_CreateStack
 
 function project_ConstructStandardFile stackName, projectFolder, pShortFolder, pExtension

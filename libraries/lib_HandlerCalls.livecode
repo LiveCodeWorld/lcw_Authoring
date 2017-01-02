@@ -23,6 +23,24 @@ Eventually should decide which to use (probably get rid of links.txt, and maybe 
 */
 
 
+--> Hkey | Model
+-
+/*
+Old ???
+
+Need to move over to sqlite database
+*/
+
+function library_FetchHandlerDatabaseArray
+   put lcw_FetchArray ("Hkey_Library.array") into handlerDatabaseArray
+   return handlerDatabaseArray
+end library_FetchHandlerDatabaseArray
+
+command library_StoreHandlerDatabaseArray handlerDatabaseArray
+   lcw_StoreArray "Hkey_Library.array", handlerDatabaseArray
+end library_StoreHandlerDatabaseArray
+
+
 --> Calls | Props
 -
 getprop hkey_Calls [shortHkey]
@@ -377,15 +395,6 @@ function library_ListHkeys
    sort hKeys by item 1 of each
    return hKeys
 end library_ListHkeys
-
-function library_FetchHandlerDatabaseArray
-   put library_FetchArray ("Hkey_Library") into handlerDatabaseArray
-   return handlerDatabaseArray
-end library_FetchHandlerDatabaseArray
-
-command library_StoreHandlerDatabaseArray handlerDatabaseArray
-   library_StoreArray "Hkey_Library", handlerDatabaseArray
-end library_StoreHandlerDatabaseArray
 
 
 --> Hkey Calls | Harray

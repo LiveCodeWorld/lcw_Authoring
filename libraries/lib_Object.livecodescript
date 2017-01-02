@@ -20,6 +20,12 @@ non-OOP file for speed optimisation or other reasons.
 
 --> Top
 -
+getprop top_Card
+   -- using a virtual custom property sets the target and therefore "this"
+   put the long id of this card into cardObject
+   return cardObject
+end top_Card
+
 getprop top_Controls
    put the long ID of the target into targetObject
    return object_GetGroupControls (targetObject, false)
@@ -347,14 +353,14 @@ end mouse_WithinBottomCorner
 
 --> Field
 -
-getprop field_Object
-   -- a default
-   put the long ID of the target into fieldObject
-   if word 1 of fieldObject ="field" then
-      return fieldObject
-   else
-      return empty
-   end if
+-- getprop field_Object
+-- a default
+put the long ID of the target into fieldObject
+if word 1 of fieldObject ="field" then
+   return fieldObject
+else
+   return empty
+end if
 end field_Object
 
 getprop field_Locked
@@ -2301,14 +2307,6 @@ field id 226375,group id 226358,group id 226332,card id 224190,stack "..."
 
 then a simple "for each item" loop to traverse it.
 */
-
-getprop view_Objects
-   put the long ID of the target into targetObject
-   
-   put the view_FoundChildren of targetObject into viewObjects
-   if the object_IsView of targetObject is true then line_Insert targetObject, viewObjects, 1
-   return viewObjects
-end view_Objects
 
 getprop object_IsLibraryView
    put the long ID of the target into targetObject

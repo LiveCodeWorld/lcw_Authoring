@@ -400,13 +400,17 @@ function control_ConstructCreateDoScript controlType, someName, targetOwner, pCl
       case controlType = "widget"
          put widget_ConstructCreateDoScript (someName, pClassOrViewName, targetOwner) into doScript
          return doScript
-      default
+      case controltype is among the items of "field,button,graphic,player,image"
          if word 1 of targetOwner is "group" then
             put "create invisible" && controlType && quote & someName & quote && "in" && targetOwner into doScript
          else
             put "create invisible" && controlType && quote & someName & quote into doScript
          end if
          return doScript
+         break
+      default
+         breakpoint
+         return empty
    end switch
 end control_ConstructCreateDoScript
 
@@ -437,17 +441,26 @@ end object_Delete
 
 --> View | Update
 -
-command view_Update pSomeView, pSendReplace
+command view_Update viewObject, pSendReplace
    -- replaces a view with a library version if the library version is more up-to-date
    -- wraps the "view_Replacement"
-   
-   if exists (pSomeView) is false then put the view_Object of the target into pSomeView
-   if exists (pSomeView) is false then return merge ("Error: view [[the name of pSomeView]] does not exist.")
+   if exists (viewObject) is false then
+      return merge ("Error: object does not exist")
+   end if
+   put the long id of viewObject into viewObject
+   if the view_Object of viewObject is not viewObject then
+      return merge ("Error: object is not a view")
+   end if
    put pSendReplace is not false into pSendReplace
-   put the view_Template of pSomeView into libraryView
-   if exists (libraryView) is false then return "Error: library view does not exist. maybe target is not a view?"
    
-   set the view_Replacement [pSendReplace] of pSomeView to libraryView
+   -- put the view_Template of pSomeView into libraryView -- returns the top view if it is in a view / module stack
+   put the view_Name of viewObject into viewName
+   put view_GetTemplateObject (viewName) into viewTemplate
+   if exists (viewTemplate) is false then
+      return "Error: cannot locate a view template for this object"
+   end if
+   
+   set the view_Replacement [pSendReplace] of viewObject to viewTemplate
    return the result
 end view_Update
 

@@ -233,7 +233,9 @@ command display_SVG svgFile, pStackLabel
       set the itemdelimiter to slash
       put item -1 of svgFile into pStackLabel
    end if
-   view_CloneShow cloneStackName, empty, pStackLabel
+   -- view_CloneShow cloneStackName, empty, pStackLabel
+   show stack cloneStackName
+   if pStackLabel is not empty then set the label of stack cloneStackName to pStackLabel
    return displayView
 end display_SVG
 
