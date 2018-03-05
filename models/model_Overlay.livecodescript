@@ -237,22 +237,6 @@ command overlay_SetNode overlayFolder, pOverlayName
    return overlayData
 end overlay_SetNode
 
-function overlay_GetNodeLinks overlayFolder
-   put overlay_LinkFile (overlayFolder) into someFile
-   put url ("file:" & someFile) into nodeLinks
-   return nodeLinks
-end overlay_GetNodeLinks
-
-command overlay_SetNodeLinks overlayFolder, nodeLinks
-   put overlay_LinkFile (overlayFolder) into someFile
-   if nodeLinks is empty then
-      -- file_Delete someFile
-      delete file someFile
-   else
-      put nodeLinks into url ("file:" & someFile)
-   end if
-end overlay_SetNodeLinks
-
 
 --> Overlay
 -
@@ -310,14 +294,6 @@ end overlay_ReconstructArray
 Some default values that can be calculated for "the overlay_Data of the target" 
 Override locally for fine grain control.
 */
-
-getprop textStackOverlay_Data  [pOverlayName]
-   put the textStackOverlay_Folder [true] of the target into overlayFolder
-   if there is not a folder overlayFolder then return empty
-   put overlay_GetData (overlayFolder) into overlayData
-   if pOverlayName is empty then return overlayData
-   return overlayData [pOverlayName]
-end textStackOverlay_Data
 
 getprop overlay_Array [pOverlayName]
    put the overlay_Folder of the target into overlayFolder
@@ -732,6 +708,7 @@ command overlay_CreateDotFiles @overlayArray, pOverlayFolder, pImageFormat
    end if
    
    overlay_Files pOverlayFolder, dotFile, imageFile, cmapxFile, xdotFile, dotArrayFile, overlayName, pImageFormat
+   -- put dotFile & CR & dotText
    dot_SaveTemporaryFile dotText, dotFile
    
    if graphStyle = "hierarchical" then -- lets flatten it ?

@@ -14,7 +14,7 @@ local LocalArray
 --> Global | Hkey | Dependency | Menu
 -
 on menu_CreateDependencyGraphFromExported hKey, fetchHow
-   put hkey_ConstructCallArray (hKey, fetchHow) into hKeyArray
+   put hkeyArray_FromExported (hKey) into hKeyArray
    hkeyArray_DrawGraph hKeyArray, "hierarchical"
 end menu_CreateDependencyGraphFromExported
 
@@ -23,11 +23,6 @@ on menu_CreateWithoutObjectClusters hKey
    deps_CreateMainStackOverlay scriptObject, "hierarchical", "display", true, "none"
    put hkey_DependencyArrayFromObjects (hKey, "Menu Only", true) into hKeyArray
 end menu_CreateWithoutObjectClusters
-
-on menu_RecursivelyCreateLibrayDepGraphsFromObjects hKey
-   library_ConstructRecurseAddAndCreateHkeyGraph hKey
-   display_Hkey hKey
-end menu_RecursivelyCreateLibrayDepGraphsFromObjects
 
 on _
 end _
@@ -60,7 +55,7 @@ end _
 on menu_FetchDependencyScript hKey
    local missingHkeys, depScript
    put hkey_FetchDeps (hKey) into depHkeys
-   script_FetchFromHkeys depHkeys, depScript, missingHkeys, false
+   script_FetchFromHkeys depHkeys, depScript, missingHkeys
    put script_ConstructSuite ("Deps", depScript) into depSuite
    
    display_Lines depSuite, "hkey_FetchDeps (shortHKey)"
@@ -163,7 +158,7 @@ end fetch_Hows
 
 getprop old_FetchHow [hKey]
    -- put hkey_GetLinkArray (hKey) into hkeyLinkArray
-   put hkey_ArrayFile (hKey) into someFile
+   put hkey_OverlayDataFile (hKey) into someFile
    if there is a file someFile then put "stored hkeyLinkArray" & CR after fetchHows
    
    -- put the script_LinkArray of hObject into hkeyLinkArray
@@ -213,7 +208,7 @@ end include_HandlersFroms
 --> Global | Hkey | Dependency | Menu | Disabled
 -
 getprop disabled_DepsFromStoredHkeyLinkArray [hKey]
-   put hkey_ArrayFile (hKey) into someFile
+   put hkey_OverlayDataFile (hKey) into someFile
    if there is a file someFile then
       return false
    else

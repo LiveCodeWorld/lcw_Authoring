@@ -13,7 +13,7 @@ Lot's of complex code expriments to hack and fix things. Should be some useful s
 --> Menu | Props
 -
 getprop menu_Target
-   return rev_ScriptObject()
+   return scriptEditor_Object()
 end menu_Target
 
 
@@ -245,8 +245,8 @@ getprop set_Names
    return library_ListProjectNames () -- & ",-,Add"
 end set_Names
 
-getprop library_SetName
-   return env_GetProjectFocus()
+-- getprop library_SetName
+return env_GetProjectFocus()
 end library_SetName
 
 getprop library_SetNames

@@ -93,7 +93,7 @@ on _
 end _
 
 on menu_ShowMenuStack scriptObject, someBoolean
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_SubStack of mController into subStackObject
    if exists (subStackObject) then
       set the visible of subStackObject to someBoolean
@@ -109,7 +109,7 @@ on menu_DeleteMenuStack
    answer "Sure you want to delete the local record stack - and all the views it contains?" with "OK" or "Cancel"
    if it is "Cancel" then exit to top
    
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the stack_Name of mController into mainStackName
    put the stack_SubName ["OPN Stack Menus"] of mController into subStackName
    breakPoint
@@ -178,7 +178,7 @@ getprop disabled_DeleteMenuCard [scriptObject]
 end disabled_DeleteMenuCard
 
 getprop disabled_ShowMenuStack
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_SubStack of mController into subStackObject
    if exists(subStackObject) then
       return false
@@ -188,7 +188,7 @@ getprop disabled_ShowMenuStack
 end disabled_ShowMenuStack
 
 getprop disabled_DeleteMenuStack
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_SubStack of mController into subStackObject
    if exists(subStackObject) then
       return false
@@ -247,7 +247,7 @@ end menu_CreateItemButtons
 --> Menu | Props
 -
 getprop menu_Target
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    return scriptObject
 end menu_Target
 

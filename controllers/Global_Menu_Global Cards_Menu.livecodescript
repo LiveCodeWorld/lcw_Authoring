@@ -29,7 +29,7 @@ on menu_CreateGlobalCard originalMenuController, newGlobalTitle
       put lcw_Ask ("Create new global menu card?", "Global | ??? | Menu") into newGlobalTitle
    end if
    
-   -- put rev_ScriptObject() into originalMenuController
+   -- put scriptEditor_Object() into originalMenuController
    
    put the script of originalMenuController into someScript
    put script_GetSuite (newGlobalTitle, someScript) into globalMenuSuites
@@ -54,7 +54,7 @@ on menu_CreateGlobalCard originalMenuController, newGlobalTitle
          put menu_ConstructTemplateScript (newGlobalTitle) into globalMenuSuites
          set the script of newGlobalMenuController to globalMenuSuites
       else
-         rev_CloseTab originalMenuController
+         scriptEditor_CloseTab originalMenuController
          set the script of newGlobalMenuController to globalMenuSuites
          set the script of originalMenuController to someScript
          menu_CreateAndStoreTables originalMenuController
@@ -158,7 +158,7 @@ end new_GlobalTitles
 -
 getprop menu_CheckTarget [mTarget]
    -- lets load cache here
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    if exists(scriptObject) is false then return empty
    
    -- put the menu_TableTitles of scriptObject into CachedMenuTitles

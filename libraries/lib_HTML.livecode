@@ -14,10 +14,10 @@ This script only stack contains the latest genral utility handlers for dealing w
 
 --> HTML | CLI
 -
-function html_FetchTidy someUrl
-   put url someUrl into someHtml
-   html_Tidy someHtml
-   return someHtml
+function html_FetchTidy someURL
+   put "curl -s" && someURL && "| tidy -asxhtml --quiet yes --tidy-mark no --show-warnings false --show-errors 0" into someShell
+   put shell (someShell) into someXhtml   
+   return someXhtml
 end html_FetchTidy
 
 command html_Tidy @someHtml
@@ -29,6 +29,71 @@ command html_Tidy @someHtml
    put url ("file:" & inputFile) into someHtml
 end html_Tidy
 
+
+--> Html | Tag | img
+-
+function html_ExtractImageSource htmlBit
+   html_DecomposeImgTag htmlBit, srcURL, altWord
+   return srcURL
+end html_ExtractImageSource
+
+command html_DecomposeImgTag htmlBit, @srcURL, @altWord
+   /*
+   <img width=100% src="http://feast.fm/assets/images/refugee_feast_close.jpg">
+   */
+   
+   put empty into srcURL
+   put empty into altWord
+   put wordoffset ("<img", htmlBit) into wNum
+   if wNum = 0 then return false
+   put wordoffset ("src=", htmlBit, wNum) into wNum
+   if wNum = 0 then return false
+   delete word 1 to wNum of htmlBit
+   put token 3 of htmlBit into srcURL
+   return true
+   
+   /*
+   -- does not seem to work on Livecode server
+   -- http://regexlib.com/REDetails.aspx?regexp_id=1435
+   
+   put "<img[\s]+[^>]*?((alt*?[\s]?=[\s\" into someReg
+   put quote & "\']+(.*?)[\" after someReg
+   put quote & "\']+.*?)|(src*?[\s]?=[\s\" after someReg
+   put quote & "\']+(.*?)[\" after someReg
+   put quote & "\']+.*?))((src*?[\s]?=[\s\" after someReg
+   put quote & "\']+(.*?)[\" after someReg
+   put quote & "\']+.*?>)|(alt*?[\s]?=[\s\" after someReg
+   put quote & "\']+(.*?)[\" after someReg
+   put quote & "\']+.*?>)|>)" after someReg
+   
+   --<img width=100% src="http://feast.fm/assets/images/refugee_feast_close.jpg">	
+   -- src="http://feast.fm/assets/images/refugee_feast_close.jpg"	
+   -- seem to be 10 matches?
+   --  if matchtext (htmlBit, someReg, someLink, someText) is false then
+   put matchchunk (htmlBit, someReg, start1, end1, start2, end2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10) into someBoolean
+   if someBoolean is false then
+      put empty into srcURL
+      put empty into altWord
+      return false
+   end if
+   
+   put char start1 to end1 of htmlBit into someThing
+   put char start2 to end2 of htmlBit into someThing
+   put char start3 to end3 of htmlBit into someThing
+   
+   put char start4 to end4 of htmlBit into srcString
+   put char start5 to end5 of htmlBit into srcURL
+   
+   put char start6 to end6 of htmlBit into someThing
+   put char start7 to end7 of htmlBit into someThing
+   put char start8 to end8 of htmlBit into someThing
+   put char start9 to end9 of htmlBit into someThing
+   
+   put char start10 to end10 of htmlBit into altWord
+   
+   return true
+   */
+end html_DecomposeImgTag
 
 
 --> Html | List
@@ -219,12 +284,68 @@ on html_Deconstruct someHTML, @someHeader, @someBody, @someTitle
     put html_ExtractBody(someHTML) into someBody
 end html_Deconstruct
 
+function html_ExtractTLD someURL, pLastTwo
+   set the itemdelimiter to slash
+   put item 3 of someURL into someTLD
+   if pLastTwo is not true then return someTLD
+   
+   set the itemdelimiter to "."
+   put item -2 to -1 of someTLD into tldBit
+   return tldBit
+end html_ExtractTLD
+
 function html_ExtractTitle someHTML
-   return html_ExtractNode ("html/head/title", someHTML)
+   put "html/head/title" into someNode
+   -- return html_ExtractNode (someNode, someHTML)
+   put html_ExtractNodeContents (someNode, someHTML) into innerContent
+   return innerContent
 end html_ExtractTitle
 
+function html_ConstructFaviconLink xHTML, someURL
+   -- can be "apple-touch-icon"
+   if xHTML is empty then return empty
+   put revXMLCreateTree (xHTML, false, true, false) into treeID
+   --
+   put "html/head/title" into someNode
+   put html_ExtractNodeContents (someNode, xHTML) into pageTitle
+   put revXMLMatchingNode (treeID, "html/head", "link", "rel", "icon", 1) into someNode
+   if someNode is empty then
+      revDeleteXMLTree treeID
+      return empty
+   end if
+   put revXMLAttribute (treeID, someNode, "href") into faviconLink
+   --
+   revDeleteXMLTree treeID
+   
+   set the itemdelimiter to slash
+   if token 1 of faviconLink is among the items of "http/https" then
+      put faviconLink into faviconURL
+   else
+      put item 1 to 3 of someURL & faviconLink into faviconURL
+   end if
+   get "<img src='[[faviconURL]]' style='vertical-align: middle; width:16px; height:16px' /><a target=_blank style='vertical-align: middle; padding-left: 10px; padding-right: 12px; text-decoration: none;' href='[[someURL]]'>[[pageTitle]]</a>"
+   put merge (it) into faviconLink
+   return faviconLink
+end html_ConstructFaviconLink
+
+function html_ExtractFavicon someHTML
+   -- <link rel="icon" href="/resources/images/favicon.png">
+   put url "https://caddyserver.com/features" into someHTML
+   html_Tidy someHTML
+   if someHTML is empty then return empty
+   
+   put revXMLCreateTree (someHTML, false, true, false) into treeID
+   --
+   -- put revXMLMatchingNode (treeID, "/head", "link", "rel", "icon", -1) into someNode -- without htmlTidy
+   put revXMLMatchingNode (treeID, "html/head", "link", "rel", "icon", 1) into someNode -- if you use htmlTidy
+   put revXMLAttribute (treeID, someNode, "href") into faviconLink
+   --
+   revDeleteXMLTree treeID
+   return faviconLink
+end html_ExtractFavicon
+
 function html_ExtractHeader someHTML
-    return html_ExtractNode ("html/head", someHTML)
+   return html_ExtractNode ("html/head", someHTML)
 end html_ExtractHeader
 
 function html_ExtractBody someHTML
@@ -513,6 +634,12 @@ function html_ExtractNode someNode, someHTML
 end html_ExtractNode
 
 function html_ExtractNodeContents someNode, someHTML
+   put revXMLCreateTree (someHTML, false, true, false) into treeID
+   put revXMLNodeContents (treeID, someNode) into innerContent -- this is not what I think of as "contents" :)
+   revDeleteXMLTree treeID
+   return innerContent
+   
+   /*  
    put html_ExtractNode (someNode, someHTML) into someXML
    
    -- hack:  now get rid of that tag
@@ -521,12 +648,6 @@ function html_ExtractNodeContents someNode, someHTML
    local startTag, endTag, someTag, tagContents
    xml_TagOffsets someXML, tagName, startTag, endTag, someTag, tagContents
    return tagContents
-   
-   /*
-   put revXMLCreateTree (someHTML, false, true, false) into treeID
-   put revXMLNodeContents (treeID, rootNode) into innerContent -- this is not what I think of as "contents" :)
-   revDeleteXMLTree treeID
-   return innerContent
    */
 end html_ExtractNodeContents
 
@@ -907,4 +1028,3 @@ function unicode_SurrogatePairToCodePoint highNums, lowNums
    put numToByte (baseConvert (lowNums,16,10)) after unicodeChar
    return unicodeChar
 end unicode_SurrogatePairToCodePoint
-

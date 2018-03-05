@@ -13,7 +13,7 @@ version: 0.5
 --> Project Deps
 -
 getprop project_Deps
-   return "lcw,lcw_Tools"
+   return "lcw,lcw_Menus,lcw_Tools"
 end project_Deps
 
 

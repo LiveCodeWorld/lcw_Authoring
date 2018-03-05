@@ -25,41 +25,65 @@ end disabled_ProjectArrayFile
 on _
 end _
 
+on menu_ProjectOverlayFolder scriptObject
+   put the project_OverlayFolder of scriptObject into someFolder
+   display_Folder someFolder
+end menu_ProjectOverlayFolder
+
+on menu_ScriptOverlayFolder scriptObject
+   put the script_OverlayFolder of scriptObject into someFolder
+   display_Folder someFolder
+end menu_ScriptOverlayFolder
+
+getprop disabled_ProjectOverlayFolder [scriptObject]
+   put the project_OverlayFolder of scriptObject into someFolder
+   if there is a folder someFolder then
+      return false
+   else
+      return true
+   end if
+end disabled_ProjectOverlayFolder
+
+getprop disabled_ScriptOverlayFolder [scriptObject]
+   put the script_OverlayFolder of scriptObject into someFolder
+   if there is a folder someFolder then
+      return false
+   else
+      return true
+   end if
+end disabled_ScriptOverlayFolder
+
+on menu_RevealTextStackOverlayFolder scriptObject
+   put the textStack_ProjectOverlayFolder [false] of scriptObject into overlayFolder
+   display_Folder overlayFolder
+end menu_RevealTextStackOverlayFolder
+
+on _
+end _
+
 on menu_ProjectFolder scriptObject
    put the project_Folder of scriptObject into projectFolder
    display_Folder projectFolder
 end menu_ProjectFolder
 
-on menu_ObjectFolder scriptObject
+on menu_DataFolder scriptObject
    put the data_Folder of scriptObject into someFolder
    display_Folder someFolder
-end menu_ObjectFolder
+end menu_DataFolder
 
-on menu_OverlayFolder scriptObject
-   put the overlay_Folder of scriptObject into someFolder
-   display_Folder someFolder
-end menu_OverlayFolder
+on _
+end _
 
 on menu_TextStackMetadataFolder scriptObject
    put the textStack_MetadataFolder of scriptObject into someFolder
    display_Folder someFolder
 end menu_TextStackMetadataFolder
 
-on menu_ProjectOverlayFolder scriptObject
-   put the project_OverlayFolder of scriptObject into someFolder
-   display_Folder someFolder
-end menu_ProjectOverlayFolder
-
-on menu_RevealTextStackFolder scriptObject
+on menu_TextStackFolder scriptObject
    put the textStack_Folder of scriptObject into overlayFolder
    display_Folder overlayFolder
-end menu_RevealTextStackFolder
+end menu_TextStackFolder
    
-on menu_RevealTextStackOverlayFolder scriptObject
-   put the textStackOverlay_Folder [false] of scriptObject into overlayFolder
-   display_Folder overlayFolder
-end menu_RevealTextStackOverlayFolder
-
 on _
 end _
 
@@ -79,7 +103,7 @@ end submenu_Dev
 --> Dev | Menu
 -
 on menu_RevealMainstackDotText scriptObject
-   put the textStackOverlay_Folder [true] of scriptObject into overlayFolder
+   put the textStack_ProjectOverlayFolder [true] of scriptObject into overlayFolder
    put overlay_ConstructFile ("dot", overlayFolder, "Mainstack Structure") into someFile
    
    display_File someFile
@@ -99,6 +123,7 @@ command display_File someFile
       finder_Reveal someFile
       lcw_Notify "Here is the file..."
    else
+      put someFile
       answer warning "File does not exist!"
    end if
 end display_File
@@ -109,6 +134,7 @@ command display_Folder someFolder
       finder_Reveal someFolder
       lcw_Notify "Here is the folder..."
    else
+      put someFolder
       answer warning "Folder does not exist!"
    end if
 end display_Folder

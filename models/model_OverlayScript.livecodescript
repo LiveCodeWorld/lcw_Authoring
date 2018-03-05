@@ -342,7 +342,7 @@ command scriptObject_ExportScript scriptObject
 end scriptObject_ExportScript
 
 command scriptObject_RevertToExportedFile scriptObject
-   put rev_ListTabScriptObjects() into scriptEditorObjects
+   put scriptEditor_ListTabScriptObjects() into scriptEditorObjects
    if scriptObject is among the lines of scriptEditorObjects then
       return merge("Error: close script editor tab for [[scriptObject]] before using this tool")
    end if

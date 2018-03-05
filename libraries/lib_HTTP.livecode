@@ -112,18 +112,21 @@ end http_GetReceivedHeader
 
 function http_GetReceivedHeaderArray
    -- does not work with repeated values like 2 or more "cookie:"
-   put libUrlLastRHHeaders() into tResp
+   put libUrlLastRHHeaders() into receivedHeaders
    
-   put line 1 of tResp into statusLine
-   switch
-      case 503 is among the words of statusLine
+   put word -2 of line 1 of receivedHeaders into statusNum
+   switch statusNum
+      case 503
          put "Error, service unavailable" into someError
          return someError
-      case 200 is among the words of statusLine
-         replace ": " with numtochar(4) in tResp
-         delete line 1 of tResp
-         split tResp by CR and numtochar(4)
-         return tResp
+      case 200
+         delete line 1 of receivedHeaders
+         set the itemdelimiter to ":"
+         repeat for each line headerLine in receivedHeaders
+            put item 1 of headerLine into someKey
+            put item 2 to -1 of headerLine into headerArray [someKey]
+         end repeat
+         return headerArray
       default
          return "Error," && word 2 to -1 of statusLine
    end switch

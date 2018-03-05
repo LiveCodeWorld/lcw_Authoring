@@ -15,79 +15,92 @@ while the metadata folder should contain any information which desribes or graph
 */
 
 
---> TextStack | DepStacks
+-->  Working on
 -
-getprop textstack_DepStacks
-   put the textstack_HkeyObjectArray of the target into objectArray
-   delete variable objectArray ["Missing"]
-   put the stack_Object of the target into longStackObject
-   delete variable objectArray ["revIgniter"]
-   put the name of longStackObject into myStackObject
-   delete variable objectArray [myStackObject]
-   put keys (objectArray) into dependencyStacks
-   return dependencyStacks
-end textstack_DepStacks
 
+--> TextStack | HkeyObject | Array
+-
 getprop textstack_HkeyObjectArray
-   put the textstack_ProcessedHkeyArray of the target into processedHkeyArray  
+   put the textStack_HkeyArray of the target into processedHkeyArray  
    put hkeyArray_ConstructObjectArray (processedHkeyArray) into hkeyObjectArray
    return hkeyObjectArray
 end textstack_HkeyObjectArray
 
-getprop textstack_ProcessedHkeyArray
-   put the project_ProcessedHkeyArrayFile of the target into someFile
+
+--> TextStack | HkeyObject | Array
+-
+getprop textStack_HkeyArray
+   -- was "textstack_ProcessedHkeyArray"
+   put the textStack_HkeyArrayFile of the target into someFile
    put array_Fetch (someFile) into rigHkeyArray
    return rigHkeyArray
-end textstack_ProcessedHkeyArray
+end textStack_HkeyArray
 
-setprop textstack_ProcessedHkeyArray rigHkeyArray
-   put the project_ProcessedHkeyArrayFile of the target into someFile
+setprop textStack_HkeyArray rigHkeyArray
+   -- was "textstack_ProcessedHkeyArray"
+   put the textStack_HkeyArrayFile of the target into someFile
    array_Save someFile, rigHkeyArray
    return someFile
-end textstack_ProcessedHkeyArray
+end textStack_HkeyArray
 
 
---> hArray | Model
+--> TextStack | HkeyArray | File
 -
-command hArray_LoadGlobal
-   global gHkey_Array
-   put hArray_FetchData() into gHkey_Array
-end hArray_LoadGlobal
-
-command hArray_StoreGlobal
-   global gHkey_Array
-   hArray_StoreData gHkey_Array
-end hArray_StoreGlobal
-
-command hArray_DeleteArrayDatabase
-   global gHkey_Array
-   delete variable gHkey_Array
-end hArray_DeleteArrayDatabase
-
-function hArray_FetchData
-   put lcw_FetchArray ("Hkey_Data.array") into hArray
-   return hArray
-end hArray_FetchData
-
-command hArray_StoreData hArray
-   lcw_StoreArray "Hkey_Data.array", hArray
-end hArray_StoreData
+getprop textStack_HkeyArrayFile
+   -- this puts object hkeyarray files in the project overlay folder (wrong place)
+   put the textStack_ProjectOverlayFolder of the target into projectOverlayFolder
+   put projectOverlayFolder & "processedHkey.array" into someFile
+   return someFile
+end textStack_HkeyArrayFile
 
 
---> Project | hArray | Model
+-->  TextStack | Folders
 -
-/*
-Should change this to store it somewhere sensible
-Like the lcw_User folder?
-*/
+getprop textStack_MetadataFolder [pDontCreate]
+   -- /lcw_User/lcw_Metadata/LCW/metadata/
+   put the textStack_Folder of the target into textStackFolder
+   put textStackFolder & "metadata/" into objectMetaDataFolder
+   if pDontCreate is not true then folder_CreateNested objectMetaDataFolder
+   return objectMetaDataFolder
+end textStack_MetadataFolder
 
-function project_FetchHarray
-   put lcw_FetchArray ("Hkey_Data.array") into hArray
-   return hArray
-end project_FetchHarray
+getprop textStack_DataFolder [pDontCreate]
+   -- /lcw_User/lcw_Metadata/LCW/data/
+   put the textStack_Folder of the target into textStackFolder
+   put textStackFolder & "data/" into textStackDataFolder
+   if pDontCreate is not true then folder_CreateNested textStackDataFolder
+   return textStackDataFolder
+end textStack_DataFolder
 
-command project_SaveHarray hArray
-   lcw_StoreArray "Hkey_Data.array", hArray
-   put the result into arrayFile
-   return arrayFile
-end project_SaveHarray
+getprop textStack_Folder [pDontCreate]  
+   put the defaultstack into stackObject
+   put the mainstack of stackObject into mainStackName
+   put textStack_ConstructFolder (mainStackName) into textStackFolder
+   return textStackFolder
+end textStack_Folder
+
+function textStack_ConstructFolder mainStackName
+   -- mainStackName is the same as the name of the folder in the datafolder
+   put lcw_UserMetadataFolder() into textStackRoot
+   put textStackRoot & mainStackName & "/" into textStackFolder
+   if pDontCreate is false then folder_CreateNested textStackFolder
+   return textStackFolder
+end textStack_ConstructFolder
+
+getprop textStack_Root
+   put lcw_UserMetadataFolder() into lcwUserMetadataFolder
+   return lcwUserMetadataFolder
+end textStack_Root
+
+
+-->  TextStack | File | Script
+-
+function textStack_ScriptFile dataFolder, pDontCreate
+   if pDontCreate is false then
+      folder_CreateNested dataFolder
+   else
+      text_AddTrailing dataFolder, slash
+   end if
+   put dataFolder & "lcw_script.txt" into someFile
+   return someFile
+end textStack_ScriptFile

@@ -6,6 +6,10 @@ name: behavior_FedwikiOverides
 type: behavior
 version: 0.1
 
+/*
+See also behavior_RigLocalOveride
+*/
+
 
 --> Fedwiki | Overrides
 -

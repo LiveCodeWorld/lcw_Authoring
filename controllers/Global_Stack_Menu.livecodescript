@@ -19,14 +19,21 @@ Some basic tools for manipulating stacks, and windows.
 
 --> Global | Stack | Menu
 -
+on menu_TextstackHkeyObjectArray scriptObject
+   put the stack_Object of scriptObject into stackObject
+   put the textstack_HkeyObjectArray of stackObject into depObjectArray
+   display_Array depObjectArray
+end menu_TextstackHkeyObjectArray
+
+on menu_ScriptLibraryDependencies scriptObject
+   put the stack_Object of scriptObject into stackObject
+   put the script_DepLibs of stackObject -- into dependencyStacks
+end menu_ScriptLibraryDependencies
+
 on menu_StackProperties scriptObject
    revIDEInspectObjects scriptObject
 end menu_StackProperties
          
-on menu_StackHistory scriptObject
-   display_StackHistory scriptObject
-end menu_StackHistory
-
 on _
 end _
 
@@ -47,10 +54,9 @@ end menu_StackIsUsed
 on _
 end _
 
-on menu_RevealStack mTarget
-   put the stack_Name of mTarget into stackName
-   stack_RevealInFinder stackName
-end menu_RevealStack
+on menu_GatherStacks
+   screen_GatherStacks
+end menu_GatherStacks
 
 on menu_PlaceOnScreen scriptObject, whichScreen
    put the stack_Name of scriptObject into stackName
@@ -80,6 +86,14 @@ on menu_PlaceOnMainScreen mTarget, openStackName
          show stack openStackName
    end switch
 end menu_PlaceOnMainScreen
+
+on _
+end _
+
+on menu_RevealStack mTarget
+   put the stack_Name of mTarget into stackName
+   stack_RevealInFinder stackName
+end menu_RevealStack
 
 on menu_Shrink scriptObject
    if the shiftKey is down then
@@ -121,10 +135,6 @@ end menu_StackTitleStyle
 
 on _
 end _
-
-on menu_StackDeps scriptObject
-   display_StackDeps scriptObject
-end menu_StackDeps
 
 on submenu_ViewSnapshot
    return "Global | View | Wireframe | Menu"

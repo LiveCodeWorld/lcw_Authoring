@@ -490,7 +490,6 @@ on dg_FillInData recordArray, recordView
       if exists (hObject) is false then
          set the hkey_Title of recordView to hKey
          if the display_ProjectHandlers of me is true then
-            -- should this be hkey_GetHandler - anywhere from hierarchy ????
             put hkey_ExtractHandlerFromObject (hKey) into someHandler
          else
             put library_FetchHandler (hKey) into someHandler
@@ -567,6 +566,14 @@ getprop displayed_ImageFile [pOverlayName]
    end if
    return imageFile
 end displayed_ImageFile
+
+function hkey_ProjectImageFile hKey, pOverlayName
+   -- could be "project_HkeyImageFile"
+   -- see "script_GraphImageFile" "scriptObject_ImageFile"
+   put project_HandlerMetadataFolder (hKey, true) into overlayFolder
+   put overlay_GetImageFile (overlayFolder, pOverlayName) into imageFile
+   return imageFile
+end hkey_ProjectImageFile
 
 setprop displayed_HkeyGraph [pOverlayName] hKey 
    put the hkey_ImageView of me into hkeyImageView

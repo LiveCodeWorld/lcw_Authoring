@@ -4,11 +4,17 @@
 license: GPLv3
 name: lib_DisplayGraph
 type: library
-version: 0.1
+version: 0.2
 
 /*
 A library to do with overlays, creating them from folders of data (overlay_Folder)
 and providing a set of custom properties that can be used to manipulate them.
+
+Essentially it draws graphs using the data stored in arrays created by "deps_SaveMainstackAndExportArrays".
+The main guts of the code is in "hkey_ObjectWalk", which uses "project_ConstructWalkArray" (a hArray walk which uses hArray_FindHkeyInHierarchy)
+This is complicated hacked code with various filtering going on.
+
+Then it walks missing handlers using "hkey_ObjectWalk"
 
 Previously there were many intefaces and libraries - overlayData, overlayFolder, overlayArray, linkArray etc
 This library is designed to provide a standard way to interface with these handlers, 
@@ -17,385 +23,51 @@ using overlay_Folder and overlay_Name to refer to graph overlays uniquely.
 = To Do =
 At the moment the data structure is a nested set of dotArrays keyed by the overlayName of each overlayArray.
 This means there is no real metadata for overlayData, and thngs like overlayName are stored
-as a hack by slooping through metadata proerties of each overlayArray.
+as a hack by slooping through metadata properties of each overlayArray.
 
 The data structure should perhaps be changed to the usual data/metadata arrangement.
-*/
 
-
---> Working On
--
-
-
---> Display | Event Handlers
--
-/*
-These handlers handle events from display views that are created from the code in this library.
-They do not have to be here, as you can change their location by setting the "event_Target" property of the display_View.
-*/
-
-command display_ObjectHkeyArrayHandler treeWidget, someValue, pathItems
-   put 1 into hNum
-   put item 1 of pathItems into hObject
-   get item 2 of pathItems 
-   set the itemdelimiter to "_"
-   put item 1 to -2 of it into hName
-   put item -1 of it into hType
-   put hName,hType,hObject,hNum into hKey
-   put hKey
-   
-   hkey_Edit hKey
-end display_ObjectHkeyArrayHandler
-
-command display_HkeyArrayHandler treeWidget, someValue, pathItems
-   put item 1 of pathItems into someThing
-   replace slash with comma in someThing
-   switch
-      case exists (someThing)
-         edit the script of someThing
-         break
-      case the number of items of someThing = 4
-         hkey_Edit someThing
-         break
-      default
-         put someThing
-   end switch
-end display_HkeyArrayHandler
-
-
---> Working On
--
-command graph_ScriptHandlers scriptObject, pGraphStyle, pGraphSize, pImageView, pResizeStyle
-   put scriptObject into pOverlayName
-   put the data_Folder of scriptObject into dotFolder
-   display_Overlay dotFolder, pGraphStyle, pImageView, pOverlayName, pResizeStyle, pStackLabel
-   put the result into pImageView
-   return pImageView
-end graph_ScriptHandlers
-
-command hkeyArray_Graph hkeyArray, graphStyle, graphSize
-   put hkeyArray_ConstructDot (hkeyArray, empty, graphStyle, graphSize) into dotText
-   
-   if the optionkey is "Down" then
-      put dotText
-   else
-      if graphStyle is empty then put the overlay_Style of me into graphStyle
-      if the flatten_Hierarchy of me is true then
-         display_Dot dotText, graphStyle
-      else
-         display_Dot dotText, graphStyle
+on hkeyArray_AddToFiltered @processedCalls, someKeyCall
+   hkey_Deconstruct someKeyCall, hName, hType, hObject, hNum
+   if hObject = "missing" then
+      if char 1 to 3 of hName = "rig" and char 4  of hName is not "_" then
+         put "revIgniter" into item 3 of someKeyCall
       end if
-      object_GoTo treeView
-   end if
-end hkeyArray_Graph
-
-command display_DotSections overlayArray, pGraphController, pImageView, pOverlayName
-   local pResizeStyle
-   if exists(pGraphController) is false then put the long id of the target into pGraphController
-   if exists (pImageView) is false then
-      if pResizeStyle is empty then put "fit inside frame" into pResizeStyle
-      display_Image empty, true, pOverlayName, true
-      put the result into pImageView
-   end if
-   
-   set the overlay_Array of pImageView to overlayArray
-   set the uOPN ["dot_File"] of pImageView to empty
-   set the displayed_OverlayName of pImageView to pOverlayName
-   set the overlay_Controller of pImageView to pGraphController
-   
-   put the dot_ConstructHeader [pImageView] of pGraphController into dotHeader
-   put the dot_ConstructDefSection [pImageView] of pGraphController into defSection
-   put the dot_ConstructClusterSection [pImageView] of pGraphController into clusterSection
-   put the dot_ConstructLinkSection [pImageView] of pGraphController into linkSection
-   put dot_TextFromSections (dotHeader, defSection, clusterSection, linkSection) into dotText
-   
-   set the dot_Text of pImageView to dotText 
-   
-   object_GoTo pImageView, true
-   return pImageView
-end display_DotSections
-
-command display_Dot dotText, pStyleOrDotArray, pImageView, pStackLabel, pDotFile, pResizeStyle
-   if exists (pImageView) is false then
-      if pResizeStyle is empty then put "fit inside frame" into pResizeStyle
-      if pStackLabel is empty then put "Dot" into pStackLabel
-      display_Image empty, true, pStackLabel, true
-      put the result into pImageView
-   end if
-   
-   if pStyleOrDotArray is an array then
-      set the overlay_Array of pImageView to pStyleOrDotArray
+      put someKeyCall & CR after processedCalls
    else
-      set the overlay_Style of pImageView to pStyleOrDotArray
+      put someKeyCall & CR after processedCalls
    end if
-   
-   set the image_File of pImageView to ""
-   set the uOPN ["dot_File"] of pImageView to pDotFile
-   set the dot_Text of pImageView to dotText 
-   
-   object_GoTo pImageView, true
-   return pImageView
-end display_Dot
+end hkeyArray_AddToFiltered
 
-command display_ObjectHkeyArray hkeyArray, hkeyOrObject
-   put hkeyArray_ConstructObjectArray (hkeyArray) into objectHKeyArray
-   put hkeyArray_ConstructObjectTreeArray (objectHKeyArray) into objectTreeArray
+command hkeyArray_AddToFiltered @processedCalls, someKeyCall
+   -- revIgniter version
    
-   display_HkeyTreeArray objectTreeArray, hkeyOrObject, "display_ObjectHkeyArrayHandler"
-   put the result into treeView
-   set the view_Data of treeView to hKeyArray
-   return treeview
-end display_ObjectHkeyArray
-
-command display_HKeyArray hKeyArray, hkeyOrObject
-   local pDoubleUpCommand
-   
-   put hkeyArray_ConstructTreeArray (hkeyArray) into treeArray
-   display_HkeyTreeArray treeArray, hkeyOrObject, pDoubleUpCommand
-   put the result into treeView
-   set the view_Data of treeView to hKeyArray
-   return treeview
-end display_HKeyArray
-
-command display_HkeyTreeArray treeArray, hkeyOrObject, pDoubleUpCommand
-   -- _setObjectTitleHkey hkeyOrObject, hKey, hObject, displayTitle
-   switch
-      case exists (hkeyOrObject)
-         put "script" into hName
-         put hkeyOrObject into hObject
-         put empty into hKey
-         put hName,hObject into displayTitle
-         break
-      case the number of items of hkeyOrObject = 4
-         put hkeyOrObject into hKey
-         put item 1 of hKey into hName
-         put item 3 of hKey into hObject
-         put hName,hObject into displayTitle
-         break
-      default
-         put "hKeyArray" into displayTitle
-         put empty into hKey
-         put empty into hObject
-   end switch
-   
-   if pDoubleUpCommand is empty then put "display_HkeyArrayHandler" into pDoubleUpCommand
-   put "Global | HkeyArray | Menu"into treeMenu
-   put "Global | HkeyArray | Line | Menu" into lineMenu
-   -- may want to use "Global | HkeyArray | Tree | Filter | Menu"
-   put empty into mUpCommand
-   
-   display_Array treeArray, displayTitle, treeMenu, lineMenu, mUpCommand, pDoubleUpCommand
-   put the result into treeView
-   
-   set the displayed_Object of treeView to hObject
-   set the displayed_Hkey of treeView to hKey
-   return treeview
-end display_HkeyTreeArray
-
--- private command _setObjectTitleHkey hkeyOrObject, @hKey, @hObject, @displayTitle
-switch
-   case exists (hkeyOrObject)
-      put "script" into hName
-      put hkeyOrObject into hObject
-      put empty into hKey
-      put hName,hObject into displayTitle
-      break
-   case the number of items of hkeyOrObject = 4
-      put hkeyOrObject into hKey
-      put item 1 of hKey into hName
-      put item 3 of hKey into hObject
-      put hName,hObject into displayTitle
-      break
-   default
-      put "hKeyArray" into displayTitle
-      put empty into hKey
-      put empty into hObject
-end switch
-end _setObjectTitleHkey
-
-
---> Display
--
-command display_SVG svgFile, pStackLabel
-   put the "View|Image|SVG" into viewName
-   
-   stack_CloneInvisible viewName, "Display SVG"
-   put the result into cloneStackName
-   put the long id of widget 1 of cd 1 of stack cloneStackName into displayView
-   
-   -- put "file:" & svgFile into someUrl
-   -- set the svg_URL [true] of displayView to someUrl
-   set the svg_File [true] of displayView to svgFile
-   -- put the result into someHtml
-   
-   -- show and go
-   if pStackLabel is empty then
-      set the itemdelimiter to slash
-      put item -1 of svgFile into pStackLabel
-   end if
-   -- view_CloneShow cloneStackName, empty, pStackLabel
-   show stack cloneStackName
-   if pStackLabel is not empty then set the label of stack cloneStackName to pStackLabel
-   return displayView
-end display_SVG
-
-command display_Overlay overlayFolder, pOverlayName, pImageView, pStackLabel, pResizeStyle
-   overlay_SetFileNames overlayFolder, pOverlayName
-   
-   put overlay_GetData (overlayFolder) into overlayData
-   overlayData_NormalizeName pOverlayName, overlayData
-   put overlayData [pOverlayName] into overlayArray
-   
-   overlayArray_SetGraphProperty overlayArray, "image_MenuName", "Global | Image | Dot | Menu"
-   
-   if pImageView is empty then
-      -- set the trigger_Name ["mouseUp"] of overlayView to "Global | Image | Overlay | Node | Menu/Edit Handler"
-      -- overlayArray_SetGraphProperty overlayArray, "trigger_Name", "Global | Image | Overlay | Node | Menu/Display Handler"
-      put menu_ConstuctMenuItemHkey ("Display Handler", "Global | Image | Overlay | Node | Menu") into mouseUpTrigger
-      -- overlayArray_SetGraphProperty overlayArray, "mouseDoubleUpTrigger", mouseDoubleUpTrigger
-      overlayArray_SetGraphProperty overlayArray, "mouseUpTrigger", mouseUpTrigger
-   end if
-   
-   overlayArray_Graph overlayArray, pImageView, pResizeStyle, pStackLabel
-   return the result
-end display_Overlay
-
-command overlayArray_Graph overlayArray, pImageView, pResizeStyle, pStackLabel, pStackRect, pStackStyle
-   if pStackStyle is empty then put "modeless" into pStackStyle
-   put overlayArray_GetGraphProperty (overlayArray, "overlay_Folder") into overlayFolder
-   if overlayFolder is empty then
-      put the tempname & "/" into overlayFolder
-      folder_CreateNested overlayFolder
-      overlayArray_SetGraphProperty overlayArray, "overlay_Folder", overlayFolder
-   end if
-   
-   put overlayArray_GetGraphProperty (overlayArray, "overlay_Name") into overlayName
-   put overlay_GetImageFile (overlayFolder, overlayName) into imageFile
-   
-   if exists (pImageView) is false then
-      put true into needToShow
-      if there is not a file imageFile then return empty
-      if pResizeStyle is empty then put "fit inside frame" into pResizeStyle
-      if pStackLabel is empty then put overlayName into pStackLabel
-      display_Image imageFile, pResizeStyle, pStackStyle, pStackLabel, true, pStackRect
-      put the result into pImageView
+   hkey_Deconstruct someKeyCall, hName, hType, hObject, hNum
+   if hObject = "missing" then
+      if char 1 to 3 of hName = "rig" then
+         put "revIgniter" into item 3 of someKeyCall
+      end if
+      put someKeyCall & CR after processedCalls
    else
-      put false into needToShow
-   end if 
-   
-   ## Create and set all the props of overlay using overlayData
-   dispatch "overlay_CreateView" to pImageView with overlayArray
-   
-   object_GoTo pImageView, true
-   if needToShow is true then
-      put the stack_Name of pImageView into stackName
-      set the visible of stack stackName to true
+      put someKeyCall & CR after processedCalls
    end if
-   return pImageView
-end overlayArray_Graph
-
-command display_OverlayData overlayFolder, pTitle
-   put overlay_GetData (overlayFolder) into overlayData 
-   
-   display_Array overlayData, pTitle, "Global | Script | Graph | Menu", "Global | Script | Graph | Line | Menu"
-   put the result into treeView
-   set the displayed_OverlayFolder of treeView to overlayFolder
-   set the displayed_OverlayName of treeView to pOverlayName
-end display_OverlayData
-
-
---> Graph | SVG
--
-/*
-You can alter the way the graph is constructed by placing a "hkeyArray_AddToFiltered" handler
-at the same level as the "display_IndexScriptAndDisplaySVG"
+end hkeyArray_AddToFiltered
 */
 
-command display_IndexScriptAndDisplaySVG scriptObject, pProjectName, pGraphStyle, pProcessObject, pForceCreate
-   if exists (pProcessObject) is false then
-      -- put script_CallingObject() into pProcessObject
-      get the executioncontexts
-      put item 1 of line -2 of it into pProcessObject
-   end if
-   
-   script_IndexAndCreateOverlay scriptObject, pProjectName, pGraphStyle, pProcessObject, pForceCreate
-   put the result into imageFile
-   display_SVG imageFile, scriptObject
-   put the result into displayView
-   set the displayed_Object of displayView to scriptObject
-   return imageFile
-end display_IndexScriptAndDisplaySVG
 
-command script_IndexAndCreateOverlay scriptObject, pProjectName, pGraphStyle, pProcessObject, pForceCreate
-   if pProjectName is empty then put env_GetProjectFocus() into pProjectName
-   put hkeyArray_ConstructFromScript (scriptObject, pProjectName, pProcessObject, pForceCreate) into processedHkeyArray
-   set the textstack_ProcessedHkeyArray of scriptObject to processedHkeyArray
-   script_CreateGraph processedHkeyArray, scriptObject, pProjectName, pGraphStyle
-   put the result into imageFile
-   return imageFile
-end script_IndexAndCreateOverlay
-
-command script_CreateGraph hkeyArray, scriptObject, pProjectName, pGraphStyle
-   put the textStackOverlay_Folder [false] of scriptObject into overlayFolder
-   overlay_CreateGraph overlayFolder, hkeyArray, pProjectName, scriptObject, pGraphStyle, true, empty, "svg"
-   put the result into overlayArray
-   put overlayArray_GetImageFile (overlayArray, overlayFolder) into imageFile
-   return imageFile
-end script_CreateGraph
-
-
---> Overlay | Create
+--> Working On
 -
-command overlay_CreateObjectGraph scriptObject, hKeyArray, graphStyle, pOverlayName, pDotCluster, pImageFormat
-   if pOverlayName is empty then put graphStyle into pOverlayName
-   put the overlay_Folder of scriptObject into overlayFolder 
-   overlay_CreateGraph overlayFolder, hKeyArray, pOverlayName, scriptObject, graphStyle, pDotCluster, empty, pImageFormat
-   put the result into overlayArray
-   return overlayArray
-end overlay_CreateObjectGraph
-
-command overlay_CreateGraph overlayFolder, hKeyArray, pOverlayName, pOverlayOf, pGraphStyle, pDotCluster, pMainstackHash, pImageFormat
-   file_ReplaceHome overlayFolder
-   if hKeyArray is not an array then
-      overlay_Delete overlayFolder, pOverlayName
-      return empty
-   end if
-   
-   # Recreate graph with old values if not passed directly
-   put overlay_GetArray (overlayFolder, pOverlayName) into overlayArray
-   if pOverlayOf is empty then put overlayArray_GetGraphProperty (overlayArray, "overlay_Of")  into pOverlayOf
-   if pGraphStyle is empty then put overlayArray_GetGraphProperty (overlayArray, "overlay_Style")  into pGraphStyle
-   
-   put overlayArray_FromLinkArray (hKeyArray) into overlayArray
-   
-   if pDotCluster is not empty then overlayArray_SetHeaderProperty overlayArray, "dot_ClusterRank", pDotCluster
-   -- if pOverlayHash is not empty then overlayArray_SetGraphProperty overlayArray, "overlay_Hash", pOverlayHash
-   
-   file_ReplaceHome overlayFolder
-   overlayArray_SetGraphProperty overlayArray, "overlay_Folder", overlayFolder
-   overlayArray_SetGraphProperty overlayArray, "overlay_Style", pGraphStyle
-   overlayArray_SetGraphProperty overlayArray, "overlay_Name", pOverlayName
-   overlayArray_SetGraphProperty overlayArray, "overlay_Of", pOverlayOf
-   
-   overlayArray_CreateFilesAndSetGeometry overlayArray, pMainstackHash, pImageFormat
-   if token 1 of the result = "error" then return the result
-   
-   put overlayArray_GetGraphProperty (overlayArray, "image_File") into shortImageFile
-   folder_Format overlayFolder
-   put overlayFolder & shortImageFile into imageFile
-   put file_Hash (imageFile) into pOverlayHash
-   overlayArray_SetGraphProperty overlayArray, "overlay_Hash", pOverlayHash
-   
-   overlay_SetArray overlayFolder, overlayArray, pOverlayName
-   return overlayArray
-end overlay_CreateGraph
-
 function hkeyArray_ConstructFromScript scriptObject, projectName, pProcessObject, pForceCreate
-   /* -- was "script_ConstructHkeyArray"
-   This handler first fetches or creates an internal hKey array from the mainstack.
-   It then looks at all "missing" that is exteranl hKeys, and slowly crawls the hierarchy to find them.
-   I believe it indexes these hierarchy stacks as it goes.
+   /*
+   You can alter the way the graph is constructed by placing a "hkeyArray_AddToFiltered" handler
+   at the same level as the "display_IndexScriptAndDisplaySVG"
+   This allows you to filter the plain hkeyArray before you graph it.
+   This allows you to categorize thing like "missing" rig stacks as belonging to revIgniter.
    
+   -- was "script_ConstructHkeyArray"
+   This handler first fetches or creates an internal hKey array from the mainstack.
+   It then looks at all "missing" that is externall hKeys, and slowly crawls the hierarchy to find them.
+   I believe it indexes these hierarchy stacks as it goes.
    -- see "lib_HkeyArray"
    */
    
@@ -410,6 +82,7 @@ function hkeyArray_ConstructFromScript scriptObject, projectName, pProcessObject
    put project_ConstructWalkArray (hArray, pDepObject, projectName) into hKeyWalkArray
    set the mainstack_WalkArray of scriptObject to hKeyWalkArray
    
+   -- now let's walk missing handlers
    put hKeyWalkArray ["missing"] into missingArray
    put hKeyWalkArray ["external"] into externalArray
    union missingArray with externalArray recursively
@@ -445,53 +118,95 @@ function hkeyArray_ConstructFromScript scriptObject, projectName, pProcessObject
    return processedHkeyArray
 end hkeyArray_ConstructFromScript
 
-command hkey_ObjectWalk shortCall, hKey, @hKeyLinkArray, pSetName, pAllCalls
-   -- see "lib_HarrayWalk"
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   hkey_Deconstruct shortCall, callName, callType, emptyCallObject, emptyCallNum
-   -- put item 1 of shortCall into callName
-   -- put item 2 of shortCall into callType
+
+--> Display | SVG
+-
+command display_HandlerSVG imageFile, pLabel
+   display_SVG imageFile, pLabel
+   put the result into displayView
+   set the displayed_Object of displayView to scriptObject
+   put imageFile
+   return displayView
+end display_HandlerSVG
+
+command display_ScriptEditorSvg svgFile, pTabName
+   if pTabName is empty then put "Deps" into pTabName
    
-   -- find it
-   -- put hkey_SmartFind (shortCall, hKey, pSetName) into foundCall
-   put hkey_FindInHierarchy (shortCall, hObject, pSetName) into foundCall
+   put "View|ScriptEditor|SVG" into viewName
+   scriptEditor_AddPane pTabName, viewName
+   put the result into displayView
    
-   switch
-      case foundCall is empty
-         put merge ("Call '[[shortCall]]' for handler '[[hKey]]' is missing!") into someMessage
-         lcw_Notify someMessage, true
-         
-         put hkey_Construct (callName, callType, "missing", 1) into foundCall
-         array_AddToIndex foundCall, hKey, hKeyLinkArray
-         return empty
-      case foundCall is among the keys of hKeyLinkArray
-         -- already indexed so no need to recurse
-         -- array_AddToIndex foundCall, hKey, hKeyLinkArray
-         return empty
-   end switch
+   set the svg_File [true] of displayView to svgFile
+   return displayView
+end display_ScriptEditorSvg
+
+command display_SVG svgFile, pStackLabel
+   put the "View|Image|SVG" into viewName
    
-   -- add it to the array
-   put merge ("Added [[foundCall]] to hKeyArray!") into someMessage
-   lcw_Notify someMessage
-   array_AddToIndex foundCall, hKey, hKeyLinkArray
+   stack_CloneInvisible viewName, "Display SVG"
+   put the result into cloneStackName
+   put the long id of widget 1 of cd 1 of stack cloneStackName into displayView
+   --
+   set the svg_File [true] of displayView to svgFile
    
-   -- now lets repeat and recurse for each call found
-   -- should this be hkey_GetHandler - anywhere from hierarchy ????
-   put hkey_ExtractHandlerFromObject (foundCall) into callHandler
-   if callHandler is empty then breakPoint
+   -- show and go
+   if pStackLabel is empty then
+      set the itemdelimiter to slash
+      put item -1 of svgFile into pStackLabel
+   end if
+   show stack cloneStackName
+   if pStackLabel is not empty then set the label of stack cloneStackName to pStackLabel
+   --
+   return displayView
+end display_SVG
+
+
+--> Display | SVG | Script
+-
+command display_IndexScriptAndDisplaySVG scriptObject, pProjectName, pGraphStyle, pProcessObject, pForceCreate
+   /*
+   You can alter the way the graph is constructed by placing a "hkeyArray_AddToFiltered" handler
+   at the same level as the "display_IndexScriptAndDisplaySVG"
+   */
    
-   if pAllCalls is true then
-      put handler_ExtractCalls (callHandler) into shortCalls
-   else
-      put handler_ExtractFilteredCalls (callHandler) into shortCalls
+   if exists (pProcessObject) is false then
+      -- put script_CallingObject() into pProcessObject
+      get the executioncontexts
+      put item 1 of line -2 of it into pProcessObject
    end if
    
-   repeat for each line shortCall in shortCalls
-      hkey_ObjectWalk shortCall, foundCall, hKeyLinkArray, pSetName, pAllCalls
-   end repeat
-   return empty
-end hkey_ObjectWalk
+   script_IndexAndCreateOverlay scriptObject, pProjectName, pGraphStyle, pProcessObject, pForceCreate
+   put the result into imageFile
+   
+   if scriptEditor_PaneExists ("Deps") then
+      display_ScriptEditorSvg imageFile
+   else
+      display_Svg imageFile, scriptObject
+   end if
+   put the result into displayView
+   
+   set the displayed_Object of displayView to scriptObject
+   return imageFile
+end display_IndexScriptAndDisplaySVG
 
+command script_IndexAndCreateOverlay scriptObject, pProjectName, pGraphStyle, pProcessObject, pForceCreate
+   -- used by "display_IndexScriptAndDisplaySVG"
+   
+   if pProjectName is empty then
+      -- put env_GetProjectFocus() into pProjectName
+      put the project_Name of scriptObject into pProjectName
+   end if
+   
+   put hkeyArray_ConstructFromScript (scriptObject, pProjectName, pProcessObject, pForceCreate) into processedHkeyArray
+   set the textStack_HkeyArray of scriptObject to processedHkeyArray
+   script_CreateGraph processedHkeyArray, scriptObject, pProjectName, pGraphStyle
+   put the result into imageFile
+   return imageFile
+end script_IndexAndCreateOverlay
+
+
+--> Script | Deps
+-
 command deps_ConstructDependencyArray scriptObject, pForceCreate, pSetName
    put the mainStack_Hash of scriptObject into stackHash
    put the mainstack_Harray of scriptObject into hArray
@@ -525,7 +240,7 @@ command deps_CreateMainStackOverlay scriptObject, graphStyle, pImageView, pDotCl
    end if
    
    put "Mainstack Structure" into overlayName
-   put the textStackOverlay_Folder [false] of scriptObject into overlayFolder
+   put the textStack_ProjectOverlayFolder [false] of scriptObject into overlayFolder
    
    overlay_CreateGraph overlayFolder, hKeyArray, overlayName, scriptObject, graphStyle, pDotCluster
    put the result into overlayArrayOrError
@@ -568,202 +283,144 @@ command deps_SaveMainstackAndExportArrays scriptObject, pForceCreate
    return mainStackMetaArray
 end deps_SaveMainstackAndExportArrays
 
+command script_CreateGraph hkeyArray, scriptObject, pProjectName, pGraphStyle
+   -- tailored to create a clustered graph from hKeyArray of an objects script
+   -- used by "script_IndexAndCreateOverlay"
+   
+   put true into clusterBoolean
+   put the textStack_ProjectOverlayFolder [false] of scriptObject into overlayFolder
+   
+   put pProjectName into overlayName
+   put scriptObject into overlayOf
+   put empty into mainstackHash
+   --
+   overlay_CreateGraph overlayFolder, hkeyArray, overlayName, overlayOf, pGraphStyle, clusterBoolean, mainstackHash, "svg"
+   put the result into overlayArray
+   
+   put overlayArray_GetImageFile (overlayArray, overlayFolder) into imageFile
+   return imageFile
+end script_CreateGraph
 
---> Hkey | Array | Draw
+
+--> Overlay | Create
 -
-command script_RedrawDependencyArray hkeyArray, pGraphStyle, pScriptObject, pGraphSize
-   local pImageView, pOverlayName
-   set the cursor to watch
-   put the scriptLibrary_Card of me into graphController  
-   put scriptObject_DotFile (pScriptObject, pGraphStyle, pGraphSize) into dotFile
-   linkArray_RedrawOverlayMap hkeyArray, dotFile, graphController, graphController, pImageView, pGraphStyle, pGraphSize, pOverlayName
-   put the result into pImageView
-   set the overlay_Of of pImageView to pScriptObject
-   return pImageView
-end script_RedrawDependencyArray
+command overlay_CreateObjectGraph scriptObject, hKeyArray, graphStyle, pOverlayName, pDotCluster, pImageFormat
+   if pOverlayName is empty then put graphStyle into pOverlayName
+   put the overlay_Folder of scriptObject into overlayFolder 
+   overlay_CreateGraph overlayFolder, hKeyArray, pOverlayName, scriptObject, graphStyle, pDotCluster, empty, pImageFormat
+   put the result into overlayArray
+   return overlayArray
+end overlay_CreateObjectGraph
 
-
-command dot_ProcessAndSaveFiles dotText, graphStyle, @pDotFile, @imageFile, @cmapFile, @xdotFile, pOverlayName, pImageFormat
-   -- old
-   -- depends on dodgy technique to figure out dotFolder
-   
-   if pDotFile is empty then
-      put the tempname & "/" into dotFolder
-      folder_CreateNested dotFolder
-   else
-      put pDotFile into dotFolder
-      if char -1 of pDotFile is not "/" then
-         set the itemdelimiter to "/"
-         delete item -1 of dotFolder
-         put "/" after dotFolder
-      end if
+command overlay_CreateGraph overlayFolder, hKeyArray, pOverlayName, pOverlayOf, pGraphStyle, pDotCluster, pMainstackHash, pImageFormat
+   file_ReplaceHome overlayFolder
+   if hKeyArray is not an array then
+      overlay_Delete overlayFolder, pOverlayName
+      return empty
    end if
-   overlay_Files dotFolder, dotFile, imageFile, cmapFile, xdotFile, dotArrayFile, pOverlayName, pImageFormat
    
-   file_CreateText dotText, dotFile
+   # Recreate graph with old values if not passed directly
+   put overlay_GetArray (overlayFolder, pOverlayName) into overlayArray
+   if pOverlayOf is empty then put overlayArray_GetGraphProperty (overlayArray, "overlay_Of")  into pOverlayOf
+   if pGraphStyle is empty then put overlayArray_GetGraphProperty (overlayArray, "overlay_Style")  into pGraphStyle
+   
+   put overlayArray_FromLinkArray (hKeyArray) into overlayArray
+   overlay_TidyHkeyIDArray overlayArray
+   
+   if pDotCluster is not empty then overlayArray_SetHeaderProperty overlayArray, "dot_ClusterRank", pDotCluster
+   -- if pOverlayHash is not empty then overlayArray_SetGraphProperty overlayArray, "overlay_Hash", pOverlayHash
+   
+   file_ReplaceHome overlayFolder
+   overlayArray_SetGraphProperty overlayArray, "overlay_Folder", overlayFolder
+   overlayArray_SetGraphProperty overlayArray, "overlay_Style", pGraphStyle
+   overlayArray_SetGraphProperty overlayArray, "overlay_Name", pOverlayName
+   overlayArray_SetGraphProperty overlayArray, "overlay_Of", pOverlayOf
+   
+   overlayArray_CreateFilesAndSetGeometry overlayArray, pMainstackHash, pImageFormat
+   if token 1 of the result = "error" then return the result
+   
+   put overlayArray_GetGraphProperty (overlayArray, "image_File") into shortImageFile
+   folder_Format overlayFolder
+   put overlayFolder & shortImageFile into imageFile
+   put file_Hash (imageFile) into pOverlayHash
+   overlayArray_SetGraphProperty overlayArray, "overlay_Hash", pOverlayHash
+   
+   overlay_SetArray overlayFolder, overlayArray, pOverlayName
+   return overlayArray
+end overlay_CreateGraph
+
+command overlay_TidyHkeyIDArray @overlayArray
+   put overlayArray ["data"]["idArray"] into idArray
+   repeat for each key someID in idArray
+      put idArray [someID] into hKey
+      put word 2 of hKey into hName
+      put hName into idArray [someID]
+   end repeat
+end overlay_TidyHkeyIDArray
+   
+   
+   --> Display | Event Handlers
+   -
    /*
-   if pGraphStyle = "hierarchical" then -- lets flatten it ?
-      put dot_UnFlatten (pDotFile, 12) into unFlatDotText
-      if word 1 of unFlatDotText is among the items of "digraph,graph" then
-         file_CreateText unFlatDotText, pDotFile
-      end if
-   end if
+   These handlers handle events from display views that are created from the code in this library.
+   They do not have to be here, as you can change their location by setting the "event_Target" property of the display_View.
    */
-   dot_DoImageMapShell graphStyle, dotFile, imageFile, cmapFile, xdotFile, "png"
-   return pDotFile
-end dot_ProcessAndSaveFiles
-
-
---> Overlay | Old
--
-/*
-Now replaced with overlay_Array which contains all the data needed for the overlay.
-*/
-
-command overlay_SetImage imageView, linkArray, idLinkArray, idArray, geometryArray, imageFile, dotFile, xdotFile, cmapFile 
-   overlay_CreateAndSetData imageView, linkArray, idLinkArray, idArray -- draw overlay and set link data
-   put the result into overlayView
    
-   set the image_File of imageView to imageFile
-   set the uOPN ["dot_File"] of imageView to dotFile
-   set the uOPN ["xdot_File"] of imageView to xdotFile
-   set the uOPN ["cmapx_File"] of imageView to cmapFile
+   command display_HkeyArrayGraph hkeyArray, pGraphStyle
+   -- component: true
    
-   set the displayed_OverlayGeometry of overlayView to geometryArray --set overlay node data from cmapText
-   
-   set the menu_ToolTitle of imageView to "Global | Image | Dot | Menu"
-   set the trigger_Name ["mouseUp"] of overlayView to "Global | Image | Overlay | Node | Menu/Edit Handler"
-end overlay_SetImage
+   if pGraphStyle is empty then put "hierarchical" into pGraphStyle
+   -- overlayArray_ReconstructAndCreateFiles hKeyArray, pOverlayName, overlayFolder, pGraphStyle, dotHeaderArray, graphPropertyArray
+   put overlayArray_FromLinkArray (hkeyArray) into overlayArray
+   overlayArray_SetGraphProperty overlayArray, "overlay_Style", pGraphStyle
+   overlayArray_CreateAndDisplayGraph overlayArray, pGraphStyle
+   put the result into imageView
+   return imageView
+end display_HkeyArrayGraph
 
-command overlay_CreateAndSetData imageView, linkArray, idLinkArray, idArray
-   -- first of all lets create and set the overlay and overlay data
-   dispatch "overlay_CreateView" to imageView
-   -- overlay_CreateView imageView
-   put the result into overlayView
+command overlayArray_CreateAndDisplayGraph overlayArray, pOverlayStyle, pOverlayFolder, pImageView, pResizeStyle, pStackLabel
+   /*
+   Dug out of old libOPN_Display
    
-   set the displayed_OverlayLinkArray of overlayView to linkArray
-   set the displayed_IdLinkArray of overlayView to idLinkArray
-   set the displayed_IdArray of overlayView to idArray
-   return overlayView
-end overlay_CreateAndSetData
-
--- command overlay_CreateView imageView
-   if exists (group "Dot Overlay" of imageView) then
-      return the long id of group "Dot Overlay" of imageView
-   else
-      put the image_Object of imageView into imageObject
-      put the rect of imageObject into someRect
-      set the view_Insert [someRect] of imageView to "View|Graph|Graphviz"
-      put the result into graphvizView
-      set the name of graphvizView to "Dot Overlay"
-      return graphvizView
+   A handler to take an overlayArray, and make common customisations, and then display it
+   By default it will create a temp window, and create a temp folder to stalll all the files.
+   The default style, is whatever is set in the overlayArray, or if nothing there "hierarchical"
+   */
+   
+   -- first lets fix "overlay_Folder" and create a temp folder if needed
+   if pOverlayFolder is empty then
+      put the tempname & "/" into pOverlayFolder
+      folder_CreateNested pOverlayFolder
    end if
-end overlay_CreateView
-
-
---> Display | Dot
--
-command display_ScriptDotArray scriptObject, pOverlayName
-   put "The script_OverlayArray for" && the mobile_Name of scriptObject into pTitle
-   put the script_OverlayArray [pOverlayName] of scriptObject into overlayArray
-   -- put the script_OverlayData [pOverlayName] of scriptObject into graphData
+   overlayArray_SetGraphProperty overlayArray, "overlay_Folder", pOverlayFolder
    
-   display_Array overlayArray, pTitle, "Global | Script | Graph | Menu", "Global | Script | Graph | Line | Menu"
-   put the result into treeView
-   set the displayed_OverlayFolder of treeView to the overlay_Folder of scriptObject
-   set the displayed_OverlayName of treeView to pOverlayName
-end display_ScriptDotArray
-
-command display_ScriptArray scriptObject
-   put the mobile_Name of scriptObject into pTitle
-   put the script_OverlayData of scriptObject into graphData
-   display_DotArray graphData, pTitle
-end display_ScriptArray
-
--- command display_ScriptGraph scriptObject, pGraphStyle, pGraphSize, pOverlayName
-   _NormalizeGraphParams pOverlayName, pGraphStyle, pGraphSize
-   
-   put the script_MaybeCreateLinkArray [pOverlayName] of scriptObject into hKeyArray
-   script_RedrawDependencyArray hkeyArray, scriptObject, pGraphStyle, pGraphSize
-end display_ScriptGraph
-
--- private command _NormalizeGraphParams @pOverlayName, @pGraphStyle, @pGraphSize
-   put overlayArray_GetDefaultGraphStyle() into defaultStyle
-   if pGraphStyle is empty then put defaultStyle into pGraphStyle
-   if pGraphSize is empty then put "full" into pGraphSize
-   if pOverlayName is empty then
-      if pOverlayName is defaultStyle then
-         put "default" into pOverlayName
-      else
-         put pGraphStyle into pOverlayName
+   -- now lets fix "overlay_Style" and set "overlay_Name" to the same value
+   if pOverlayStyle is empty then
+      put overlayArray_GetGraphProperty (overlayArray, "overlay_Style") into pOverlayStyle
+      
+      -- if pOverlayStyle is empty then put "hierarchical" into pOverlayStyle
+      if pOverlayStyle is empty then
+         if pOverlayName is among the items of dot_AllGraphStyles() then
+            put pOverlayName into pOverlayStyle
+         else
+            put "undirected spring" into pOverlayStyle
+         end if
       end if
    end if
-end _NormalizeGraphParams
-
-
---> Display | OverlayArray
--
-command overlayArray_ConstructOverlayAndCreateFiles @overlayArray, pOverlayFolder, pOverlayName
-   if pOverlayName is empty then
-      put overlayArray_GetGraphProperty (overlayArray, "overlay_Name") into overlayName
-   else
-      put pOverlayName into overlayName
-      overlayArray_SetGraphProperty overlayArray, "overlay_Name", overlayName
-   end if
-   if pOverlayFolder is empty then
-      put overlayArray_GetGraphProperty (overlayArray, "overlay_Folder") into overlayFolder
-   else
-      put pOverlayFolder into overlayFolder
-      overlayArray_SetGraphProperty overlayArray, "overlay_Folder", overlayFolder
-   end if
+   overlayArray_SetGraphProperty overlayArray, "overlay_Style", pOverlayStyle
+   overlayArray_SetGraphProperty overlayArray, "overlay_Name", pOverlayStyle
    
-   overlay_SetArray overlayFolder, overlayArray, overlayName
+   -- need to also save the array
+   overlayData_SetArray overlayData, overlayArray, pOverlayStyle
+   overlay_SetData pOverlayFolder, overlayData
+   
+   -- now lets create the files from the array (in the "overlay_Folder" or temp one created).
    overlayArray_CreateFilesAndSetGeometry overlayArray
-end overlayArray_ConstructOverlayAndCreateFiles
-
-
---> LinkArray | Draw | Old?
--
-command linkArray_RedrawOverlayMap linkArray, dotFile, graphPropertyModel, graphController, pImageView, pGraphStyle, pGraphSize, pOverlayName
-   -- breakPoint
-   --old => move to using dotFolder
    
-   -- not from graphData
-   put exists(pImageView) is false into newWindow
-   if pGraphStyle is empty then put "undirected spring" into pGraphStyle
-   
-   put dot_FromLinkArray (linkArray, graphPropertyModel, graphController, pOverlayName, pGraphStyle, pGraphSize) into dotText -- sets OPN_LinkArray (uses the overlay_Size, dot_HeaderArray, overlay_Style of graphController )
-   
-   dot_ProcessAndSaveFiles dotText, pGraphStyle, dotFile, imageFile, cmapxFile, xdotFile, pOverlayName
-   
-   if exists(pImageView) is false then
-      display_Image imageFile, true, pOverlayName, true
-      put the result into pImageView
+   -- now all files have been created and stored display the overlay_Folder
+   if pStackLabel is empty then
+      put "Graph style" && pOverlayStyle into pStackLabel
    end if
-   
-   if pOverlayName is empty then put dot_NameFromImageFile (imageFile) into pOverlayName
-   set the itemdelimiter to "/"
-   put imageFile into dotFolder
-   delete item -1 of dotFolder
-   put "/" after dotFolder
-   overlay_Files dotFolder, dotFile, imageFile, cmapxFile, xdotFile, dotArrayFile, pOverlayName
-   
-   put url ("file:" & cmapxFile) into cmapxText
-   put imagemap_ParseMap (cmapxText) into geometryArray
-   
-   linkArray_IdConstruct linkArray, idLinkArray, idArray -- this should already be constructed and set in the global store
-   overlay_SetImage pImageView, linkArray, idLinkArray, idArray, geometryArray, imageFile, dotFile, xdotFile, cmapxFile
-   
-   if newWindow is true and exists(graphPropertyModel) then
-      put the overlay_PropertyArray of graphPropertyModel into propertyArray
-      set the overlay_PropertyArray of pImageView to propertyArray
-      if pGraphStyle is not empty then set the overlay_Style of pImageView to pGraphStyle 
-      if pGraphSize is not empty then set the overlay_Size of pImageView to pGraphSize 
-      
-      put the dot_HeaderArray of graphPropertyModel into headerArray
-      set the dot_HeaderArray of pImageView to headerArray
-   end if
-   
-   object_GoTo pImageView, true
-   return pImageView
-end linkArray_RedrawOverlayMap
+   display_Overlay pOverlayFolder, pOverlayStyle, pImageView, pStackLabel, pResizeStyle
+   return the result
+end overlayArray_CreateAndDisplayGraph

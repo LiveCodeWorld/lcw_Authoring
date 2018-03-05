@@ -18,6 +18,36 @@ non-OOP file for speed optimisation or other reasons.
 */
 
 
+--> Group
+-
+/*
+A lot of the handlers here should be renamed to "group_" as it is more intuitive and the name space is pretty crowded.
+
+*/
+
+getprop group_Buttons
+   local btnNames
+   put the long id of the target into someGroup
+   repeat with btnNum = 1 to the number of btns of someGroup
+      put the long id of btn btnNum of someGroup into someButton
+      put someButton & CR after groupButtons
+   end repeat  
+   delete char -1 of groupButtons
+   return groupButtons
+end group_Buttons
+
+getprop group_ButtonNameList
+   local btnNames
+   put the long id of the target into someGroup
+   repeat with btnNum = 1 to the number of btns of someGroup
+      put the short name of btn btnNum of someGroup into shortName
+      put shortName & comma after btnNames
+   end repeat  
+   delete char -1 of btnNames
+   return btnNames
+end group_ButtonNameList
+
+
 --> Top
 -
 getprop top_Card
@@ -60,9 +90,6 @@ getprop top_Views
    return object_GetTopViews (groupOrCard)
 end top_Views
 
-
---> Object | Top
--
 getprop top_Control [pName]
    put the childcontrolids of the target into topControlIDs
    switch
@@ -90,36 +117,10 @@ getprop object_TopControls
    return object_GetGroupControls(targetObject, false)
 end object_TopControls
 
-function object_TopLevelGroup someCard, testGroupName
-   object_SetToplevelGroupArrays topLevel_NameDictionary, topLevel_IdDictionary, someCard
-   put keys(topLevel_NameDictionary) into possibleGroupNames
-   put keys(topLevel_IdDictionary) into possibleGroupIds
-   
-   -- guess from the name
-   repeat for each line possibleGroup in possibleGroupIds
-      if the short name of possibleGroup is testGroupName then
-         return possibleGroup
-      end if
-   end repeat
-   return empty
-end object_TopLevelGroup
-
 getprop object_TopViews
    put the long ID of the target into groupOrCard
    return object_GetTopViews (groupOrCard)
 end object_TopViews
-
-function object_GetTopViews groupOrCard
-   put the object_TopControls of groupOrCard into topControls
-   put empty into topViews
-   repeat for each line someObject in topControls
-      if the object_IsView of someObject is true then
-         put someObject & CR after topViews
-      end if
-   end repeat
-   delete last char of topViews
-   return topViews
-end object_GetTopViews
 
 getprop object_TopGroupIDs
    put the long ID of the target into someContainer
@@ -140,6 +141,32 @@ getprop object_TopGroups [visibleOnly]
    put the long ID of the target into someContainer
    return object_GetTopGroups(someContainer, true, visibleOnly)
 end object_TopGroups
+
+function object_TopLevelGroup someCard, testGroupName
+   object_SetToplevelGroupArrays topLevel_NameDictionary, topLevel_IdDictionary, someCard
+   put keys(topLevel_NameDictionary) into possibleGroupNames
+   put keys(topLevel_IdDictionary) into possibleGroupIds
+   
+   -- guess from the name
+   repeat for each line possibleGroup in possibleGroupIds
+      if the short name of possibleGroup is testGroupName then
+         return possibleGroup
+      end if
+   end repeat
+   return empty
+end object_TopLevelGroup
+
+function object_GetTopViews groupOrCard
+   put the object_TopControls of groupOrCard into topControls
+   put empty into topViews
+   repeat for each line someObject in topControls
+      if the object_IsView of someObject is true then
+         put someObject & CR after topViews
+      end if
+   end repeat
+   delete last char of topViews
+   return topViews
+end object_GetTopViews
 
 function object_GetTopGroups someContainer, setShort, visibleOnly
    -- was "object_TopGroups"
@@ -177,6 +204,17 @@ command object_SetToplevelGroupArrays @topLevel_NameDictionary, @topLevel_IdDict
       put topLevelGroupName into topLevel_IdDictionary[someGroup]
    end repeat
 end object_SetToplevelGroupArrays
+
+function stack_TopMost
+   return line 1 of stack_OpenIndex()
+end stack_TopMost
+
+function stack_OpenIndex
+   put the openstacks into stackIndex
+   filter stackIndex without "rev*"
+   line_Delete "Message Box", stackIndex
+   return stackIndex
+end stack_OpenIndex
 
 
 --> Event | Helpers
@@ -1176,7 +1214,7 @@ command object_SetRelativeRect referenceObject, objectToSet, relativeRect
 end object_SetRelativeRect
 
 
---> Object | Eric
+--> Object
 -
 function object_IsVisible pObj
    if not the visible of pObj then return false
@@ -2328,7 +2366,7 @@ getprop object_WithinLibraryStack
 end object_WithinLibraryStack
 
 getprop object_Hierarchy [pWhichBehaviors]
-   -- see also "hkey_SearchHierarchy" 
+   -- see also "script_Hierarchy" 
    put the long id of the target into someObject
    if pWhichBehaviors is empty then put "no library deps" into pWhichBehaviors
    
@@ -2397,19 +2435,6 @@ getprop object_Hierarchy [pWhichBehaviors]
    end repeat
    return "error" -- should never get here!
 end object_Hierarchy
-
-command object_AddBehaviors @objectIndex
-   repeat for each line someObject in objectIndex
-      if exists (someObject) is false then next repeat 
-      put the behavior of someObject into objectBehavior
-      if exists (objectBehavior) then
-         put revRuggedId (objectBehavior) & CR after newObjectIndex
-      end if
-      put someObject & CR after newObjectIndex
-   end repeat
-   delete char -1 of newObjectIndex
-   put newObjectIndex into objectIndex
-end object_AddBehaviors
 
 command object_MaybeAddBehavior @objectHierarchy, objectBehavior, pWhichBehaviors
    if exists (objectBehavior) then

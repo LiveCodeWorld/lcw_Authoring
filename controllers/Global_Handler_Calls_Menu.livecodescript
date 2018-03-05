@@ -9,49 +9,64 @@ version: 0.2
 
 --> Global | Handler | Calls | Menu
 -
-on menu_AddSelected indexView
-   put the selected_index of indexView
-end menu_AddSelected
+on menu_EditHandlerCalls hKey
+   put hkey_CallsFile (hKey) into callsFile
+   atom_DisplayFile callsFile
+end menu_EditHandlerCalls
 
-on menu_RemoveSelected indexView
-   put the selected_index of indexView
-end menu_RemoveSelected
+on menu_ExportHandlerCalls hKey
+   hkey_ExportHandler hKey, true
+   display_HandlerCalls hKey
+end menu_ExportHandlerCalls
+
+on menu_ListHandlerCalls hKey
+  display_HandlerCalls hKey
+end menu_ListHandlerCalls
+
+on menu_RevealHandlerFolder hKey
+   put hkey_Folder (hKey) into handlerFolder
+   finder_Reveal handlerFolder
+end menu_RevealHandlerFolder
 
 on _
 end _
 
-on menu_DisplayDictionaryTerms
-   put ide_GetDictionaryTerms() into dictionaryTerms
-   display_Index dictionaryTerms, "ide_GetDictionaryTerms()"
-end menu_DisplayDictionaryTerms
+on submenu_Dictionary
+   return "Global | Handler | Dictionary | Menu"
+end submenu_Dictionary
 
-on _
-end _
 
-on menu_LoadDictionaryTerms
-   ide_LoadDictionaryTerms
+--> Global | Handler | Calls | Menu | Props
+-
+
+
+--> Global | Handler | Calls | Menu | Disabled
+-
+getprop disabled_ExportHandlerCalls [hKey]
+   put hkey_FetchHandler (hKey) into exportedHandler
+   --  if exportedHandler is empty then return false
    
-   menu_DisplayDictionaryTerms
-end menu_LoadDictionaryTerms
+   put hkey_GetHandler (hKey) into objectHandler
+   if objectHandler = exportedHandler then
+      return true
+   else
+      return false
+   end if
+end disabled_ExportHandlerCalls
+   
+getprop disabled_EditHandlerCalls [hKey]
+   return _callFileExists (hKey)
+end disabled_EditHandlerCalls
 
-on menu_FetchDictionaryTerms
-   put ide_FetchDictionaryTerms() into dictionaryTerms
-   display_Index dictionaryTerms, "ide_FetchDictionaryTerms()"
-end menu_FetchDictionaryTerms
+getprop disabled_ListHandlerCalls [hKey]
+   return _callFileExists (hKey)
+end disabled_ListHandlerCalls
 
-on menu_StoreDictionaryTerms
-   put ide_GetDictionaryTerms() into dictionaryTerms
-   ide_StoreDictionaryTerms dictionaryTerms
-end menu_StoreDictionaryTerms
-
-on _
-end _
-
-on menu_RevDictionaryTerms
-   put rev_FetchDictionaryTerms() into dictionaryTerms
-   display_Index dictionaryTerms, "rev_FetchDictionaryTerms()"
-end menu_RevDictionaryTerms
-
-
-
-
+private function _callFileExists hKey
+   put hkey_CallsFile (hKey) into callsFile
+   if there is a file callsFile then
+      return false
+   else
+      return true
+   end if
+end _callFileExists

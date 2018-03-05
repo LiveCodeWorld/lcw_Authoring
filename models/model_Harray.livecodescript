@@ -15,6 +15,57 @@ In the future we look to store this data in an sqlite, or possible graph databas
 */
 
 
+--> hArray | Model
+-
+/*
+New from "model_TextStack".
+Need to tidy and remove old handlers in the section below "--> Working on"
+*/
+
+command hArray_LoadGlobal
+   global gHkey_Array
+   put hArray_FetchData() into gHkey_Array
+end hArray_LoadGlobal
+
+command hArray_StoreGlobal
+   global gHkey_Array
+   hArray_StoreData gHkey_Array
+end hArray_StoreGlobal
+
+function hArray_FetchData
+   put lcw_FetchArray ("Hkey_Data.array") into hArray
+   return hArray
+end hArray_FetchData
+
+command hArray_StoreData hArray
+   lcw_StoreArray "Hkey_Data.array", hArray
+end hArray_StoreData
+
+command hArray_DeleteArrayDatabase
+   global gHkey_Array
+   delete variable gHkey_Array
+end hArray_DeleteArrayDatabase
+
+
+--> Project | hArray | Model
+-
+/*
+Should change this to store it somewhere sensible
+Like the lcw_User folder?
+*/
+
+function project_FetchHarray
+   put lcw_FetchArray ("Hkey_Data.array") into hArray
+   return hArray
+end project_FetchHarray
+
+command project_SaveHarray hArray
+   lcw_StoreArray "Hkey_Data.array", hArray
+   put the result into arrayFile
+   return arrayFile
+end project_SaveHarray
+
+
 --> Working on
 -
 /*
@@ -269,8 +320,8 @@ end lcw_AddScriptToHarray
 
 private command handler_ExportCalls shortHkey, scriptFile, handlerCallArray, pCreateHashArray, pForceIndexHandlerCalls
    if pCreateHashArray is true or pForceIndexHandlerCalls is true then
-      put handlerCallArray ["filteredCalls"] into shortCalls
-      -- put handlerCallArray ["hkeyCalls"] into allShortCalls
+      -- put handlerCallArray ["filteredCalls"] into shortCalls
+      put handlerCallArray ["hkeyCalls"] into shortCalls
       
       -- /lcw_User/lcw_Metadata/lib_Update/data/objects/stack/script.txt
       put scriptFile into dataFolder
@@ -436,7 +487,7 @@ put the stack_Object of scriptObject into stackObject
 put the mainstack of stackObject into mainStackName
 put the filename of stack mainStackName into someFile
 if someFile is empty then
-   put merge ("Not exporting or indexing as [[scriptObject]] has no filename and is not saved anywhere!")
+   put merge ("Not exporting or indexing as scriptObject has no filename and is not saved anywhere!")
    return false
 end if
 
@@ -445,7 +496,7 @@ script_UpdateHarrayAndExport scriptObject, true
 put the result into scriptFile
 
 put the name of scriptObject into cName
-lcw_Notify merge ("Exported and indexed script of [[cName]]")
+lcw_Notify merge ("Exported and indexed script of cName")
 return scriptFile
 end ide_ExportAndIndex
 

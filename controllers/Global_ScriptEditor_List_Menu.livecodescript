@@ -77,7 +77,7 @@ on menu_Init targetObject, mPath, mTitlePath
    put word 2 of hInfo into hName
    put word 3 of hInfo into startLineNum
    put word 4 of hInfo into endLineNum
-   put rev_ScriptObject() into hObject
+   put scriptEditor_Object() into hObject
    put hName,hType,hObject,1 into hKey
    
    put hKey into LocalArray ["hKey"]

@@ -29,8 +29,9 @@ on menu_CreateView scriptObject
 end menu_CreateView
 
 on menu_CreateModel scriptObject, projectChoice
-     breakpoint
- put "Choose a name for your script only model stack...." into someQuestion
+   
+   breakpoint
+   put "Choose a name for your script only model stack...." into someQuestion
    put the script_MetaData ["name"] of scriptObject into scriptName
    if scriptName is empty then put "Example" into scriptName
    put "model_" & scriptName into suggestedAnswer
@@ -39,8 +40,8 @@ on menu_CreateModel scriptObject, projectChoice
 end menu_CreateModel
 
 on menu_CreateBehavior scriptObject
-     breakpoint
- put "Choose a name for your script-only behavior stack...." into someQuestion
+   breakpoint
+   put "Choose a name for your script-only behavior stack...." into someQuestion
    put the script_MetaData ["name"] of scriptObject into scriptName
    if scriptName is empty then put "Example" into scriptName
    put "behavior_" & scriptName into suggestedAnswer
@@ -81,6 +82,32 @@ on menu_CreateLibrary scriptObject
 end menu_CreateLibrary
 
 on menu_CreateMenuStack scriptObject
+   put the project_Folder of scriptObject into projectFolder
+   put the project_Name of scriptObject into projectName
+   
+   put _askMenuTitle (projectName) into gMenuTitle
+   
+   project_CreateMenu projectFolder, gMenuTitle
+   put the result into controllerStackObject
+   
+   lcw_Notify ("Created menu" && kwote (controllerStackObject) & "!")
+   edit the script of controllerStackObject
+end menu_CreateMenuStack
+
+private function _askMenuTitle projectName
+   put line 1 of the clipboarddata ["text"] into maybeMenuTitle
+   if word -1 of maybeMenuTitle = "Menu" then
+      put maybeMenuTitle into suggestedAnswer
+   else
+      set the itemdelimiter to "_"
+      put "Global |" && item -1 of projectName && "| Menu" into suggestedAnswer
+   end if
+   
+   put "What is the name of your global menu...." into someQuestion
+   put lcw_Ask (someQuestion, suggestedAnswer) into gMenuTitle
+   return gMenuTitle
+   
+   /*
    put "Choose a name for your script only menu stack...." into someQuestion
    put line 1 of the clipboarddata ["text"] into maybeMenuTitle
    if word -1 of maybeMenuTitle = "Menu" then
@@ -91,13 +118,8 @@ on menu_CreateMenuStack scriptObject
    
    put lcw_Ask (someQuestion, suggestedAnswer) into moduleStackName
    
-   put the project_Folder of scriptObject into moduleFolder
-   module_CreateController moduleStackName, moduleFolder
-   put the result into homeStackPath
-   
-   lcw_Notify ("Created menu" && kwote (moduleStackName) & "!")
-   edit the script of stack moduleStackName
-end menu_CreateMenuStack
+   */
+end _askMenuTitle
 
 function module_MenuNameFromViewOrMenuTitle viewOrModuleName
    if word 1 of viewOrModuleName = "-->" then
@@ -118,8 +140,9 @@ end menu_SetWorkingProject
 
 --> Global | ScriptEditor | Create | Menu | Props
 -
-getprop project_Choice
-   return env_GetProjectFocus()
+getprop project_Choice [scriptObject]
+   put the project_Name of scriptObject into projectName
+   return projectName
 end project_Choice
 
 getprop project_Choices

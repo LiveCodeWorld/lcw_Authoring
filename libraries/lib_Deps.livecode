@@ -25,6 +25,55 @@ This woud probably be much better stored in an sqlite database.
 
 --> Working on
 -
+function hkey_TestFetchDeps hKey, someHandler, pSkipHkeyComponents, pSkipHkeyProps
+   put hkey_TestShortDeps (hKey, someHandler, pSkipHkeyComponents, pSkipHkeyProps) into shortBoolean
+   if shortBoolean = false then return false
+   
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   if exists (hObject) is false then return shortBoolean  
+   
+   if pSkipHkeyComponents is empty then put pref_GetValue ("skip_HkeyComponents") is not false into pSkipHkeyComponents
+   if pSkipHkeyProps is empty then put pref_GetValue ("skip_HkeyProps") is not false into pSkipHkeyProps
+   
+   put the uRIP ["Type"] of hObject into objectType
+   put the object_MetaData ["component"] of hObject into scriptIsComponent
+   switch
+      case hkey_IsDataGridCall (hKey, hName, hType, hObject) is true
+         return false
+      case scriptIsComponent is true and pSkipHkeyComponents is true
+         return false
+      case objectType is not "library" and hType is among the items of "g,s" and pSkipHkeyProps is true
+         return false
+      default
+         return true
+   end switch
+end hkey_TestFetchDeps
+
+function hkey_TestShortDeps hKey, someHandler, pSkipHkeyComponents, pSkipHkeyProps
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   if pSkipHkeyComponents is empty then put pref_GetValue ("skip_HkeyComponents") is not false into pSkipHkeyComponents
+   if pSkipHkeyProps is empty then put pref_GetValue ("skip_HkeyProps") is not false into pSkipHkeyProps
+   
+   switch
+      case hName = "_"
+         return false
+      case hName is among the items of "menu_Target,menu_CheckTarget,menu_Version" and hType = "g"
+         return false
+      case hName is "menu_Init" and hType = "c"
+         return false
+      case char 1 of hName = "u" and hType is among the items of "g,s"
+         return false
+      case "_" is not in hName and hType is among the items of "g,s"
+         return false
+      case char 1 to 3 of hName = "rev" and char 4 of hName is not "_"
+         return false
+      case handler_IsComponent (someHandler) and pSkipHkeyComponents is true
+         return false
+      default
+         return true
+   end switch
+end hkey_TestShortDeps
+
 function stackArray_ConstructObjectFolder textStackFolder, objectBit, pSubStackName
    -- should update and rename to new folder conventions
    put "data" into dataOrMetadata
@@ -54,37 +103,6 @@ This will provide and interface to a new "model library" for LiveCode dependenci
 All handlers should interface with these custom properties and perhaps the commands and functions should be private.
 The issue with that is that at the moment there are propblems with custom properties and the Livecode / revIgniter server I beleive.
 */
-
-
---> Deps | Handler
--
-getprop script_Handler [shortHKey]
-   if shortHKey is empty then return empty
-   put the long id of the target into tObject
-   put hkey_ExtractHandlerFromObject (hKey) into foundHandler
-   return foundHandler
-end script_Handler
-
-getprop script_Handler [shortHKey]
-   if shortHKey is empty then return empty
-   try
-      put the long id of the target into tObject
-      put the revAvailableHandlers of tObject into handlerTable
-      script_HandlerFromTableOffsets shortHkey, handlerTable, startLineNum, endLineNum
-      if startLineNum = 0 then
-         -- look for private handler?
-         put "P" before item 2 of shortHkey
-         script_HandlerFromTableOffsets shortHkey, handlerTable, startLineNum, endLineNum
-         if startLineNum = 0 then
-            return empty
-         end if
-      end if
-      put the script of tObject into someScript
-      return line startLineNum to endLineNum of someScript
-   catch someError
-      return empty -- a locked stack
-   end try
-end script_Handler
 
 getprop mainStack_MetaArray [pHashArrayBoolean]
    local pLinkToViews, pExportHandlers, pDontDiff
@@ -177,41 +195,15 @@ getprop stack_BehaviorCard
 end stack_BehaviorCard
 
 getprop main_Stack
-   put the stack_Object of the target into stackObject
-   put the mainstack of stackObject into stackName
-   return the name of stack stackName
+   put the defaultstack into stackObject
+   put the mainstack of stackObject into mainStackName
+   put the name of stack mainStackName into mainStackObject
+   return mainStackObject
 end main_Stack
 
 
 --> Hkey | Search | Deps
 -
-command hkey_AddDevelopmentHierarchy @scriptHierarchy, projectName, targetObject
-   local frontObjects, usedStacks, backObjects
-   
-   put project_ListUsedStacks (projectName) into usedStacks
-   if hkey_IncludeDepsInSearch() is true then object_AddBehaviors usedStacks
-   
-   script_AddLibrariesToHierarchy scriptHierarchy, frontObjects, usedStacks, backObjects
-end hkey_AddDevelopmentHierarchy
-
-function hkey_IncludeDepsInSearch
-   global gOPN
-   put gOPN ["include_DependencyBehaviors"] is not false into someBoolean
-   return someBoolean
-   
-   put pref_GetValue ("include_DependencyBehaviors") is not false into someBoolean
-   return someBoolean
-end hkey_IncludeDepsInSearch
-
-command hkey_IncludeDepsInSearch someBoolean
-   global gOPN
-   put someBoolean into gOPN ["include_DependencyBehaviors"]
-   return someBoolean
-   
-   pref_SetValue "include_DependencyBehaviors", someBoolean
-   return the result
-end hkey_IncludeDepsInSearch
-
 getprop handler_InHierarchy [hKey]
    put the long id of the target into tObject
    put item 1 to 2 of hKey into shortHkey
@@ -238,13 +230,6 @@ getprop hkey_InHierarchy [hKey]
    return hkey_FindInHierarchy (shortHKey, tObject)
 end hkey_InHierarchy
 
-getprop hkey_SearchHierarchy [pProjectName]
-   put the long id of the target into targetObject
-   put the object_Hierarchy of targetObject into scriptHierarchy
-   hkey_AddDevelopmentHierarchy scriptHierarchy, pProjectName, targetObject
-   return scriptHierarchy
-end hkey_SearchHierarchy
-
 
 --> Hkey | Deps | From Library
 -
@@ -264,177 +249,12 @@ function library_HkeyCallArray hKey, pAllcalls
    return hKeyLinkArray
 end library_HkeyCallArray
 
-
---> Handler
--
-function hkey_GetObjectHandler hKey, pNotPrivate
-   put item 3 of hKey into hObject
-   if exists (hObject) is false then return empty
-   if pNotPrivate is true then
-      put the script of hObject into someScript
-      put script_ExtractHandler (hKey, someScript, pNotPrivate) into someHandler
-   else
-      put the script_Handler [hKey] of hObject into someHandler
-   end if
-   return someHandler
-end hkey_GetObjectHandler
-
-function script_ExtractHandler hKey, pSomeScript, pNotPrivate
-   -- this version uses offsets to find the handler not an hArray index
-   local startHandler, endHandler
-   if pSomeScript is empty then
-      hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
-      if exists(scriptObject) is false then return empty
-      put the script of scriptObject into pSomeScript
-   end if
-   hkey_SetOffsets hKey, startHandler, endHandler, pSomeScript, pNotPrivate
-   put the result into someHandler
-   return someHandler
-end script_ExtractHandler
-
-function hkey_GetHandler hKey
-   return hkey_ExtractHandlerFromObject (hKey)
-   
-   -- does this also get it from hierarchy???
-   put item 1 to 2 of hKey into shortHKey
-   put item 3 of hKey into hObject
-   if exists (hObject) is false then return empty
-   return the script_Handler [shortHKey] of hObject
-end hkey_GetHandler
-
-
---> Handler | New
--
-function hkey_ExtractHandlerFromObject hKey
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum 
-   
-   try
-      put the revAvailableHandlers of hObject into handlerTable
-      script_HandlerFromTableOffsets hKey, handlerTable, startLineNum, endLineNum
-      if startLineNum = 0 then
-         -- look for private handler?
-         put "P" before item 2 of hKey
-         script_HandlerFromTableOffsets hKey, handlerTable, startLineNum, endLineNum
-         if startLineNum = 0 then
-            return empty
-         end if
-      end if
-      put the script of hObject into someScript
-      put line startLineNum to endLineNum of someScript into foundHandler
-      return foundHandler
-   catch someError
-      return empty -- a locked stack
-   end try
-end hkey_ExtractHandlerFromObject
-
-command script_HandlerFromTableOffsets shortHkey, handlerTable, @startLineNum, @endLineNum
-   if handlerTable is empty then
-      put 0 into startLineNum
-      put 0 into endLineNum
-      return false
-   end if
-   
-   -- put item 1 of shortHkey into hName
-   -- put item 2 of shortHkey into hType
-   -- hKeyLine_Deconstruct hKeyLine, @hName, @hType, @hObject
-   hkey_Deconstruct shortHkey, hName, hType, xObject, xNum
-   
-   switch char -1 of hType
-      case "c"
-         put "M" into char -1 of hType
-         break
-      case "o"
-         put "M" into char -1 of hType
-         break
-   end switch
-   
-   repeat for each line someLine in handlerTable      
-      put word 2 of someLine into hTableName
-      if hTableName is not hName then next repeat
-      
-      put word 1 of someLine into hTableType
-      switch
-         case hTableType = hType
-            put word 3 of someLine into startLineNum
-            put word 4 of someLine into endLineNum
-            return true
-      end switch
-      
-      add 1 to handlerLineNum
-   end repeat
-   put 0 into startLineNum
-   put 0 into endLineNum
-   return false
-end script_HandlerFromTableOffsets
-
-
---> Hkey | Hierarchy | New
--
-/*
-These newer handlers use the more flexible "getprop hkey_SearchHierarchy" and built in "revAvailableHandlers"
-
-See also "put hArray_FindHkeyInHierarchy (shortCall, hObject, hArray, pProjectName) into foundCall"
-These handlers will look for private handler only in the actual target,
-need to check whether we should also look for private handlers in the behavior of the target.
-*/
-
-function hkey_FindInHierarchy shortHKey, tObject, pProjectName
-   put hkey_FoundArray (shortHKey, tObject, pProjectName) into foundArray 
-   return foundArray ["foundHkey"]
-end hkey_FindInHierarchy
-
-function hkey_FoundArray shortHKey, tObject, pProjectName
-   -- put item 1 of shortHKey into hName
-   -- put item 2 of shortHKey into hType
-   hkey_Deconstruct shortHKey, hName, hType, xObject, xNum
-   put the hkey_SearchHierarchy [pProjectName] of tObject into searchHierarchy
-   
-   put the long id of tObject into tObject
-   repeat with lineNum = the number of lines of searchHierarchy down to 1
-      put line lineNum of searchHierarchy into hierarchyObject
-      put the revAvailableHandlers of hierarchyObject into handlerTable
-      
-      if the long id of hierarchyObject = tObject and char 1 of hType is not "p" then -- if looking for private skip
-         -- look for private handlers first (ideally should get the first version?)
-         put "p" & hType into privateHype
-         put hName,privateHype into privateShortKey
-         script_HandlerFromTableOffsets privateShortKey, handlerTable, startLineNum, endLineNum
-         if the result is true then
-            put handlerTable into foundArray ["handlerTable"]
-            put startLineNum into foundArray ["startLineNum"]
-            put endLineNum into foundArray ["endLineNum"]
-            put hkey_Construct (hName, privateHype, hierarchyObject) into foundArray ["foundHkey"]
-            return foundArray
-         else
-            script_HandlerFromTableOffsets shortHkey, handlerTable, startLineNum, endLineNum
-            if the result is true then
-               put handlerTable into foundArray ["handlerTable"]
-               put startLineNum into foundArray ["startLineNum"]
-               put endLineNum into foundArray ["endLineNum"]
-               put hkey_Construct (hName, hType, hierarchyObject) into foundArray ["foundHkey"]
-               return foundArray
-            end if
-         end if
-      else
-         script_HandlerFromTableOffsets shortHkey, handlerTable, startLineNum, endLineNum
-         if the result is true then
-            put handlerTable into foundArray ["handlerTable"]
-            put startLineNum into foundArray ["startLineNum"]
-            put endLineNum into foundArray ["endLineNum"]
-            put hkey_Construct (hName, hType, hierarchyObject) into foundArray ["foundHkey"]
-            return foundArray
-         end if
-      end if
-   end repeat
-   return empty
-end hkey_FoundArray
-
 function hArray_FindHkeyInHierarchy shortHkey, hObject, pHarray, pProjectName
    -- see also "hkey_FindInHierarchy"
    if exists (hObject) is false then return empty
-   if pHarray is an array and pProjectName is empty then put "none" into pProjectName -- assume we only want to look in a mainstack
+   -- if pHarray is an array and pProjectName is empty then put "none" into pProjectName -- assume we only want to look in a mainstack
    
-   put the hkey_SearchHierarchy [pProjectName] of hObject into pSearchHierarchy
+   put the script_Hierarchy [pProjectName] of hObject into pSearchHierarchy
    put hArray_GetFoundHkeyArray (shortHkey, pHarray) into hkeyArray
    
    -- also look for private handlers in the first object
@@ -613,18 +433,6 @@ end treeAction_EditHarrayObjectScript
  
 --> Deps | Create Graph | hKey
 -
-command display_HkeyArrayGraph hkeyArray, pGraphStyle
-   -- component: true
-   
-   if pGraphStyle is empty then put "hierarchical" into pGraphStyle
-   -- overlayArray_ReconstructAndCreateFiles hKeyArray, pOverlayName, overlayFolder, pGraphStyle, dotHeaderArray, graphPropertyArray
-   put overlayArray_FromLinkArray (hkeyArray) into overlayArray
-   overlayArray_SetGraphProperty overlayArray, "overlay_Style", pGraphStyle
-   overlayArray_CreateAndDisplayGraph overlayArray, pGraphStyle
-   put the result into imageView
-   return imageView
-end display_HkeyArrayGraph
-
 command hkey_CreateDependencyGraph hKey, pGraphStyle, pOverlayName
    -- direct object walk
    local dotHeaderArray, graphPropertyArray
@@ -824,55 +632,6 @@ command hArray_FilterHkeys @hKeys, pHarray
    put goodHkeys into hKeys
 end hArray_FilterHkeys
 
-function hkey_TestFetchDeps hKey, someHandler, pSkipHkeyComponents, pSkipHkeyProps
-   put hkey_TestShortDeps (hKey, someHandler, pSkipHkeyComponents, pSkipHkeyProps) into shortBoolean
-   if shortBoolean = false then return false
-   
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   if exists (hObject) is false then return shortBoolean  
-   
-   if pSkipHkeyComponents is empty then put pref_GetValue ("skip_HkeyComponents") is not false into pSkipHkeyComponents
-   if pSkipHkeyProps is empty then put pref_GetValue ("skip_HkeyProps") is not false into pSkipHkeyProps
-   
-   put the uRIP ["Type"] of hObject into objectType
-   put the object_MetaData ["component"] of hObject into scriptIsComponent
-   switch
-      case hkey_IsDataGridCall (hKey, hName, hType, hObject) is true
-         return false
-      case scriptIsComponent is true and pSkipHkeyComponents is true
-         return false
-      case objectType is not "library" and hType is among the items of "g,s" and pSkipHkeyProps is true
-         return false
-      default
-         return true
-   end switch
-end hkey_TestFetchDeps
-
-function hkey_TestShortDeps hKey, someHandler, pSkipHkeyComponents, pSkipHkeyProps
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   if pSkipHkeyComponents is empty then put pref_GetValue ("skip_HkeyComponents") is not false into pSkipHkeyComponents
-   if pSkipHkeyProps is empty then put pref_GetValue ("skip_HkeyProps") is not false into pSkipHkeyProps
-   
-   switch
-      case hName = "_"
-         return false
-      case hName is among the items of "menu_Target,menu_CheckTarget,menu_Version" and hType = "g"
-         return false
-      case hName is "menu_Init" and hType = "c"
-         return false
-      case char 1 of hName = "u" and hType is among the items of "g,s"
-         return false
-      case "_" is not in hName and hType is among the items of "g,s"
-         return false
-      case char 1 to 3 of hName = "rev" and char 4 of hName is not "_"
-         return false
-      case handler_IsComponent (someHandler) and pSkipHkeyComponents is true
-         return false
-      default
-         return true
-   end switch
-end hkey_TestShortDeps
-
 command stackArray_DeleteObjectFolder textStackFolder
    folder_Format textStackFolder
    
@@ -937,180 +696,6 @@ end stackArray_ExportVideoClips
 command stackArray_ExportAudioClips objectFolder, objectPropArray
    
 end stackArray_ExportAudioClips
-
-
---> Old
--
-function hkey_SearchObjectHierarchy hKey, scriptHierarchy
-   -- was "script_SearchObjectHierarchy"
-   /*
-   This script finds where a handler call is in the hierarchy.
-   It returns multiple objects if the handler is passed and also intercepted further up the hierarchy.
-   
-   It does not use any caching at the moment but looks directly at the script.
-   */
-   hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
-   hkey_FindHandlerInHierarchy handlerName, handlerType, scriptObject, scriptHierarchy, foundHKey, callHandler
-   
-   hkey_Deconstruct foundHKey, foundHandlerName, foundHandlerType, foundScriptObject, handlerNum
-   return foundScriptObject
-end hkey_SearchObjectHierarchy
-
-function hkey_FindAndExtractCalls hKey, pEnvironmentFilter, pHkeyArray, pScriptObject
-   -- maybe should use "hkey_SearchHierarchy" instead of "script_Hierarchy"???
-   local foundHKey, foundHandler
-   
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   if pScriptObject is empty then put hObject into pScriptObject
-   
-   put the hkey_SearchHierarchy [pEnvironmentFilter] of pScriptObject into scriptHierarchy
-   hkey_FindHandlerInHierarchy hName, hType, pScriptObject, scriptHierarchy, foundHKey, foundHandler
-   hkey_Deconstruct foundHkey, foundName, foundType, foundObject, foundNum
-   
-   -- save unecessary indexing work
-   if foundHkey is among the lines of keys (pHkeyArray) then
-      lcw_Notify merge ("Already indexed '[[hkey]]'. Lets not index it again please :)")
-      return empty
-   end if
-   
-   -- get handler calls
-   -- this should be short calls for simplicity and speed of recursion
-   
-   put library_FetchHandler (foundHkey) into storedHandler
-   if foundHandler = storedHandler and pForceSearch is not true then
-      -- already stored, faster to fetch stored calls
-      put hkey_GetCalls (foundHkey) into handlerCalls
-   else
-      put the hkey_SearchHierarchy [pEnvironmentFilter] of foundObject into foundHierarchy
-      put script_ParseHandlerForCalls (foundHandler, foundHierarchy, foundObject) into handlerCalls
-      hkey_StoreCallsAndHandler foundHkey, foundHandler, handlerCalls
-   end if
-   return handlerCalls
-end hkey_FindAndExtractCalls
-
-command hkey_FindHandlerInHierarchy handlerName, handlerType, scriptObject, scriptHierarchy, @hKey, @foundHandler, pNotPrivate
-   -- this is the step that takes time
-   -- looks for first hKey in scriptHierarchy
-   local startHandler, endHandler
-   
-   if exists (scriptObject) is false then
-      put scriptObject && "does not exist! Exiting..." into someMessage
-      lcw_Notify someMessage, true
-      return empty
-   end if
-   
-   --  and from now on search rest of hierarchy only for public handler
-   put handlerName,handlerType into shortHKey
-   repeat with lineNum = (the number of lines of scriptHierarchy) down to 1
-      set the cursor to busy
-      put empty into hKey
-      put line lineNum of scriptHierarchy into someObject
-      
-      if exists (someObject) is false then
-         put someObject && "does not exist! Skipping..." into someMessage
-         lcw_Notify someMessage, true
-         next repeat
-      end if
-      
-      if the long id of someObject = the long id of scriptObject then
-         -- as it is the script object where the shortHkey is called from 
-         -- allow private handlers
-         
-         if the hArray_IsCurrent of someObject is true then
-            if the hArray_HkeyPresent [hKey] of someObject is true then
-               put hkey_Construct (handlerName, handlerType, someObject) into hKey
-               put library_FetchHandler (hKey) into foundHandler
-               return hKey
-            end if         
-         else
-            -- not properly indexed, so do it manually.
-            try
-               put the script of someObject into someScript
-               
-               -- don't think we need to have this option 
-               -- change to look for either. Forget whether handlerType = "p"
-               if char 1 of handlerType = "p" then
-                  put handlerType into privateHandlerType
-                  
-                  put handlerName,privateHandlerType into shortHKey
-                  hkey_SetOffsets shortHKey, startHandler, endHandler, someScript, pNotPrivate
-                  put the result into foundHandler
-                  
-                  if foundHandler is not empty then
-                     -- found private handler => construct and return hKey
-                     put hkey_Construct (handlerName, privateHandlerType, someObject) into hKey
-                     return hKey
-                  else
-                     -- no point in searching hierarchy for private handlers
-                     return empty
-                  end if
-               else
-                  -- should find first regardless of public or private
-                  -- for now finds private first
-                  put "p" & handlerType into privateHandlerType
-                  
-                  put handlerName,privateHandlerType into shortHKey
-                  hkey_SetOffsets shortHKey, startHandler, endHandler, someScript, pNotPrivate
-                  put the result into foundHandler
-                  
-                  if foundHandler is not empty then
-                     -- found private handler => construct and return hKey
-                     put hkey_Construct (handlerName, privateHandlerType, someObject) into hKey
-                     return hKey
-                  else
-                     -- lets try public
-                     put handlerName,handlerType into shortHKey
-                     hkey_SetOffsets shortHKey, startHandler, endHandler, someScript, pNotPrivate
-                     put the result into foundHandler
-                     if foundHandler is not empty then
-                        -- found public handler => construct and return hKey
-                        put hkey_Construct (handlerName, handlerType, someObject) into hKey
-                        return hKey
-                     end if
-                  end if
-                  
-               end if
-            catch someError
-               -- locked
-               put "Did not search" && the mobile_Name of someObject && "as it's script is locked!" into someMessage
-               lcw_Notify someMessage, true
-               next repeat
-            end try
-         end if
-      else
-         -- not the script object where the shortHkey is called from
-         -- don't allow private handlers
-         
-         if the hArray_IsCurrent of someObject is true then
-            if the hArray_PublicHkeyPresent [hKey] of someObject is true then
-               put hkey_Construct (handlerName, handlerType, someObject) into hKey
-               put library_FetchHandler (hKey) into foundHandler
-               return hKey
-            end if         
-         else
-            try
-               put the script of someObject into someScript
-            catch someError
-               -- locked
-               next repeat
-            end try
-            
-            hkey_SetOffsets shortHKey, startHandler, endHandler, someScript, pNotPrivate
-            put the result into foundHandler
-            if foundHandler is empty then next repeat
-            if script_HandlerContainsPass (handlerName, foundHandler) is false then
-               -- found => construct and return hKey
-               put hkey_Construct (handlerName, handlerType, someObject) into hKey
-               return hKey
-            end if
-         end if
-         
-      end if
-   end repeat
-   
-   -- gone through every object in hierarchy
-   return empty
-end hkey_FindHandlerInHierarchy
 
 
 --> Deps | Private

@@ -85,14 +85,14 @@ on menu_GitRename scriptObject, someBoolean
    set the itemdelimiter to "/"
    put the filename of stack oldName into oldFile
    put item -1 of oldFile into oldShortFile
-  
+   
    put oldFile into newFile
    put oldName & ".rev" into newShortFile
    
    put merge("What do you want to rename this stack '[[oldShortFile]]' to?") into someQuestion
    put lcw_Ask (someQuestion, newShortFile) into newShortFile
    put newShortFile into item -1 of newFile
-    
+   
    git_RenameFile oldFile, newFile
    -- rename file fromFile to toFile
    return newFile
@@ -204,9 +204,9 @@ end _
 
 on menu_SpotlightFileInfo scriptObject
    put the stack_Object of scriptObject into stackObject
-    put the filename of stackObject into someFile
-    put spotlight_GetFileInfo (someFile) into stackInfo
-    display_Lines stackInfo, "Spotlight file info for" && stackObject
+   put the filename of stackObject into someFile
+   put spotlight_GetFileInfo (someFile) into stackInfo
+   display_Lines stackInfo, "Spotlight file info for" && stackObject
 end menu_SpotlightFileInfo
 
 on menu_StackData treeField
@@ -252,10 +252,11 @@ end menu_StackHashLog
 
 --> Global | Stack | Tidy | Menu | Props
 -
-getprop already_Known [stackObject]
-   if exists (stackObject) is false then return empty
-   put the stack_IsKnown of stackObject into someBoolean
-   return someBoolean
+-- getprop already_Known [stackObject]
+-- caused a problem ???
+if exists (stackObject) is false then return empty
+put the stack_IsKnown of stackObject into someBoolean
+return someBoolean
 end already_Known
 
 

@@ -11,77 +11,6 @@ version: 0.4
 local LocalArray
 
 
---> Global | Tree | HkeyArray | Graph | Create | Menu
--
-on menu_CreateSvgGraph treeView, graphStyle
-   local pProjectName
-   
-   put the view_Data of treeView into hkeyArray
-   put the displayed_Object of treeView into scriptObject
-   
-   script_CreateGraph hKeyArray, scriptObject, pProjectName, graphStyle
-   put the result into imageFile
-   
-   display_SVG imageFile, scriptObject
-   put the result into displayView
-   set the displayed_Object of displayView to scriptObject
-end menu_CreateSvgGraph
-
-on menu_CreateAndDisplaySvg scriptObject, projectName
-   local pGraphStyle, pProcessObject, pForceCreate
-   
-   display_IndexScriptAndDisplaySVG scriptObject, projectName, pGraphStyle, pProcessObject, false
-   put the result into imageFile
-   
-   put the textstack_ProcessedHkeyArray of scriptObject into processedHkeyArray
-   display_HkeyArray processedHkeyArray, scriptObject
-   display_ObjectHkeyArray processedHkeyArray, scriptObject
-end menu_CreateAndDisplaySvg
-
-on menu_DisplayProcessedHkeyArray scriptObject
-   put the textstack_ProcessedHkeyArray of scriptObject into processedHkeyArray
-   display_HkeyArray processedHkeyArray, scriptObject
-   display_ObjectHkeyArray processedHkeyArray, scriptObject
-end menu_DisplayProcessedHkeyArray
-
-on menu_DisplaySvg treeView
-   put the displayed_Object of treeView into scriptObject
-   put LocalArray ["svgFile"] into svgFile
-   display_SVG svgFile
-end menu_DisplaySvg
-
-on menu_DisplayProjectMetadataFolder treeView
-   put the displayed_Object of treeView into scriptObject
-   -- put the project_MetaDataFolder of scriptObject into projectMetaDataFolder
-   put the project_OverlayFolder of scriptObject into projectMetaDataFolder
-   
-   put projectMetaDataFolder
-   finder_Reveal projectMetaDataFolder
-end menu_DisplayProjectMetadataFolder
-
-getprop disabled_DisplaySvg [treeView]
-   -- should be a simpler way
-   put the displayed_Object of treeView into scriptObject
-   put the project_OverlayFolder of scriptObject into projectMetaDataFolder
-   put empty into pOverlayName
-   put overlay_GetArray (projectMetaDataFolder, pOverlayName) into overlayArray
-   put overlayArray_GetImageFile (overlayArray, projectMetaDataFolder) into svgFile
-   put svgFile into LocalArray ["svgFile"]
-   if svgFile is empty then
-      return true
-   else
-      return false
-   end if
-end disabled_DisplaySvg
-
-on _
-end _
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-
 --> Menu | Props
 -
 /*
@@ -90,27 +19,36 @@ it should allow export to the appropriate place on disk, as it can take a long t
 and they may want to be examined before they are saved!
 */
 
--- command menu_Init treeView
-   put the displayed_Object of treeView into scriptObject
-   if exists (scriptObject) is true then
-      put empty into hKey
-      put the mobile_Name of scriptObject into LocalArray ["stackLabel"]
-      put the overlay_Folder of scriptObject into overlayFolder 
-   else
-      put the displayed_Hkey of treeView into hKey
-      -- put the title_Text of treeView into hKey
-      put hKey into LocalArray ["stackLabel"]
-      put library_HkeyFolder (hKey) into overlayFolder
-   end if
-   
-   put overlayFolder into LocalArray ["overlayFolder"]
-   put hKey into LocalArray ["hKey"]
-   put scriptObject into LocalArray ["scriptObject"]
-   
-   return overlayFolder
+on menu_Init tObject
+   put the tree_View of tObject into treeView
+   put treeView into LocalArray ["tree_View"]
+   -- put the displayed_Object of treeView into stackObject
+   put the displayed_Array of treeView into displayedArray
+   put displayedArray into LocalArray ["displayedArray"]
+   put displayedArray ["Handlers"] into LocalArray ["hkeyArray"]
 end menu_Init
 
-getprop menu_CheckTarget [mTarget]
+-- command menu_Init treeView
+put the displayed_Object of treeView into scriptObject
+if exists (scriptObject) is true then
+   put empty into hKey
+   put the name of scriptObject into LocalArray ["stackLabel"]
+   put the overlay_Folder of scriptObject into overlayFolder 
+else
+   put the displayed_Hkey of treeView into hKey
+   -- put the title_Text of treeView into hKey
+   put hKey into LocalArray ["stackLabel"]
+   put library_HkeyFolder (hKey) into overlayFolder
+end if
+
+put overlayFolder into LocalArray ["overlayFolder"]
+put hKey into LocalArray ["hKey"]
+put scriptObject into LocalArray ["scriptObject"]
+
+return overlayFolder
+end menu_Init
+
+-- getprop menu_CheckTarget [mTarget]
    if exists (mTarget) is false then return false
    put the tree_View of mTarget into treeView
    if exists (treeView) is false then return false
@@ -128,6 +66,77 @@ command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
    put LocalArray ["stackLabel"] into stackLabel
    put LocalArray ["scriptObject"] into scriptObject
 end deconstructLocalArray
+
+
+--> Global | Tree | HkeyArray | Graph | Create | Menu
+-
+on menu_CreateSvgGraph scriptObject, graphStyle
+   -- put the view_Data of treeView into hkeyArray
+   -- put the displayed_Object of treeView into scriptObject
+   
+   local pProjectName
+   put LocalArray ["hkeyArray"] into hkeyArray
+   
+   script_CreateGraph hKeyArray, scriptObject, pProjectName, graphStyle
+   put the result into imageFile
+   
+   display_SVG imageFile, scriptObject
+   put the result into displayView
+   set the displayed_Object of displayView to scriptObject
+end menu_CreateSvgGraph
+
+on menu_CreateAndDisplaySvg scriptObject, projectName
+   local pGraphStyle, pProcessObject, pForceCreate
+   
+   display_IndexScriptAndDisplaySVG scriptObject, projectName, pGraphStyle, pProcessObject, false
+   put the result into imageFile
+   
+   put the textStack_HkeyArray of scriptObject into processedHkeyArray
+   display_HkeyArray processedHkeyArray, scriptObject
+   display_ObjectHkeyArray processedHkeyArray, scriptObject
+end menu_CreateAndDisplaySvg
+
+on menu_DisplayProcessedHkeyArray scriptObject
+   put the textStack_HkeyArray of scriptObject into processedHkeyArray
+   display_HkeyArray processedHkeyArray, scriptObject
+   display_ObjectHkeyArray processedHkeyArray, scriptObject
+end menu_DisplayProcessedHkeyArray
+
+on menu_DisplaySvg treeView
+   put the displayed_Object of treeView into scriptObject
+   put LocalArray ["svgFile"] into svgFile
+   display_SVG svgFile
+end menu_DisplaySvg
+
+on menu_DisplayProjectMetadataFolder treeView
+   put the displayed_Object of treeView into scriptObject
+   put the textStack_ProjectOverlayFolder of scriptObject into projectMetaDataFolder
+   
+   put projectMetaDataFolder
+   finder_Reveal projectMetaDataFolder
+end menu_DisplayProjectMetadataFolder
+
+getprop disabled_DisplaySvg [treeView]
+   -- should be a simpler way
+   put the displayed_Object of treeView into scriptObject
+   put the textStack_ProjectOverlayFolder of scriptObject into projectMetaDataFolder
+   put empty into pOverlayName
+   put overlay_GetArray (projectMetaDataFolder, pOverlayName) into overlayArray
+   put overlayArray_GetImageFile (overlayArray, projectMetaDataFolder) into svgFile
+   put svgFile into LocalArray ["svgFile"]
+   if svgFile is empty then
+      return true
+   else
+      return false
+   end if
+end disabled_DisplaySvg
+
+on _
+end _
+
+on submenu_Dev
+   return "Dev | Menu"
+end submenu_Dev
 
 
 --> Dev | Menu
@@ -171,7 +180,7 @@ on menu_CreateTemporaryObjectGraphFromTree treeView, graphStyle
    put the displayed_Object of treeView into scriptObject
    
    put the displayed_OverlayFolder of treeView into overlayFolder
-   -- put the textStackOverlay_Folder of scriptObject into overlayFolder
+   -- put the textStack_ProjectOverlayFolder of scriptObject into overlayFolder
    -- put the overlay_Folder of scriptObject into overlayFolder 
    put the displayed_OverlayName of treeView into overlayName
    
@@ -184,7 +193,7 @@ on menu_CreateTemporaryObjectGraphFromTree treeView, graphStyle
    
    local imageView, resizeStyle
    if exists (scriptObject) then
-      put the mobile_Name of scriptObject into stackLabel
+      put the name of scriptObject into stackLabel
    else
       put the title_Text of treeView into stackLabel
    end if
@@ -209,7 +218,7 @@ on menu_CreateTemporaryHkeyGraphFromTree treeView, graphStyle
    
    local imageView, resizeStyle
    if exists (scriptObject) then
-      put the mobile_Name of scriptObject into stackLabel
+      put the name of scriptObject into stackLabel
    else
       put the title_Text of treeView into stackLabel
    end if

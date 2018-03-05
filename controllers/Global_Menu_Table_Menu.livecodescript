@@ -70,7 +70,7 @@ on menu_CutMenu mTarget, scriptMenuTitle
    get "Are you sure you want to cut the menu suites from this script? The suites will be places onto the clipboard, and you can undo the action using the undo button of the Script Editor?"
    lcw_Answer it
    
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the script of mController into someScript
    
    menu_DeleteTitleSuites scriptMenuTitle, someScript
@@ -93,7 +93,7 @@ end submenu_Development
 --> Global | Menu | Table | Menu | Props
 -
 getprop show_MenuStack
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_SubStack of mController into subStackObject
    if exists(subStackObject) then
       return the visible of subStackObject 
@@ -117,7 +117,7 @@ end cached_MenuTitles
 --> Dev | Menu
 -
 on menu_MenuTableArray mTarget, cachedMenuTitle
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_TableArray [cachedMenuTitle] of mController into mTableArray
    display_Array mTableArray, cachedMenuTitle
    put the result into treeView
@@ -128,7 +128,7 @@ on menu_MenuTableArray mTarget, cachedMenuTitle
 end menu_MenuTableArray
 
 on menu_CachedMenuTable mTarget, cachedMenuTitle
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_Table [cachedMenuTitle] of mController into mTable
    
    put script_ConstructSuiteHeader (cachedMenuTitle) into menuHeader
@@ -138,13 +138,13 @@ on menu_CachedMenuTable mTarget, cachedMenuTitle
 end menu_CachedMenuTable
 
 on menu_CachedMenuArray mController, cachedMenuTitle
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the menu_TableArray [cachedMenuTitle] of mController into mTableArray
    display_Array mTableArray
 end menu_CachedMenuArray
 
 on menu_LiveMenuTable mTarget, scriptMenuTitle
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    
    put script_ConstructSuiteHeader(scriptMenuTitle) into menuHeader
    script_Edit mController, menuHeader, true
@@ -157,12 +157,12 @@ on _
 end _
 
 on menu_ClearCachedMenuTable scriptObject, cachedMenuTitle
-    put rev_ScriptObject() into scriptObject
+    put scriptEditor_Object() into scriptObject
     set the menu_Table [cachedMenuTitle] of scriptObject to empty
 end menu_ClearCachedMenuTable
 
 on menu_ClearEntireCache
-    put rev_ScriptObject() into scriptObject
+    put scriptEditor_Object() into scriptObject
     menu_DeleteTables scriptObject
 end menu_ClearEntireCache
 
@@ -170,7 +170,7 @@ on _
 end _
 
 on menu_BurnMenu mTarget
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    put the mobile_Name of mController into mController
    
    put the mobile_Name of mTarget into mTarget
@@ -181,7 +181,7 @@ on _
 end _
 
 on menu_MenuControllerCustomProperty
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    object_Inspect scriptObject
 end menu_MenuControllerCustomProperty
 
@@ -189,18 +189,18 @@ on _
 end _
 
 on menu_DisplayMenuText mTarget, scriptMenuTitle
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    put the menu_Text [scriptMenuTitle] of scriptObject into someOutline
    display_Outline someOutline
 end menu_DisplayMenuText
 
 on menu_DisplayMenuObjects
-   put rev_ScriptObject() into mTarget
+   put scriptEditor_Object() into mTarget
    display_MenuTitles pTargetObject
 end menu_DisplayMenuObjects
 
 on menu_Reindex mTarget, scriptMenuTitle
-   put rev_ScriptObject() into mController
+   put scriptEditor_Object() into mController
    
    if scriptMenuTitle is "All" then
       lcw_Answer "Are you sure you want to update all stored menu tables?"
@@ -295,7 +295,7 @@ local LocalArray
 
 getprop menu_CheckTarget [mTarget]
    -- lets load cache here
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    if exists(scriptObject) is false then return false
    
    put the menu_TableTitles of scriptObject into LocalArray ["menu_TableTitles"]

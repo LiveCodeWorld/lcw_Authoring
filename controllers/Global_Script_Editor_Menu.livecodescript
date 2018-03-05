@@ -42,7 +42,7 @@ on menu_Init
 end menu_Init
 
 getprop menu_Target [mTitlePath]
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    return scriptObject
 end menu_Target
 
@@ -161,7 +161,7 @@ on menu_Go mTarget, whichStack
 end menu_Go
 
 on menu_GoToObject
-   put rev_ScriptObject() into someObject
+   put scriptEditor_Object() into someObject
    object_GoTo someObject
 end menu_GoToObject
 

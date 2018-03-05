@@ -4,7 +4,7 @@
 license: GPLv3
 name: Global_HkeyArray_Tree_Deps_Menu
 type: controller
-version: 0.3
+version: 0.4
 
 /*
 This menu is designed to be the title menu of a tree or similar widget that presents an hkeyArray.
@@ -17,8 +17,19 @@ and they may want to be examined before they are saved!
 local LocalArray
 
 on menu_Init tObject
-   put the tree_View of tObject into LocalArray ["tree_View"]
+   put the tree_View of tObject into treeView
+   put treeView into LocalArray ["tree_View"]
+   -- put the displayed_Object of treeView into stackObject
+   put the displayed_Array of treeView into displayedArray
+   put displayedArray into LocalArray ["displayedArray"]
+   put displayedArray ["Handlers"] into LocalArray ["hkeyShortArray"]
 end menu_Init
+
+command _DisplaySVG imageFile, scriptObject
+   display_SVG imageFile, scriptObject
+   put the result into displayView
+   set the displayed_Object of displayView to scriptObject
+end _DisplaySVG
 
 
 --> Global | HkeyArray | Tree | Deps | Menu
@@ -44,14 +55,6 @@ on menu_ProjectDepStacks treeView, callProjectName
    put depStackNames
 end menu_ProjectDepStacks
 
-getprop call_ProjectNames [treeView]
-   put LocalArray ["tree_View"] into treeView
-   
-   put the displayed_Array of treeView into  displayedArray
-   put displayedArray ["Calls"] into callProjectArray
-   return keys (callProjectArray)
-end call_ProjectNames
-
 on menu_MoveUsed treeView, newProjectName
    put the displayed_Object of treeView into stackObject
    
@@ -61,9 +64,10 @@ on menu_MoveUsed treeView, newProjectName
       exit to top
    end if
    
-   project_MoveLibrary stackObject, newProjectName
+   put the short name of stackObject into stackName
+   project_MoveLibrary stackName, newProjectName
    put the result into newPath
-     
+   
    put the stack_Object of treeView into displayStackObject
    set the label of displayStackObject to newProjectName
    -- set the displayed_Object of treeView into stackObject
@@ -93,18 +97,77 @@ end menu_DeleteStack
 on _
 end _
 
-on menu_DisplayHkeyArray treeView
-   put the displayed_Object of treeView into stackObject
-   put the displayed_Array of treeView into displayedArray
-   put displayedArray ["Handlers"] into hkeyArray
+on menu_ExternalCallGraph scriptObject
+   -- based on menu_CreateSvgGraph of "Global | Tree | HkeyArray | Graph | Create | Menu"
+   local pProjectName
+   put LocalArray ["hkeyShortArray"] into hkeyShortArray
    
-   display_Array hkeyArray, stackObject
+   script_CreateGraph hkeyShortArray, scriptObject, pProjectName, "fast undirected spring"
+   put the result into imageFile
+   _DisplaySVG imageFile, scriptObject
+end menu_ExternalCallGraph
+
+on menu_ObjectDependencyGraph scriptObject
+   local pProjectName
+   put LocalArray ["hkeyShortArray"] into hkeyShortArray
+   --
+   put hkeyArray_ShortToLong (hkeyShortArray) into hKeyArray
+   script_CreateGraph hKeyArray, scriptObject, pProjectName, "fast undirected spring"
+   put the result into imageFile
+   _DisplaySVG imageFile, scriptObject
+end menu_ObjectDependencyGraph
+
+function stack_ListUsed
+   put the stacksinuse into stackNames
+   repeat for each line stackName in stackNames
+      put the name of stack stackName & CR after stackObjects
+   end repeat
+   delete char -1 of stackObjects
+   return stackObjects
+end stack_ListUsed
+
+function hkeyArray_ShortToLong hkeyShortArray, pSearchObjects
+   -- could be something else as a default?
+   if pSearchObjects is empty then put stack_ListUsed() into pSearchObjects
+   --
+   repeat for each key hkey in hkeyShortArray
+      put hkeyShortArray [hkey] into shortHkeyLine
+      --
+      -- put hkey_GetPlace (shortCall, pHkeyPlaceArray) into cObject
+      put word 1 of shortHkeyLine into hType
+      put word 2 of shortHkeyLine into hName
+      put hkeyline_Find (hName, hType, pSearchObjects) into externalHkey
+      
+      if externalHkey is empty then
+         put shortHkeyLine into hKeyArray [hkey]
+      else
+         put externalHkey into hKeyArray [hkey]
+      end if
+      --
+   end repeat
+   return hKeyArray
+end hkeyArray_ShortToLong
+
+on _
+end _
+
+on menu_DisplayHkeyArray stackObject
+   -- put the displayed_Object of treeView into stackObject
+   -- put the displayed_Array of treeView into displayedArray
+   
+   put LocalArray ["displayedArray"] into displayedArray
+   put displayedArray ["Handlers"] into hkeyShortArray
+   --
+   display_Array hkeyShortArray, "Short"
+   --
+   put hkeyArray_ShortToLong (hkeyShortArray) into hKeyArray
+   display_Array hkeyArray, "Long"
 end menu_DisplayHkeyArray
 
-on submenu_Create
+on submenu_CreateGraph
    return "Global | Tree | HkeyArray | Graph | Create | Menu"
-end submenu_Create
-   
+end submenu_CreateGraph
+
 on _
 end _
 
@@ -122,19 +185,20 @@ on _
 end _
 
 on menu_CollectDependencyScript treeView
-   local stripObjects
+   local stripObjects, stripProps, stripComponents
    
    set the cursor to watch
    put the displayed_Array of treeView into hKeyArray
    put the displayed_Object of treeView into scriptObject
    
+   /*
    put pref_GetValue ("skip_HkeyProps") is not false into stripProps
    
    put the include_HandlersFrom of me into includeHandlersFrom
    if includeHandlersFrom = "none" then
       put empty into stripObjects
    else
-      put the hkey_SearchHierarchy [includeHandlersFrom] of scriptObject into stripObjects
+      put the script_Hierarchy [includeHandlersFrom] of scriptObject into stripObjects
    end if
    
    put pref_GetValue ("skip_HkeyComponents") is not false into stripComponents
@@ -142,6 +206,7 @@ on menu_CollectDependencyScript treeView
       put script_ListComponentObjects() into componentObjects
       line_Add componentObjects, stripObjects
    end if
+   */
    
    display_HkeyArrayDependencyScript hkeyArray, scriptObject, stripObjects, stripProps, stripComponents
    put the result into someArray
@@ -150,8 +215,8 @@ on menu_CollectDependencyScript treeView
    put someArray ["duplicateHkeyArray"] into duplicateHkeyArray
    put someArray ["missingHkeys"] into missingHkeys
    
-   display_Outline uniqueHkeys, "uniqueHkeys"
-   if missingHkeys is not empty then display_Outline missingHkeys, "missingHkeys"
+   display_Lines uniqueHkeys, "uniqueHkeys"
+   if missingHkeys is not empty then display_Lines missingHkeys, "missingHkeys"
    display_Array duplicateHkeyArray, "duplicateHkeyArray"
 end menu_CollectDependencyScript
 
@@ -209,6 +274,14 @@ end submenu_Dev
 
 --> HkeyArray | Tree | Deps | Menu | Props
 -
+getprop call_ProjectNames [treeView]
+   put LocalArray ["tree_View"] into treeView
+   
+   put the displayed_Array of treeView into  displayedArray
+   put displayedArray ["Calls"] into callProjectArray
+   return keys (callProjectArray)
+end call_ProjectNames
+
 getprop new_ProjectName [treeView]
    put the displayed_Object of treeView into stackObject
    put the project_Name of stackObject into projectName

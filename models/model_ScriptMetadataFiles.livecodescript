@@ -6,14 +6,17 @@ name: model_ScriptMetadataFiles
 type: model
 version: 0.1
 
+/*
+A bunch of old handlers to be refactored.
 
+See "model_TextStack" and "model_HkeyFiles"
+*/
+
+
+--> Working on
+-
 --> Old | Hkey | Data | Folder
 -
-command library_DeleteHandlerFolder shortHkey
-   put library_HkeyFolder (shortHkey) into hkeyFolder
-   revDeleteFolder hkeyFolder
-end library_DeleteHandlerFolder
-
 function library_HandlerFile hKey, pShortFileBit, pDontCreate
    -- returns empty if there is no folder, but the filename if there is
    if pDontCreate is empty then put true into pDontCreate
@@ -23,10 +26,61 @@ function library_HandlerFile hKey, pShortFileBit, pDontCreate
    return hkeyFolder
 end library_HandlerFile
 
+command library_DeleteHandlerFolder shortHkey
+   put library_HkeyFolder (shortHkey) into hkeyFolder
+   revDeleteFolder hkeyFolder
+end library_DeleteHandlerFolder
+
+
+--> Project | Handler
+-
+getprop handler_Help [shortHkey]
+   put item 1 to 2 of shortHkey into hKey
+   put the rugged_ID of the target into item 3 of hKey
+   put 1 into item 4 of hKey
+   return project_FetchHandlerHelp (hKey)
+end handler_Help
+
+setprop handler_Help [shortHkey] helpHtml
+   put the rugged_ID of the target into rObject
+   
+   put item 1 to 2 of shortHkey into hKey
+   put rObject into item 3 of hKey
+   put 1 into item 4 of hKey
+   
+   put the script_Hkeys of rObject into availableHkeys
+   set the wholematches to true
+   if hKey is not among the lines of availableHkeys then return empty
+   
+   project_StoreHandlerHelp hKey, helpHtml
+   put the result into helpFile
+   return helpFile
+end handler_Help
+
+command project_StoreHandlerHelp hKey, helpHtml
+   put project_HandlerHelpFile (hKey, false) into someFile
+   if someFile is empty then return empty
+   put helpHtml into url ("binfile:" & someFile)
+   return someFile
+end project_StoreHandlerHelp
+
+function library_HkeyFolder hKey, pDontCreate
+   if pDontCreate is empty then put true into pDontCreate
+   put library_HkeyToPublicShortHkey (hKey) into shortHkey
+   put hkey_FolderName (shortHkey) into folderName
+   put library_HandlerFolder (folderName, pDontCreate) into hkeyFolder
+   if folderName is not empty then put "/" after hkeyFolder
+   
+   if pDontCreate is false then folder_CreateNested hkeyFolder
+   return hkeyFolder
+end library_HkeyFolder
+
 
 --> Old
 -
 function checkout_ConstructDefaultFolder objectFile
+   breakpoint
+   
    put objectFile into checkoutFolder
    set the itemdelimiter to "/"
    -- put "opn_TextStacks/" into item -1 of checkoutFolder
@@ -42,6 +96,8 @@ return checkoutFolder
 end checkout_ConstructDefaultFolder
 
 function checkout_FindRoot objectFile, repoType
+   breakpoint
+   
    -- ignoreCall: fossil_FindCheckoutFolder,f
    -- ignoreCall: git_GetCheckoutFolder,f
    
@@ -96,6 +152,8 @@ end checkout_FindRoot
 --> Stack | Folder
 -
 getprop checkout_Folder [repoType]
+   breakpoint
+   
    -- important handler needs to be fast and work even if there is no version control
    put the mainstack_File of the target into objectFile
    put checkout_FindRoot (objectFile, repoType) into checkoutFolder
@@ -107,6 +165,8 @@ end checkout_Folder
 --> Project | Folder | Functions
 -
 function textStack_FindRoot objectFile, repoType
+   breakpoint
+   
    -- put checkout_FindRoot (objectFile, repoType) into checkOutFolder
    checkout_SetFolderAndRepotype objectFile, repoType
    put the result into checkOutFolder
@@ -136,8 +196,9 @@ function textStack_FindRoot objectFile, repoType
    end switch
 end textStack_FindRoot
 
-
 getprop object_MetaDataFolder [pDontCreate]
+   breakpoint
+   
    -- inside the textStack_Folder
    if pDontCreate is empty then put true into pDontCreate
    put the long id of the target into someObject

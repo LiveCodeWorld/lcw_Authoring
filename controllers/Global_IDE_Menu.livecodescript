@@ -4,7 +4,7 @@
 license: GPLv3
 name: Global_IDE_Menu
 type: controller
-version: 0.1
+version: 0.2
 
 local LocalArray
 

@@ -45,18 +45,9 @@ end menu_CreateWikiPage
 on _
 end _
 
-on menu_DisplayModelData stackObject, modelShortFile
-   put the short name of stackObject into modelName
-   put the model_Array [modelShortFile] of stackObject into modelArray
-   
-   put "model_Array" & comma & modelName into someTitle
-   display_Array modelArray, someTitle
-end menu_DisplayModelData
-
-on menu_ModelDataFolder stackObject
-   put the model_DataFolder of stackObject into modelDataFolder
-   finder_Reveal modelDataFolder
-end menu_ModelDataFolder
+on submenu_ProjectStack
+   return "Global | Project | Stack | Menu"
+end submenu_ProjectStack
 
 on _
 end _
@@ -68,7 +59,8 @@ on menu_MoveUsed stackObject, newProjectName
       exit to top
    end if
    
-   project_MoveLibrary stackObject, newProjectName
+   put the short name of stackObject into stackName
+   project_MoveLibrary stackName, newProjectName
    
    lcw_Notify merge ("Moved library to new project '[[newProjectName]]'!")
    refreshDisplay newProjectName
@@ -144,6 +136,22 @@ end disabled_DisplayModelData
 
 --> Dev | Menu
 -
+on menu_DisplayModelData stackObject, modelShortFile
+   put the short name of stackObject into modelName
+   put the model_Array [modelShortFile] of stackObject into modelArray
+   
+   put "model_Array" & comma & modelName into someTitle
+   display_Array modelArray, someTitle
+end menu_DisplayModelData
+
+on menu_ModelDataFolder stackObject
+   put the model_DataFolder of stackObject into modelDataFolder
+   finder_Reveal modelDataFolder
+end menu_ModelDataFolder
+
+on _
+end _
+   
 on menu_ShortCallArray stackObject
    display_ScriptCallArray stackObject
 end menu_ShortCallArray

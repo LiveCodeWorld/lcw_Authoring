@@ -4,16 +4,11 @@
 license: GPLv3
 name: Global | Behavior | Menu
 type: controller
-version: 0.1
+version: 0.2
 
 
 --> Menu | Props
 -
-on menu_Init tObject, mTitle, mTitlePath
-   -- put the params
-   -- we don't have mTarget yet...
-end menu_Init
-
 
 --> Global | Behavior | Menu
 -

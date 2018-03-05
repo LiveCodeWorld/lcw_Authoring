@@ -7,44 +7,79 @@ type: model
 version: 0.2
 
 
---> Woring on
--
-function overlay_LinkFile overlayFolder
-   -- could rename to "lcw_links.txt" ?
-   folder_Format overlayFolder
-   put overlayFolder & "links.txt" into someFile
-   return someFile
-end overlay_LinkFile
-
-getprop script_SvgFile
-   put the long id of the target into scriptObject
-   -- put the textStackOverlay_Folder [false] of scriptObject into overlayFolder
-   put the overlay_Folder [false] of scriptObject into overlayFolder
-   put overlayArray_GetImageFile (overlayArray, overlayFolder) into svgFile
-   return svgFile
-end script_SvgFile
-
-
---> Overlay | Folder
+--> Working on
 -
 getprop overlay_Folder [pDontCreate]
-   -- /metadata/objects/stack/overlay/ 
+   -- Need to check if this is used correctly
+   -- May need to change to other types of overlay folder. 
+   -- Do a search and replace?
+   
+   -- /metadata/objects/ 
    -- which is not the "project" metadata folder
    -- it is the metadata for for a script object
    
    put the textStack_MetadataFolder of the target into metadataFolder
-   put metadataFolder & "overlay/" into overlayFolder
+   put metadataFolder & "objects/" into overlayFolder
    if pDontCreate is false then folder_CreateNested overlayFolder
    return overlayFolder
 end overlay_Folder
 
-getprop textStackOverlay_Folder [pDontCreate]
-   -- think this is old but used here
-   put the textStack_Folder [pDontCreate] of the target into metadataFolder
-   put metadataFolder & "metadata/project/overlay/" into overlayFolder
+
+--> Script | File | SVG
+-
+getprop script_SvgFile [graphStyle]
+   put the long id of the target into scriptObject
+   put the script_OverlayFolder [false] of scriptObject into overlayFolder
+   if graphStyle is empty then
+      put "hierarchical" into shortFile
+   end if
+   put overlayFolder & shortFile & ".svg" into svgFile
+   -- put overlayArray_GetImageFile (overlayArray, overlayFolder) into svgFile
+   return svgFile
+end script_SvgFile
+
+getprop project_SvgFile [projectName]
+   -- LCW.svg
+   put the long id of the target into scriptObject
+   if projectName is empty then
+      put the project_Name of the target into shortFile
+   end if
+   put the project_OverlayFolder [false] of scriptObject into overlayFolder
+   put overlayFolder & shortFile & ".svg" into svgFile
+   return svgFile
+end project_SvgFile
+
+
+--> Overlay | Folder
+-
+getprop project_OverlayFolder [pDontCreate]
+   -- textStack_ProjectOverlayFolder
+   
+   -- /metadata/project/overlay/ 
+   put the textStack_MetadataFolder of the target into metadataFolder
+   put metadataFolder & "project/overlay/" into overlayFolder
    if pDontCreate is false then folder_CreateNested overlayFolder
    return overlayFolder
-end textStackOverlay_Folder
+end project_OverlayFolder
+
+getprop textStack_ProjectOverlayFolder [pDontCreate]
+   put the project_OverlayFolder [pDontCreate] of the target into overlayFolder
+   return overlayFolder
+end textStack_ProjectOverlayFolder
+
+getprop script_OverlayFolder [pDontCreate]
+   -- /metadata/objects/stack/overlay/ 
+   -- which is not the "project" metadata folder
+   -- it is the metadata for for a script object
+   
+   put the metadata_Folder [pDontCreate] of the target into metadataFolder
+   return metadataFolder
+   
+   put the metadata_Folder of the target into metadataFolder
+   put metadataFolder & "overlay/" into overlayFolder
+   if pDontCreate is false then folder_CreateNested overlayFolder
+   return overlayFolder
+end script_OverlayFolder
 
 
 --> Overlay | File | Props
@@ -86,7 +121,7 @@ getprop script_ImageFiles
 end script_ImageFiles
 
 
---> Overlay | Files
+--> Overlay | File | Wrappers
 -
 function overlay_GetCmapFile overlayFolder, pOverlayName
    put overlay_ConstructFile ("cmapx", overlayFolder, pOverlayName) into someFile
@@ -107,6 +142,32 @@ function overlayArray_GetImageFile overlayArray, overlayFolder
    return imageFile
 end overlayArray_GetImageFile
 
+function overlay_LinkFile overlayFolder
+   -- could rename to "lcw_links.txt" ?
+   folder_Format overlayFolder
+   put overlayFolder & "links.txt" into someFile
+   return someFile
+end overlay_LinkFile
+
+function overlay_GetNodeLinks overlayFolder
+   put overlay_LinkFile (overlayFolder) into someFile
+   put url ("file:" & someFile) into nodeLinks
+   return nodeLinks
+end overlay_GetNodeLinks
+
+command overlay_SetNodeLinks overlayFolder, nodeLinks
+   put overlay_LinkFile (overlayFolder) into someFile
+   if nodeLinks is empty then
+      -- file_Delete someFile
+      delete file someFile
+   else
+      put nodeLinks into url ("file:" & someFile)
+   end if
+end overlay_SetNodeLinks
+
+
+--> Overlay | File
+-
 function overlay_ArrayFile overlayFolder
    folder_Format overlayFolder
    put overlayFolder & "overlayData.array" into dotArrayFile
@@ -177,4 +238,3 @@ function overlay_ImageFiles overlayFolder
    set the directory to oDirectory
    return imageFiles
 end overlay_ImageFiles
-

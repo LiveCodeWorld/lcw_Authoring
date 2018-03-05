@@ -9,46 +9,22 @@ version: 0.5
 
 --> Working on
 -
-getprop script_Handlers [whichType]
-   try -- not in order found in script
-      put the long id of the target into tObject
-      put the revAvailableHandlers of tObject into handlerTable
-      sort numeric handlerTable by word 3 of each
-      repeat for each line someLine in handlerTable
-         put word 1 of someLine into item 2 of shortHkey
-         put word 2 of someLine into item 1 of shortHkey
-         
-         switch whichType
-            case "markdown"
-               --    - [G mobile_VerticalScroller](../blob/master/libraries/lib_MobileControls.livecodescript#L35-L42)
-               put "- [" & word 1 to 2 of someLine & "]" & CR after hLines
-               -- put "* [[" & shortHkey & "]]" & CR after hLines
-               break
-            case "start line"
-               put handler_ConstructStartLine (shortHkey) into hLine
-               put hLine & CR after hLines
-            default
-               put word 2 of someLine & CR after hLines
-         end switch
-      end repeat
-      delete char -1 of hLines
-      return hLines
-   catch someError
-      return empty -- a locked stack
-   end try
-end script_Handlers
-
-getprop script_ExternalHkeys
+function script_ExternalHkeys
    put the script_Calls [true] of the target into hTableLines
-   put script_FetchHkeyPlaceArray() into hkeyPlaceArray
-   
+   -- put script_FetchHkeyPlaceArray() into hkeyPlaceArray
    repeat for each line hTableLine in hTableLines
-      put hkey_GetPlace (hTableLine, hkeyPlaceArray) into cObject
-      put hTableLine,cObject into externalKey
-      put externalKey & CR after externalKeys
+      -- put hkey_GetPlace (hTableLine, hkeyPlaceArray) into cObject
+      -- put hTableLine,cObject into externalHkey
+      put word 1 of hTableLine into hType
+      if htype = "P" then next repeat
+      put word 2 of hTableLine into hName
+      --
+      put hkeyline_Find (hName, hType, externalObjects) into externalHkey
+      --
+      put externalHkey & CR after externalHKeys
    end repeat
-   delete char -1 of externalKeys
-   return externalKeys
+   delete char -1 of externalHKeys
+   return externalHKeys
 end script_ExternalHkeys
 
 getprop script_Calls [pExternalOnly]
@@ -181,58 +157,6 @@ end script_BreakdownArray
 
 --> Script | Hkeys
 -
-getprop script_Hkeys [fetchHow]
-   switch fetchHow
-      case "short"
-         return the script_ShortHKeys of the target
-      case "hArray"
-         return the hArray_Hkeys of the target
-      case "script"
-         return the script_ArrayHkeys of the target
-      default -- case "revAvailableHandlers"
-         return the script_FirstHkeys of the target
-   end switch
-end script_Hkeys
-
-getprop script_ShortHKeys
-   -- this is the new version of shortHekys
-   -- should be able to use "the revAvailableHandlers" instead
-   -- as scripts should be able to handle processing raw revAvailableHandlers table without removing the line info
-   -- simply by taking word 1 to 2 of item 1....
-   try
-      put the long id of the target into tObject
-      put the revAvailableHandlers of tObject into handlerTable
-      return hkeyline_MakeShort (handlerTable) 
-   catch someError
-      return empty -- a locked stack
-   end try
-end script_ShortHKeys
-
-getprop script_FirstHkeys [returnShort]
-   -- not in order found in script
-   try
-      put the long id of the target into tObject
-      put revRuggedID (tObject) into tObject
-      put the revAvailableHandlers of tObject into handlerTable
-      repeat for each line someLine in handlerTable
-         put word 1 of someLine into hTableType
-         replace "M" with "c" in hTableType
-         put tolower (hTableType) into hType
-         
-         put word 2 of someLine into hName
-         if returnShort is true then
-            put hName,hType & CR after hKeys
-         else
-            put hName,hType,tObject,1 & CR after hKeys -- revAvailableHandlers only return first handler.
-         end if
-      end repeat
-      delete char -1 of hKeys
-      return hKeys
-   catch someError
-      return empty -- a locked stack
-   end try
-end script_FirstHkeys
-
 getprop hArray_Hkeys
    put the hArray_ScriptData of the target into scriptArray
    repeat for each key indexNum in scriptArray
@@ -244,6 +168,88 @@ getprop hArray_Hkeys
    delete char -1 of hKeys
    return hKeys
 end hArray_Hkeys
+
+
+--> ScriptArray
+-
+/* 
+This is a newer version of creating an array from a script.
+Uses a repeat loop
+*/
+
+function script_ConstructArray someScript, rObject, pIsExpanded
+   -- used by "object_ScriptArray"
+   -- does same as "hArray_ConstructScriptArray" ?
+   
+   put pIsExpanded is true into pIsExpanded
+   local suiteTitle
+   put 1 into indexNum
+   put 1 into lineNum
+   put false into commentBlock
+   repeat for each line scriptLine in someScript
+      switch
+         case word 1 of scriptLine = "/*"
+            put true into commentBlock
+            break
+         case commentBlock is true
+            -- keep looping till end of block
+            if word -1 of scriptLine = "*/" then
+               -- could put this commented out section in the index?
+               put false into commentBlock
+            end if
+            break
+         case word 1 of scriptLine = "-->"
+            put word 2 to -1 of scriptLine into suiteTitle
+            
+            put "t" into dataArray [indexNum]["lineType"]
+            put lineNum into dataArray [indexNum]["startLineNum"]
+            put suiteTitle into dataArray [indexNum]["scriptLine"]
+            put true into dataArray [indexNum]["isExpanded"]
+            
+            add 1 to indexNum
+            break
+         case token 1 of scriptLine is among the items of "command,on,function,getprop,setprop,private"
+            if word 2 of scriptLine = "_" then break -- don't index divider handlers
+            
+            put char 1 of scriptLine into lineType
+            if hType = "o" then put "c" into lineType
+            
+            put word 2 of scriptLine into hName
+            -- put word 2 to -1 of scriptLine into hParams
+            
+            put countArray [hName][lineType] into hNum
+            add 1 to hNum
+            put hNum into countArray [hName][lineType]
+            
+            put hName,lineType,rObject,hNum into hKey
+            put lineNum into startLineNum
+            
+            put hKey into dataArray [indexNum]["hKey"]
+            put lineType into dataArray [indexNum]["lineType"]
+            put suiteTitle into dataArray [indexNum]["suiteTitle"]
+            put scriptLine into dataArray [indexNum]["scriptLine"]
+            put pIsExpanded into dataArray [indexNum]["isExpanded"]
+            
+            break
+         case token 1 of scriptLine = "end" and token 2 of scriptLine = hName
+            put lineNum into endLineNum
+            put startLineNum into dataArray [indexNum]["startLineNum"]
+            put endLineNum into dataArray [indexNum]["endLineNum"]
+            put line startLineNum to endLineNum of someScript into dataArray [indexNum]["handler"]
+            
+            add 1 to indexNum
+            break
+         case token 1 of scriptLine is empty
+            -- it's a comment or some junk
+            -- however script suites are also comments (so put at end of tests)!
+            -- not actually needed
+         default
+            -- should not happen ???
+      end switch
+      add 1 to lineNum
+   end repeat
+   return dataArray
+end script_ConstructArray
 
 
 --> Script | Checks
@@ -312,11 +318,113 @@ function script_ConstructBreakDownArray scriptArray
    return breakdownArray
 end script_ConstructBreakDownArray
 
+
+--> Script Array | Wrappers
+-
+function script_ExtractCommandHandlers someScript, scriptObject
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   return handlerArray ["command"]
+end script_ExtractCommandHandlers
+
+function script_ExtractFunctionHandlers someScript, scriptObject
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   return handlerArray ["function"]
+end script_ExtractFunctionHandlers
+
+function script_SlowExtractGetPropHandlers someScript, scriptObject
+   -- slower but talerant of white space
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   put handlerArray ["getprop"] into handlerNames
+   put handlerNames
+   return handlerNames
+end script_SlowExtractGetPropHandlers
+
+function script_SlowExtractSetPropHandlers someScript, scriptObject
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   put handlerArray ["setprop"] into handlerNames
+   return handlerNames
+end script_SlowExtractSetPropHandlers
+
+function script_ExtractMessageHandlers someScript, scriptObject
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   return handlerArray ["message"]
+end script_ExtractMessageHandlers
+
 function script_GetSectionHandlerArray sectionName, someScript
    put script_GetSuite (sectionName, someScript) into someScript
    script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
    return handlerArray
 end script_GetSectionHandlerArray
+
+function script_ExtractHandlerLines someScript, scriptObject
+   -- best get rid of?
+   -- replace "[" with " [ " in someScript	#  -- hack ???
+   
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   return handlerArray ["handlerLines"]
+end script_ExtractHandlerLines
+
+function script_GetOffsetTable someScript, scriptObject
+   local scriptOffestTable
+   -- put script_ExtractHandlerLines(someScript, scriptObject) into handlerLines
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   put handlerArray ["handlerLines"] into handlerLines
+   repeat for each line handlerLine in handlerLines
+      put word 1 of handlerLine into onWord
+      put word 2 of handlerLine into handlerName
+      script_SetHandlerOffsets startHandler, endHandler, handlerName, onWord, someScript
+      put handler_GetType(handlerLine) into hType
+      
+      put handlerName,hType,startHandler,endHandler & CR after scriptOffestTable
+   end repeat
+   delete last char of scriptOffestTable
+   return scriptOffestTable
+end script_GetOffsetTable
+
+command script_SetOffsetArrays someScript, @hKeyToOffsetArray, @offsetToCacheArray, scriptObject
+   -- this hander is a real mess (slow and duplicates effort)
+   -- as "script_ExtractHandlerLines" already parses every line (via "script_ConstructArraysFromScript")
+   
+   local handlerNumArray
+   
+   -- put the mobile_Name of scriptObject into scriptObject
+   
+   -- put script_ExtractHandlerLines(someScript) into handlerLines
+   script_ConstructArraysFromScript someScript, handlerArray, uniqueArray, duplicateArray, scriptObject
+   put handlerArray ["handlerLines"] into handlerLines
+   
+   repeat for each line handlerLine in handlerLines
+      put word 1 of handlerLine into onWord
+      put word 2 of handlerLine into handlerName
+      script_SetHandlerOffsets startHandler, endHandler, handlerName, onWord, someScript
+      put char 1 of handler_GetType(handlerLine) into hType
+      
+      put handlerNumArray [handlerName,hType] into lastHandlerNum
+      put lastHandlerNum + 1 into handlerNum
+      put hkey_Construct(handlerName, hType, scriptObject, handlerNum) into handlerKey
+      put handlerNum into handlerNumArray [handlerName,hType]
+      
+      -- while we are at it cache the script?
+      put char startHandler to endHandler of someScript into someHandler
+      
+      put someHandler into offsetToCacheArray [startHandler,endHandler]
+      put startHandler,endHandler into hKeyToOffsetArray [handlerKey]
+      put handlerKey & CR after handlerKeys
+   end repeat
+   
+   -- "orderedHandlerKeys" allow "number" ie handler 2 or 3rd "getMe"
+   delete last char of handlerKeys
+   put handlerKeys into hKeyToOffsetArray ["orderedHandlerKeys"]
+   return handlerKeys
+end script_SetOffsetArrays
+
+
+--> Script Array | From Script
+-
+/* 
+This is an older version of creating an array from a script.
+Uses a repeat loop
+*/
 
 command script_ConstructArraysFromScript someScript, @handlerArray, @uniqueArray, @duplicateArray, scriptObject
    -- very slow as it loops through each line (use with care)
@@ -422,76 +530,3 @@ command script_ConstructArraysFromScript someScript, @handlerArray, @uniqueArray
    delete last char of notPrivateHkeys
    return notPrivateHkeys
 end script_ConstructArraysFromScript
-
-function script_ConstructArray someScript, rObject, pIsExpanded
-   -- does same as "hArray_ConstructScriptArray" ?
-   
-   put pIsExpanded is true into pIsExpanded
-   local suiteTitle
-   put 1 into indexNum
-   put 1 into lineNum
-   put false into commentBlock
-   repeat for each line scriptLine in someScript
-      switch
-         case word 1 of scriptLine = "/*"
-            put true into commentBlock
-            break
-         case commentBlock is true
-            -- keep looping till end of block
-            if word -1 of scriptLine = "*/" then
-               -- could put this commented out section in the index?
-               put false into commentBlock
-            end if
-            break
-         case word 1 of scriptLine = "-->"
-            put word 2 to -1 of scriptLine into suiteTitle
-            
-            put "t" into dataArray [indexNum]["lineType"]
-            put lineNum into dataArray [indexNum]["startLineNum"]
-            put suiteTitle into dataArray [indexNum]["scriptLine"]
-            put true into dataArray [indexNum]["isExpanded"]
-            
-            add 1 to indexNum
-            break
-         case token 1 of scriptLine is among the items of "command,on,function,getprop,setprop,private"
-            if word 2 of scriptLine = "_" then break -- don't index divider handlers
-            
-            put char 1 of scriptLine into lineType
-            if hType = "o" then put "c" into lineType
-            
-            put word 2 of scriptLine into hName
-            -- put word 2 to -1 of scriptLine into hParams
-            
-            put countArray [hName][lineType] into hNum
-            add 1 to hNum
-            put hNum into countArray [hName][lineType]
-            
-            put hName,lineType,rObject,hNum into hKey
-            put lineNum into startLineNum
-            
-            put hKey into dataArray [indexNum]["hKey"]
-            put lineType into dataArray [indexNum]["lineType"]
-            put suiteTitle into dataArray [indexNum]["suiteTitle"]
-            put scriptLine into dataArray [indexNum]["scriptLine"]
-            put pIsExpanded into dataArray [indexNum]["isExpanded"]
-            
-            break
-         case token 1 of scriptLine = "end" and token 2 of scriptLine = hName
-            put lineNum into endLineNum
-            put startLineNum into dataArray [indexNum]["startLineNum"]
-            put endLineNum into dataArray [indexNum]["endLineNum"]
-            put line startLineNum to endLineNum of someScript into dataArray [indexNum]["handler"]
-            
-            add 1 to indexNum
-            break
-         case token 1 of scriptLine is empty
-            -- it's a comment or some junk
-            -- however script suites are also comments (so put at end of tests)!
-            -- not actually needed
-         default
-            -- should not happen ???
-      end switch
-      add 1 to lineNum
-   end repeat
-   return dataArray
-end script_ConstructArray

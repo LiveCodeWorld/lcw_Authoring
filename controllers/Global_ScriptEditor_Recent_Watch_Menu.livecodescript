@@ -1,17 +1,18 @@
 ﻿script "Global_ScriptEditor_Recent_Watch_Menu"
 --> MetaData
 -
-license: GPLv3
 name: Gobal | ScriptEditor | Recent | Watch | Menu
 type: controller
 copyright: David Bovill
 license: GPLv3
-version: 0.91
+version: 0.95
 
 /*
 This is designed to be the main or the default menu for manipulating a script in an editor.
 As such it is currently used in the Livecode IDE's script editor.
 You can attach it anywhere you want. I personally add it to the Script Editors "watch" button on the top right bar of the editor.
+
+Modify to use "Global | ScriptEditor | Header | Menu"
 */
 
 --> Variables
@@ -22,71 +23,28 @@ local LocalArray
 --> Menu | Props
 -
 on menu_Init
-   -- a hack (we keep getting this reset by LIVecode)
+   -- a hack (we keep getting this reset by Livecode)
    ide_AddRevEditScriptStack "LCW"
    rev_AddBehaviorHacks
-   
-   put stack_ListEditedNames() into editedStacks
-   repeat for each line stackName in editedStacks
-      switch
-         case exists (stack stackName) is false
-            next repeat
-         case word 1 of stackName = "Untitled"
-            next repeat
-         default
-            put stackName & CR after goodEditedStackNames
-      end switch
-   end repeat
-   delete char -1 of goodEditedStackNames
-   put goodEditedStackNames into LocalArray ["editedStacks"]
 end menu_Init
 
 getprop menu_Target [mTitlePath]
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    return scriptObject
 end menu_Target
-
-function stack_ListEditedNames pType
-   global gREVStackStatus
-   
-   repeat for each key stackName in gREVStackStatus
-      if exists (stack stackName) is false then next repeat
-      switch pType
-         case "saved"
-            if gREVStackStatus [stackName] = empty then
-               put "saved" into stackArray [stackName]
-            end if
-            break
-         default
-            if gREVStackStatus [stackName] = "edited" then
-               put "edited" into stackArray [stackName]
-            end if
-      end switch
-   end repeat
-   return keys (stackArray)
-end stack_ListEditedNames
 
 
 --> Global | ScriptEditor | Recent | Watch | Menu
 -
-on menu_DisplayLocalChanges scriptObject
-   put the script of scriptObject into nowScript
-   put the exported_Script of scriptObject into exportedScript
-   terminal_Diff exportedScript, nowScript, "the exported_Script of mTarget", "the script of mTarget"
-end menu_DisplayLocalChanges
+on submenu_My
+   -- here we insert the user menu
+   -- should be started on startUp
+   return "Global | ScriptEditor | Recent | Custom | Menu"
+end submenu_My
 
-on menu_RecentScripts scriptObject, recentObject
-   put LocalArray ["friendlyArray"][recentObject] into someObject
-   if exists (someObject) then
-      edit the script of someObject
-   else
-      breakpoint
-   end if
-end menu_RecentScripts
-
-on menu_SaveEditedStacks mTarget, editedStackName
-   stack_SaveEdited editedStackName
-end menu_SaveEditedStacks
+on insert_HeaderMenu
+   return "Global | ScriptEditor | Header | Menu"
+end insert_HeaderMenu
 
 on _
 end _
@@ -99,6 +57,26 @@ on menu_Environment scriptObject
    display_ProjectList
 end menu_Environment
 
+on _
+end _
+
+on submenu_Script
+   return "Global | Script | Menu"
+end submenu_Script
+
+-- on menu_ScriptDepArray scriptObject
+-- can't find handler
+display_ScriptDeps scriptObject
+end menu_ScriptDepArray
+
+on menu_StackDepArray scriptObject
+   display_StackDeps scriptObject
+end menu_StackDepArray
+
+on menu_StackHistory scriptObject
+   display_StackHistory scriptObject
+end menu_StackHistory
+
 on menu_GitStatus scriptObject
    display_GitStatus scriptObject
 end menu_GitStatus
@@ -107,21 +85,19 @@ on menu_LoadGit
    project_Start "lcw_Git"
 end menu_LoadGit
 
+on _
+end _
+
+on menu_DisplayRigControllers
+   display_RigControllerArray
+   ide_SetScriptEditorTitles "RevIgniter"
+end menu_DisplayRigControllers
+
 on menu_ViewTools scriptObject
    -- put the module_Folder of scriptObject into moduleFolder
    -- display_Module moduleFolder
-   display_View scriptObject   
+   display_ViewIndex scriptObject   
 end menu_ViewTools
-
-getprop disabled_DisplayView [scriptObject]
-   put the view_Name of scriptObject into vName
-   put vName is empty into someBoolean
-   if someBoolean is true then
-      return "delete"
-   else
-      return false
-   end if
-end disabled_DisplayView
 
 on _
 end _
@@ -176,20 +152,17 @@ on submenu_Custom
    return "Global | ScriptEditor | Recent | Custom | Menu"
 end submenu_Custom
 
-on _
-end _
-
-on menu_SetMenu mTarget, mTitle
-   ide_SetMenuTitle "Recent", mTitle
-end menu_SetMenu
-
-on submenu_Dev
-   return "Dev | Menu"
+-- on submenu_Dev
+   return "ScriptEditor | Recent | Dev | Menu"
 end submenu_Dev
 
 
 --> Global | ScriptEditor | Recent | Watch | Menu | Props
 -
+getprop which_Stacks
+   return "Go to Object,-,View Browser,libOPN_GIT,Properties"
+end which_Stacks
+
 getprop m_Title
    return ide_ShortTitle ("Recent")
 end m_Title
@@ -204,25 +177,19 @@ getprop project_StackNames
    return stackNames
 end project_StackNames
 
-getprop edited_StackNames
-   put LocalArray ["editedStacks"] into editedStacks
-   if editedStacks is empty then
-      return empty
-   else
-      return editedStacks & ",-,Save All"
-   end if
-end edited_StackNames
-
-getprop recent_Objects
-   put rev_GetScriptEditorHistoryObjects() into historyObjects
-   objects_MakeFriendly historyObjects, orderedFriendlyObjects, friendlyArray
-   put friendlyArray into LocalArray ["friendlyArray"]
-   return orderedFriendlyObjects
-end recent_Objects
-
 
 --> Global | ScriptEditor | Recent | Watch | Menu | Disabled
 -
+getprop disabled_DisplayView [scriptObject]
+   put the view_Name of scriptObject into vName
+   put vName is empty into someBoolean
+   if someBoolean is true then
+      return "delete"
+   else
+      return false
+   end if
+end disabled_DisplayView
+
 getprop disabled_GitStatus [scriptObject]
    if project_IsActive ("lcw_GIT") is true then
       return false
@@ -255,20 +222,6 @@ getprop disabled_Dev
       return "delete"
    end if
 end disabled_Dev
-
-getprop disabled_SaveEditedStacks
-   put LocalArray ["editedStacks"] into editedStacks
-   return editedStacks is empty
-end disabled_SaveEditedStacks
-
-getprop disabled_DisplayLocalChanges [scriptObject]
-   if the script_IsDifferent of scriptObject is true then
-      return false
-   else
-      return true
-      return "delete"
-   end if
-end disabled_DisplayLocalChanges
 
 
 --> Deps
@@ -384,6 +337,5 @@ end submenu_LivecodePrefs
    put hArray_KeywordHkeys (keywordList) into hKeys
    display_HkeyIndex hKeys
 end menu_FindFromKeywords
-
 
 

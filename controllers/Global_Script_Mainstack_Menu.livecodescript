@@ -21,7 +21,7 @@ and in particular either along side any of the more specific version control too
 on menu_DisplayMainStackOverlay scriptObject
    set the cursor to watch
    put "Mainstack Structure" into overlayName
-   put the textStackOverlay_Folder [true] of scriptObject into overlayFolder
+   put the textStack_ProjectOverlayFolder [true] of scriptObject into overlayFolder
    if there is not a folder overlayFolder then
       return empty
    end if
@@ -145,7 +145,7 @@ end dot_AllGraphStyles
 --> Global | Script | Mainstack | Menu | Disabled
 -
 getprop disabled_DisplayMainStackOverlay [scriptObject]
-   put the textStackOverlay_Folder of scriptObject into overlayFolder
+   put the textStack_ProjectOverlayFolder of scriptObject into overlayFolder
    put overlay_GetImageFile (overlayFolder, "Mainstack Structure") into imageFile
    if there is a file imageFile then
       return false

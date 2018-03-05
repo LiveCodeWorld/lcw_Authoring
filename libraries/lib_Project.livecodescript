@@ -287,22 +287,31 @@ end project_Create
 -
 setprop project_Move toProjectName
    -- moves a stack to the same relative location in a new project folder
-   put the stack_Object of the target into stackObject
-   project_MoveLibrary stackObject, toProjectName
+   -- put the stack_Name of the target into stackName
+   put the short name of the defaultStack into stackName
+   project_MoveLibrary stackName, toProjectName
    put the result into newPath
    return newPath
 end project_Move
 
-command project_MoveLibrary stackObject, toProjectName
+command project_MoveLibrary stackName, toProjectName
    -- moves a stack to the same relative location in a new project folder
+   if exists (stack stackName) is false then
+      breakpoint
+      return empty
+   end if
+   
+   put the name of stack stackName into stackObject
+   -- put the short name of stackObject into stackName
    put the project_Folder of stackObject into fromProjectFolder
    if fromProjectFolder is empty then return empty
    
    put library_FetchProjectFolder (toProjectName) into toProjectFolder
-   if toProjectFolder is empty then return empty
+   if toProjectFolder is empty then
+      breakpoint
+      return empty
+   end if
    text_AddTrailing toProjectFolder, slash -- just in case
-   
-   put the short name of stackObject into stackName
    
    put the filename of stackObject into fromPath
    set the itemdelimiter to slash
@@ -316,8 +325,12 @@ command project_MoveLibrary stackObject, toProjectName
    -- first let's make sure it is saved!
    save stack stackName
    
-   stop using stack stackName
-   delete stack stackName -- should probably check script editor has not got unsaved edits?
+   if exists (stack stackName) then
+      stop using stack stackName
+      delete stack stackName -- should probably check script editor has not got unsaved edits?
+   end if
+   
+   -- move
    rename file fromPath to toPath
    start using stack toPath
    

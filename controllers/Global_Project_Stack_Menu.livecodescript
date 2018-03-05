@@ -7,16 +7,41 @@ type: controller
 version: 0.3
 
 
---> Menu | Props
--
-/*
-Submenus are not taking the menu_Target property.
-This seesm to only work now for the top_MenuController.
-*/
-
-
 --> Global | Project | Stack | Menu
 -
+/*
+First section uses code from "lib_DisplayGraph"
+This depends on "textStack_HkeyArrayFile" 
+which is a complicated hArray based walk using "deps_SaveMainstackAndExportArrays"
+*/
+
+on menu_DisplayDependencyObjectArray stackObject
+   put the textstack_HkeyObjectArray of stackObject into depObjectArray
+   display_Array depObjectArray
+end menu_DisplayDependencyObjectArray
+
+on menu_ScriptLibraryDependencies stackObject
+   -- in "lib_DisplayGraph" (depends on hArray based walk and "deps_SaveMainstackAndExportArrays")
+   put the script_DepLibs of stackObject -- into dependencyStacks
+end menu_ScriptLibraryDependencies
+
+on menu_IndexScript stackObject
+   script_IndexAndCreateOverlay stackObject
+end menu_IndexScript
+
+on menu_RevealProjectOverlayFolder stackObject
+   put the project_OverlayFolder of stackObject into projectOverlayFolder
+   put projectOverlayFolder
+   finder_Reveal projectOverlayFolder
+end menu_RevealProjectOverlayFolder
+
+on _
+end _
+
+-- on submenu_Script
+   return "Global | Script | Menu"
+end submenu_Script
+
 on menu_GoToStack stackObject
    object_GoTo stackObject
 end menu_GoToStack
@@ -42,32 +67,6 @@ end _
 on menu_RefreshIndex
    dispatch "refresh" to _indexView() 
 end menu_RefreshIndex
-
-on menu_IndexScript stackObject
-   script_IndexAndCreateOverlay stackObject
-end menu_IndexScript
-
-on _
-end _
-
-on submenu_Script
-   return "Global | Script | Menu"
-end submenu_Script
-
-on menu_DisplayDependencyObjectArray stackObject
-   put the textstack_HkeyObjectArray of stackObject into depObjectArray
-   display_Array depObjectArray
-end menu_DisplayDependencyObjectArray
-
-on menu_DependencyObjects stackObject
-   put the textstack_DepStacks of stackObject -- into dependencyStacks
-end menu_DependencyObjects
-
-on menu_RevealProjectOverlayFolder stackObject
-   put the project_OverlayFolder of stackObject into projectOverlayFolder
-   put projectOverlayFolder
-   finder_Reveal projectOverlayFolder
-end menu_RevealProjectOverlayFolder
 
 on _
 end _
@@ -163,10 +162,16 @@ end sub_StackNames
 --> Global | Project | Stack | Menu | Disabled
 -
 getprop disabled_DisplayDependencyObjectArray [stackObject]
-   put the project_ProcessedHkeyArrayFile of stackObject into processedHkeyArrayFile
+   put the textStack_HkeyArrayFile of stackObject into processedHkeyArrayFile
    put there is a file processedHkeyArrayFile into fileExists
    return fileExists is false
 end disabled_DisplayDependencyObjectArray
+
+getprop disabled_DependencyObjects [stackObject]
+   put the textStack_HkeyArrayFile of stackObject into processedHkeyArrayFile
+   put there is a file processedHkeyArrayFile into fileExists
+   return fileExists is false
+end disabled_DependencyObjects
 
 getprop disabled_TrashStack [stackObject]
    put the substacks of stackObject into subStackNames

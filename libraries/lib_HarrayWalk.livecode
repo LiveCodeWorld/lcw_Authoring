@@ -6,6 +6,57 @@ name: lib_HarrayWalk
 type: script library
 version: 0.3
 
+/*
+getprop object_HkeyArray [pSetName]
+   local walkArray
+   put the rugged_ID of the target into rObject
+   put the script_Hkeys of rObject into hKeys
+   put the mainstack_WalkArray [true] of rObject into walkArray
+   
+   delete variable walkArray ["hKeyArray"]
+   
+   repeat for each line parentHkey in hKeys
+      set the cursor to busy
+      put hArray_GetShortCalls (parentHkey) into shortCalls
+      repeat for each line shortCall in shortCalls
+         project_DependencyWalk shortCall, parentHkey, walkArray
+      end repeat
+   end repeat
+   
+   put walkArray ["hKeyArray"] into mainStackHkeyArray
+   array_StripDeeperLevels mainStackHkeyArray
+   put mainStackHkeyArray into walkArray ["hKeyArray"]
+   return walkArray
+end object_HkeyArray
+
+getprop hkey_DependencyArray [pSetName]
+   put the long id of the target into scriptObject
+   put script_GetSimpleDependencyArray (scriptObject, pSetName, true) into hKeyLinkArray
+   return hKeyLinkArray
+end hkey_DependencyArray
+*/
+
+
+--> Working on
+-
+function hkey_IncludeDepsInSearch
+   global gOPN
+   put gOPN ["include_DependencyBehaviors"] is not false into someBoolean
+   return someBoolean
+   
+   put pref_GetValue ("include_DependencyBehaviors") is not false into someBoolean
+   return someBoolean
+end hkey_IncludeDepsInSearch
+
+command hkey_IncludeDepsInSearch someBoolean
+   global gOPN
+   put someBoolean into gOPN ["include_DependencyBehaviors"]
+   return someBoolean
+   
+   pref_SetValue "include_DependencyBehaviors", someBoolean
+   return the result
+end hkey_IncludeDepsInSearch
+
 
 --> Walk Array
 -
@@ -16,32 +67,6 @@ end walkArray_GetMainstackHash
 command walkArray_SetMainstackHash @walkArray, mainstackHash
    put mainstackHash into walkArray ["hArray"]["metadata"]["sha1"]
 end walkArray_SetMainstackHash
-
-
---> Hkey | Deps | From Object
--
-function hkey_DependencyArrayFromObjects hKeys, pSetName, pAllCalls
-   local hKeyLinkArray
-   try  
-      repeat for each line hKey in hkeys
-         -- should this be hkey_GetHandler - anywhere from hierarchy ????
-         put hkey_ExtractHandlerFromObject (hKey) into someHandler
-         if pAllCalls is true then
-            -- returns modern format
-            put handler_ExtractCalls (someHandler) into shortCalls
-         else
-            put handler_ExtractFilteredCalls (someHandler) into shortCalls
-         end if
-         
-         repeat for each line shortCall in shortCalls
-            hkey_ObjectWalk shortCall, hKey, hKeyLinkArray, pSetName, pAllCalls
-         end repeat
-      end repeat
-      return hKeyLinkArray
-   catch e -- script is locked
-      return empty
-   end try
-end hkey_DependencyArrayFromObjects
 
 function hkey_SmartFind shortCall, hKey, pSetName
    try
@@ -187,28 +212,6 @@ These handlers use "hArray" only (no objects or file based info).
 They don't do live testing, but instead use the stored pre-filtered calls in the hArray.
 */
 
-getprop object_HkeyArray [pSetName]
-   local walkArray
-   put the rugged_ID of the target into rObject
-   put the script_Hkeys of rObject into hKeys
-   put the mainstack_WalkArray [true] of rObject into walkArray
-   
-   delete variable walkArray ["hKeyArray"]
-   
-   repeat for each line parentHkey in hKeys
-      set the cursor to busy
-      put hArray_GetShortCalls (parentHkey) into shortCalls
-      repeat for each line shortCall in shortCalls
-         project_DependencyWalk shortCall, parentHkey, walkArray
-      end repeat
-   end repeat
-   
-   put walkArray ["hKeyArray"] into mainStackHkeyArray
-   array_StripDeeperLevels mainStackHkeyArray
-   put mainStackHkeyArray into walkArray ["hKeyArray"]
-   return walkArray
-end object_HkeyArray
-
 function project_ConstructHkeyArray hArray, pDepObject, pSetName
    -- non-recursive version
    local hkeyArray
@@ -252,6 +255,8 @@ end project_ConstructHkeyArray
 
 function project_ConstructWalkArray hArray, pDepObject, pSetName
    -- non-recursive version
+   -- uses hArray created as part of mainstackarray thingy
+   
    local hkeyArray
    
    if exists (pDepObject) then
@@ -713,13 +718,6 @@ end deps_DontAddOrRecurse
 
 --> Old | Simple | Walk
 -
-getprop hkey_DependencyArray [pSetName]
-   put the long id of the target into scriptObject
-   put script_GetSimpleDependencyArray (scriptObject, pSetName, true) into hKeyLinkArray
-   return hKeyLinkArray
-end hkey_DependencyArray
-
-
 --> Old | Hkey | Walk
 -
 -- function hkey_ConstructDependencyArray hkey, pSetName, pTestExceptions, pOriginalHkey
@@ -782,7 +780,7 @@ function script_GetSimpleDependencyArray scriptObject, pSetName, pTestExceptions
             lcw_ExportAndAddScriptToHarray someObject
          end if
          
-         put hkey_GetCalls (hKey) into shortCalls
+         put hkey_FetchCalls (hKey) into shortCalls
          repeat for each line shortCall in shortCalls
             hArray_SimpleWalk shortCall, hKey, hKeyLinkArray, pSetName, pTestExceptions, hKey
          end repeat
@@ -886,7 +884,7 @@ command hkey_WalkHierarchy hKey, @hKeyLinkArray, thisDepth, pMaxDepth, pDontRecu
    breakpoint
    put hKey
    -- based on "script_WalkHierarchy"
-   -- tweaked logic with "the hkey_SearchHierarchy [pEnvironmentFilter] of someObject"
+   -- tweaked logic with "the script_Hierarchy [pEnvironmentFilter] of someObject"
    if hKeyLinkArray [hKey] is not empty then return empty -- no need to recurse
    if pMaxDepth is not a number then put empty into pMaxDepth
    if the commandkey is "Down" and the optionKey is "Down" then
@@ -924,7 +922,7 @@ command hkey_WalkHierarchy hKey, @hKeyLinkArray, thisDepth, pMaxDepth, pDontRecu
    -- is there a bug here as should add here not before recursion?
    lcw_Notify (item 1 of hKey)
    
-   put the hkey_SearchHierarchy [pEnvironmentFilter] of scriptObject into fullScriptHierarchy
+   put the script_Hierarchy [pEnvironmentFilter] of scriptObject into fullScriptHierarchy
    put hkey_SearchObjectHierarchy (hKey, fullScriptHierarchy) into messagePassHierarchy -- not finding private handlers in the hkey object?
    
    if messagePassHierarchy is empty then
@@ -961,9 +959,9 @@ command hkey_WalkHierarchy hKey, @hKeyLinkArray, thisDepth, pMaxDepth, pDontRecu
          put library_FetchHandler (hKey) into storedHandler
          if someHandler = storedHandler and pForceSearch is not true then
             -- already stored, faster to fetch stored calls
-            put hkey_GetCalls (hKey) into handlerCalls
+            put hkey_FetchCalls (hKey) into handlerCalls
          else
-            put the hkey_SearchHierarchy [pEnvironmentFilter] of someObject into fullScriptHierarchy
+            put the script_Hierarchy [pEnvironmentFilter] of someObject into fullScriptHierarchy
             put script_ParseHandlerForCalls (someHandler, fullScriptHierarchy, someObject) into handlerCalls
             hkey_StoreCallsAndHandler foundHkey, someHandler, handlerCalls
          end if
@@ -995,7 +993,7 @@ command hkey_WalkHierarchy hKey, @hKeyLinkArray, thisDepth, pMaxDepth, pDontRecu
                      put someObject into propertyTarget -- total hack !!!
                   end if
                   
-                  -- now find property linkName in the hkey_SearchHierarchy of propertyTarget
+                  -- now find property linkName in the script_Hierarchy of propertyTarget
                   put hkey_Construct (linkName, linkType, propertyTarget, linkNum) into testKey
                   put the hkey_InHierarchy [testKey] of propertyTarget into propertyHandlerObject
                   if exists (propertyHandlerObject) is false then

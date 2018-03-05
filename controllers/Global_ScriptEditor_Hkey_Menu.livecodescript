@@ -21,25 +21,38 @@ end insert_SendHkey
 on _
 end _
 
-on menu_RevealHandlerFolder hkeyLine
-   put handler_ConstructFolder (hKeyLine) into handlerFolder
-   finder_Reveal handlerFolder
-end menu_RevealHandlerFolder
-
-on menu_FindHandlerWithSpotlight hkeyLine
-   display_SpotlightHandler hkeyLine
-end menu_FindHandlerWithSpotlight
+on menu_DisplayHkeySvg hKey
+   put hkey_SvgFile (hKey) into svgFile
+   if scriptEditor_PaneExists ("Deps") then
+      display_ScriptEditorSvg svgFile
+   end if
+   
+   put hkey into stackLabel
+   display_SVG svgFile, stackLabel
+end menu_DisplayHkeySvg
 
 on _
 end _
 
-on submenu_Handler
-   return "Global | Handler | Menu"
-end submenu_Handler
+on submenu_HandlerLibrary
+   return "Global | Handler | Library | Menu"
+end submenu_HandlerLibrary
 
-on submenu_Walk
+on submenu_HandlerCalls
+   return "Global | Handler | Calls | Menu"
+end submenu_HandlerCalls
+
+on submenu_HandlerWalk
    return "Global | Hkey | Walk | Menu"
-end submenu_Walk
+end submenu_HandlerWalk
+
+on submenu_HandlerTest
+   return "Global | Handler | Menu"
+end submenu_HandlerTest
+
+on submenu_Panes
+   return "Global | ScriptEditor | Panes | Menu"
+end submenu_Panes
 
 on _
 end _
@@ -55,93 +68,30 @@ end submenu_Dev
 
 --> Global | ScriptEditor | Hkey | Menu | Disabled
 -
---getprop disabled_DisplayLibraryHandler [hKey]
-   put hkey_IsExported (hKey) into isInLibrary
-   if isInLibrary is true then
+getprop disabled_DisplayHkeySvg [hKey]
+   put hkey_SvgFile (hKey) into svgFile
+   if there is a file svgFile then
       return false
    else
       return true
    end if
-end disabled_DisplayLibraryHandler
-
---getprop disabled_AddHandlerToLibrary [hKey]
-   -- want to be able to re-add it
-   put hkey_IsInLibrary (hKey) into isInLibrary
-   if isInLibrary is true then
-      return "delete"
-   else
-      return false
-   end if
-end disabled_AddHandlerToLibrary
-
---getprop disabled_DisplayLibraryHandler [hKey]
-   -- want to be able to re-add it
-   put hkey_IsInLibrary (hKey) into isInLibrary
-   if isInLibrary is true then
-      return false
-   else
-      return true
-   end if
-end disabled_DisplayLibraryHandler
-
---getprop disabled_ReplaceHandlerInLibrary [hKey]
-   -- want to be able to re-add it
-   put hkey_IsInLibrary (hKey) into isInLibrary
-   if isInLibrary is true then
-      return false
-   else
-      return "delete"
-   end if
-end disabled_ReplaceHandlerInLibrary
+end disabled_DisplayHkeySvg
 
 
 --> Dev | Menu
 -
-on menu_ForceUpdateIndex
+on menu_FindHandlerWithSpotlight hkeyLine
+   display_SpotlightHandler hkeyLine
+end menu_FindHandlerWithSpotlight
+
+on menu_UpdateSpotlightFolder
    answer folder "Choose a folder to re-index..."
    if it is empty then exit to top
    put it into inFolder
    
    spotlight_ForceUpdate inFolder
    put the result
-end menu_ForceUpdateIndex
-
-on menu_AddHandlerToLibrary hKey
-   library_AddHkey hKey
-   display_Hkey hKey, "project"
-   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
-   lcw_Notify someComment
-end menu_AddHandlerToLibrary
-
-on menu_ReplaceHandlerInLibrary hKey
-   library_AddHkey hKey
-   display_Hkey hKey, "project"
-   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
-   lcw_Notify someComment
-end menu_ReplaceHandlerInLibrary
-
-on menu_FetchProjectHandler hKey
-   put project_FetchHandler (hKey) into someHandler
-   script_CreateAndEditHashCard someHandler
-end menu_FetchProjectHandler
-
-on menu_FetchLibraryCalls hKey
-   set the cursor to watch
-   put library_FetchHkeyCalls (hKey) into hkeyCalls
-   put hkeyCalls
-end menu_FetchLibraryCalls
-
-on menu_FetchDeps hKey, fetchHow
-   set the cursor to watch
-   put hkey_FetchDeps (hKey, fetchHow) into hKeyDeps
-   put hKeyDeps
-end menu_FetchDeps
-
-on menu_FilteredLibraryDeps hKey
-   local hKeyArray
-   hkey_RecurseCallArray hKey, hkeyArray
-   display_HKeyArray hKeyArray, hkey
-end menu_FilteredLibraryDeps
+end menu_UpdateSpotlightFolder
 
 
 --> Menu | Props
@@ -158,7 +108,7 @@ on menu_Init targetObject, mPath, mTitlePath
    put word 2 of hInfo into hName
    put word 3 of hInfo into startLineNum
    put word 4 of hInfo into endLineNum
-   put rev_ScriptObject() into hObject
+   put scriptEditor_Object() into hObject
    put hName,hType,hObject,1 into hKey
    
    put hKey into LocalArray ["hKey"]
@@ -167,11 +117,13 @@ on menu_Init targetObject, mPath, mTitlePath
    put endLineNum into LocalArray ["endLineNum"]
    put line startLineNum to endLineNum of the script of hObject into LocalArray ["someHandler"]
    
-   put library_HandlerFile (hKey, empty, true) into LocalArray ["hkeyFolder"]
+   -- put library_HandlerFile (hKey, empty, true) into LocalArray ["hkeyFolder"]
    
+   /*
    put hArray_ListHkeyObjects (hKey) into otherObjects
    line_Delete hObject, otherObjects
    put word 1 to -1 of otherObjects into LocalArray ["other objects"]
+   */
 end menu_Init
 
 getprop menu_Target [mTitlePath]
@@ -194,6 +146,7 @@ command launchFile treeWidget, shortPath
 end launchFile
 
 
+/*
 --> Deps | menu_Init
 -
 command line_Delete someLines, @fromContainer, partLine, skipLines
@@ -208,26 +161,6 @@ command line_Delete someLines, @fromContainer, partLine, skipLines
    end repeat
    return the number of lines of someIndex
 end line_Delete
-
-function hArray_ListHkeyObjects hKey
-   put item 1 to 2 of hKey into shortHkey
-   put hArray_GetFoundHkeyArray (shortHkey) into hkeyArray
-   put keys (hkeyArray) into foundHkeys
-   repeat for each line foundHkey in foundHkeys
-      put item 3 of foundHkey & CR after foundObject
-   end repeat
-   return foundObject
-end hArray_ListHkeyObjects
-
-function hArray_GetFoundHkeyArray hKey, pHArray
-   put item 1 to 2 of hKey into shortHkey
-   if pHArray is an array then
-      return pHArray ["handlerArray"][shortHkey]
-   else
-      global gLCW
-      return gLCW ["handlerArray"][shortHkey]
-   end if
-end hArray_GetFoundHkeyArray
 
 function library_HandlerFile hKey, pShortFileBit, pDontCreate
    -- returns empty if there is no folder, but the filename if there is
@@ -337,10 +270,11 @@ function rev_TopScriptEditor
    end if
 end rev_TopScriptEditor
 
-function rev_ScriptObject
+function scriptEditor_Object
    put rev_TopScriptEditor() into stackObject
    if exists(stackObject) is false then return empty
    dispatch "revSEGetCurrentObject" to stackObject
    put the result into someObject
    return someObject
-end rev_ScriptObject
+end scriptEditor_Object
+*/

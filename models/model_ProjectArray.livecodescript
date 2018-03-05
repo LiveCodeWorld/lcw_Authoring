@@ -101,26 +101,8 @@ command project_RestoreGlobalPrefs pProjectName
 end project_RestoreGlobalPrefs
 
 
---> Project | Stackfiles
+--> Project | Index
 -
-/*
-See also "project_SetFoundStackFiles projectFolder"
-*/
-
-function project_FetchStackFiles pProjectName
-   -- not used much
-   put project_FetchArray (pProjectName) into projectArray
-   put projectArray ["data"]["stackfiles"] into stackFileTable
-   return stackFileTable
-end project_FetchStackFiles
-
-command project_StoreStackFiles stackFileTable, pProjectName
-   -- not used much
-   put project_FetchArray (pProjectName) into projectArray
-   put stackFileTable into projectArray ["data"]["stackfiles"]
-   project_StoreArray pProjectName, projectArray
-end project_StoreStackFiles
-
 command project_IndexAllScripts projectFolder, pExportHandlers
    -- has lot's of dependencies (but wrapped in "try")
    

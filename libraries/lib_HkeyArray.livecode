@@ -19,6 +19,34 @@ with the "script_" extension being replaces by "hkey_"
 
 --> Currently Working On
 -
+function hkey_FetchOverlayData hKey
+   put hkey_OverlayDataFile (hKey) into someFile
+   -- put array_Fetch (hkeyArrayFile) into overlayData
+   put url ("binfile:" & someFile) into encodedArray
+   if encodedArray is empty then return empty
+   put arraydecode (encodedArray) into overlayData
+   return overlayData
+end hkey_FetchOverlayData 
+
+command hkey_SaveOverlayData hKey, overlayData
+   put hkey_OverlayDataFile (hKey) into someFile
+   
+   if overlayData is an array then
+      put arrayencode (overlayData) into encodedArray
+      put encodedArray into url ("binfile:" & someFile)
+      return someFile
+   else if overlayData is empty then
+      put hkey_Files (hKey, pVersionName) into someFiles
+      set the itemdelimiter to "/"
+      repeat for each line someFile in someFiles
+         put item -1 of someFile into shortFile
+         if shortFile is among the items of "handler.txt/help.html" then next repeat
+         delete file someFile
+      end repeat
+      return empty
+   end if
+end hkey_SaveOverlayData
+
 function hkeyArray_GetFiltered
    breakpoint -- old model
    put the linkArray_Model of me into modelObject
@@ -31,7 +59,6 @@ command hkeyArray_SetFiltered hkeyArray
    put the linkArray_Model of me into modelObject
    set the model_Array ["Filtered_hkeyArray"] of modelObject to hkeyArray
 end hkeyArray_SetFiltered
-
 
 
 --> HkeyArray | Objects
@@ -48,42 +75,50 @@ function hkeyArray_ConstructTreeArray hKeyArray
    return treeArray
 end hkeyArray_ConstructTreeArray
 
-function hkeyArray_ConstructObjectTreeArray objectHKeyArray
-   put keys (objectHKeyArray) into sortedObjects
+function hkeyArray_TidyObjectArray hKeyArray
+   -- was "hkeyArray_ConstructObjectTreeArray"
+   put keys (hKeyArray) into sortedObjects
    sort sortedObjects
    
    repeat for each line sortedObject in sortedObjects
-      put objectHKeyArray [sortedObject] into depHkeys
+      put hKeyArray [sortedObject] into depHkeys
+      if depHkeys is an array then put keys (depHkeys) into depHkeys
       sort depHkeys by item 1 of each
+      
       put empty into depKeyArray
       repeat for each line depHkey in depHkeys
-         -- put empty into parentHkey -- here we should dig into reversed array
-         put item 1 of depHkey into hName
-         put item 2 of depHkey into hType
-         put hName & "_" & hType into displayName
-         
-         put hName into depKeyArray [displayName]["hName"]
-         put hType into depKeyArray [displayName]["hType"]
-         put item 3 of depHkey into depKeyArray [displayName]["hObject"]
-         put item 4 of depHkey into depKeyArray [displayName]["hNum"]
+         hkeyLine_Normalise depHkey
+         put word 1 to 2 of depHkey into shortHkeyLine
+         put empty into objectHkeyArray [sortedObject][shortHkeyLine]
       end repeat
-      put depKeyArray into prettyObjectArray [sortedObject]
+      
+      /*
+      put objectHkeyArray [sortedObject] into objectArray
+      put keys (objectArray) into shortHkeyLines
+      sort shortHkeyLines by word 2 of each
+      put shortHkeyLines into objectHkeyArray [sortedObject] 
+      */
    end repeat
-   return prettyObjectArray
-end hkeyArray_ConstructObjectTreeArray
+   return objectHkeyArray
+end hkeyArray_TidyObjectArray
 
 function hkeyArray_ConstructObjectArray hkeyArray, pPretty
    put array_AllNodes (hkeyArray) into allCalls
    
    repeat for each line hKey in allCalls
       put item 3 of hKey into someObject
-      if pPretty is not false then
-         if exists (someObject) then put the mobile_Name of someObject into someObject
+      if pPretty is true then
+         if exists (someObject) then
+            put revRuggedID (someObject) into someObject
+         end if
       end if
       
+      put empty into objectArray [someObject][hKey]
+      /*
       put objectArray [someObject] into hKeys
       line_Add hKey, hKeys
       put hKeys into objectArray [someObject]
+      */
    end repeat
    return objectArray
 end hkeyArray_ConstructObjectArray
@@ -94,7 +129,7 @@ end hkeyArray_ConstructObjectArray
 getprop hKeyArray_ConstructNodeSection [hKey]
    put the long id of the target into graphController
    
-   put hkey_GetOverlayData (hKey) into graphData
+   put hkey_FetchOverlayData (hKey) into graphData
    linkArray_DeconstructDataArray graphData, hLinkArray, hIdLinkArray, hIdArray, reversedIdArray
    put graphData ["geometry"] into geometryArray
    
@@ -173,7 +208,7 @@ function hkey_ShortToLongCalls shortKeys, hObject, pSetName
       if exists (hObject) is false then
          put hkey_Construct (callName, callType, "missing", 1) into foundCall
       else
-         put the hkey_SearchHierarchy [pSetName] of hObject into scriptHierarchy
+         put the script_Hierarchy [pSetName] of hObject into scriptHierarchy
          hkey_AddDevelopmentHierarchy scriptHierarchy, pSetName, hObject
          hkey_FindHandlerInHierarchy callName, callType, hObject, scriptHierarchy, foundHkey, callHandler
          if foundHkey is empty then
@@ -774,57 +809,6 @@ command hKeyArray_FilterCustomMissing @hKeyLinkArray
       end if
    end repeat
 end hKeyArray_FilterCustomMissing
-
-command hkeyArray_ConstructDependencySuite hkeyArray, pStripScriptObject, @depSuite, pStripObjects, pStripProps, pNotifyMissing
-   local depScript
-   
-   put array_AllNodes (hkeyArray) into allCalls
-   hkey_StripDuplicates allCalls
-   put the result into duplicateHkeyArray
-   
-   if exists (pStripScriptObject) is true then
-      -- strip the nodes from the scriptObject whose hkeyArray we are processing
-      hkey_SimpleStripObject allCalls, pStripScriptObject
-      put the result into strippedKeys
-   end if
-   
-   if pStripProps is true then
-      -- this does not do a network walk (does this matter?)
-      hkey_StripGetProps allCalls
-      line_Add the result, strippedKeys
-      
-      hkey_StripSetProps allCalls
-      line_Add the result, strippedKeys
-   end if
-   
-   -- now let's recursively strip the nodes from the objects in pStripObjects we don't want
-   repeat for each line stripObject in pStripObjects
-      -- take care that the object name is fromatted correctly
-      if exists(stripObject) is false then
-         put merge ("Cannot find [[stripObject]]!") into someMessage
-         lcw_Notify someMessage, true
-         next repeat
-      end if
-      
-      -- lets get rid of any calls to the objects we are stripping
-      -- hkeyArray_RemoveObjectLinks hkeyArray, stripObject
-      hkey_SimpleStripObject allCalls, stripObject
-      line_Add the result, strippedKeys
-   end repeat
-   
-   sort allCalls
-   
-   -- put script_ConstructDependencySuite (allCalls) into depSuite
-   local missingHkeys
-   script_FetchFromHkeys allCalls, depScript, missingHkeys, pNotifyMissing
-   put script_ConstructSuite ("Deps", depScript) into depSuite
-   
-   put allCalls into someArray ["uniqueHkeys"]
-   put strippedKeys into someArray ["strippedKeys"]
-   put missingHkeys into someArray ["missingHkeys"]
-   put duplicateHkeyArray into someArray ["duplicateHkeyArray"]
-   return someArray
-end hkeyArray_ConstructDependencySuite
 
 function hKeyArray_DotNodeLinks linkArray, pNodeIDs, pTargetObject
    -- this seems specific to scripts?

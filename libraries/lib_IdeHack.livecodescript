@@ -31,37 +31,11 @@ revEnvironmentRuntimePath()  -- The location of the standalones that come with t
 
 revEnvironmentDocumentationPath()  -- The location of the documentation files.
 revEnvironmentResourcesPath()  -- The location of the resources that come with the IDE. 
+
+refreshTabStates
+revSERestoreEditors
+put revListScriptEditors()
 */
-
---> Object | Revolution
--
-command object_Inspect scriptObject
-   -- was "object_EditProperty"
-   
-   revIDEInspectObjects scriptObject
-   -- send "revBuildPropertyPalette someObject" to stack "revTemplatePalette"
-   -- dispatch "revBuildPropertyPalette" to stack "revTemplatePalette" with someObjects
-   -- revBuildPropertyPalette someObjects
-   return the result
-end object_Inspect
-
-function object_FilterRev objectIndex
-    repeat for each line someObject in objectIndex
-        get the stack_Name of someObject
-        if char 1 to 3 of it is not "rev" then
-            put someObject & CR after nonRevObjects
-        end if
-    end repeat
-    delete last char of nonRevObjects
-    return nonRevObjects
-end object_FilterRev
-
-
---> Rev | App Browser
--
-command rev_RefreshAppBrowser
-   dispatch "revRefreshTree" to stack "revApplicationOverview"
-end rev_RefreshAppBrowser
 
 
 --> Rev | Script Editor | Search Results
@@ -140,51 +114,36 @@ command rev_SetScriptEditorSearchResults tFormattedResults
    send "refreshCurrentPane" to group "Panes" of topScriptEditorStack
 end rev_SetScriptEditorSearchResults
 
-command rev_RemoveScriptEditorPane tabName, viewName
-   put revTopMostScriptEditor() into seStackObject
-   if exists (seStackObject) is false then return false
-   
-   put the long id of group "Panes" of seStackObject into paneGroup
-   put the long id of group "Pane Tabs" of seStackObject into paneTabGroup
-   
-   if exists (btn tabName of paneTabGroup) is false then return false
-   
-   delete btn tabName of paneTabGroup
-   delete group tabName of paneGroup
-   
-   dispatch "resize" to paneGroup
-   dispatch "setCurrentTab" to paneTabGroup with "Documentation"
-   return paneGroup
-end rev_RemoveScriptEditorPane
 
-command rev_AddScriptEditorPane tabName, viewName
-   put revTopMostScriptEditor() into seStackObject
-   if exists (seStackObject) is false then return false
+--> Object | Revolution
+-
+command object_Inspect scriptObject
+   -- was "object_EditProperty"
    
-   put the long id of group "Panes" of seStackObject into paneGroup
-   put the long id of group "Pane Tabs" of seStackObject into paneTabGroup
-   if exists (btn tabName of paneTabGroup) is true then return false
-   
-   -- put hArray_GetViewTemplate (viewName) into someView
-   view_NormalizeName viewName
-   if exists (stack viewName) is false then return empty
-   put the template_View of card 1 of stack viewName into someView
-   if exists (someView) is false then return empty
-   
-   lock screen
-   copy someView to paneGroup
-   put it into copiedPaneView
-   set the name of copiedPaneView to tabName
-   
-   clone btn "Search Results" of paneTabGroup
-   put it into clonedTabButton
-   set the name of clonedTabButton to tabName
-   
-   dispatch "resize" to paneTabGroup
-   dispatch "setCurrentTab" to paneTabGroup with tabName
-   
-   return copiedPaneView
-end rev_AddScriptEditorPane
+   revIDEInspectObjects scriptObject
+   -- send "revBuildPropertyPalette someObject" to stack "revTemplatePalette"
+   -- dispatch "revBuildPropertyPalette" to stack "revTemplatePalette" with someObjects
+   -- revBuildPropertyPalette someObjects
+   return the result
+end object_Inspect
+
+function object_FilterRev objectIndex
+    repeat for each line someObject in objectIndex
+        get the stack_Name of someObject
+        if char 1 to 3 of it is not "rev" then
+            put someObject & CR after nonRevObjects
+        end if
+    end repeat
+    delete last char of nonRevObjects
+    return nonRevObjects
+end object_FilterRev
+
+
+--> Rev | App Browser
+-
+command rev_RefreshAppBrowser
+   dispatch "revRefreshTree" to stack "revApplicationOverview"
+end rev_RefreshAppBrowser
 
 
 --> Rev | Save
@@ -463,7 +422,7 @@ command rev_SetScriptEditorShowDocumentation hKey, pUnlockField
       -- _autoSave hKey, someHtml
       
       rev_SetLaunchDocButtonLabel "Handler Doc"
-      rev_SetScriptEditorActivatePane "Documentation" -- this must be first as it also set's the htmltext
+      scriptEditor_SetActivePane "Documentation" -- this must be first as it also set's the htmltext
       rev_SetScriptEditorDocumentation someHtml
       
       if pUnlockField is true then
@@ -514,35 +473,6 @@ function rev_ScriptEditorDocFieldRect pEditorNum
    if exists(scriptEditorDocField) is false then return empty
    return the rect of scriptEditorDocField
 end rev_ScriptEditorDocFieldRect
-
-
---> Script Editor | Panes
--
-function rev_ListScriptEditorPaneNames pStackObject
-   if pStackObject is empty then put revTopMostScriptEditor() into pStackObject
-   if exists (pStackObject) is false then return empty
-   
-   local paneNames
-   repeat with btnNum = 1 to the number of btns of group "Pane Tabs" of pStackObject
-      put the the short name of btn btnNum of group "Pane Tabs" of pStackObject into tabName
-      put tabName & comma after paneNames
-   end repeat  
-   delete char -1 of paneNames
-   return paneNames
-end rev_ListScriptEditorPaneNames
-
-function rev_GetScriptEditorActivatePane pEditorNum
-   put rev_ScriptEditorPaneTabsGroup (pEditorNum) into scriptEditorPanesGroup
-   dispatch "getCurrentTab" to scriptEditorPanesGroup
-   put the result into paneName
-   return paneName
-end rev_GetScriptEditorActivatePane
-
-command rev_SetScriptEditorActivatePane paneName, pEditorNum
-   put rev_ScriptEditorPaneTabsGroup (pEditorNum) into scriptEditorPanesGroup
-   dispatch "setCurrentTab" to scriptEditorPanesGroup with paneName
-   return it
-end rev_SetScriptEditorActivatePane
 
 
 --> Script Editor | Documentation | Auto Save
@@ -642,7 +572,7 @@ command rev_SetScriptEditorInfo @hKey, @someHandler, @suiteTitle, @scriptSuite, 
    -- should select the clickline
    
    put rev_HandlerTreeField() into handlerTreeField
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    
    -- put item 1 of the hilitedLine of handlerTreeField into lineNum
    put word 2 of the clickline into lineNum
@@ -696,10 +626,10 @@ function rev_GetSelectedHandlerTreeLineNum pHkey
    put rev_HandlerTreeField() into handlerField
    
    if pHkey is not empty then
-      put rev_ScriptObject() into scriptObject
+      put scriptEditor_Object() into scriptObject
       -- put item 3 of pHkey into scriptObject
       put the revAvailableHandlers of scriptObject into handlerTable
-      script_HandlerFromTableOffsets pHkey, handlerTable, startLineNum, endLineNum
+      hkey_FindInTable pHkey, handlerTable, startLineNum, endLineNum
       return startLineNum
       
       /*
@@ -714,58 +644,6 @@ function rev_GetSelectedHandlerTreeLineNum pHkey
    end if
    return lineNum
 end rev_GetSelectedHandlerTreeLineNum
-
-command script_HandlerFromTableOffsets shortHkey, handlerTable, @startLineNum, @endLineNum
-   -- see also "script_HandlerTableOffsets"
-   
-   if handlerTable is empty then
-      put 0 into startLineNum
-      put 0 into endLineNum
-      return false
-   end if
-   
-   put item 1 of shortHkey into hName
-   put item 2 of shortHkey into hType
-   switch char -1 of hType
-      case "c"
-         put "M" into char -1 of hType
-         break
-      case "o"
-         put "M" into char -1 of hType
-         break
-   end switch
-   
-   repeat for each line someLine in handlerTable      
-      put word 2 of someLine into hTableName
-      if hTableName is not hName then next repeat
-      
-      put word 1 of someLine into hTableType
-      switch
-         case hTableType = hType
-            put word 3 of someLine into startLineNum
-            put word 4 of someLine into endLineNum
-            return true
-      end switch
-      
-      add 1 to handlerLineNum
-   end repeat
-   put 0 into startLineNum
-   put 0 into endLineNum
-   return false
-end script_HandlerFromTableOffsets
-
-command rev_SetSelectedHandlerTreeLineNum treeLineNum
-   -- ignoreCall:  closeAccept,c
-   put rev_HandlerTreeField() into handlerTreeField
-   try
-      set the hilitedLine of handlerTreeField to treeLineNum
-      dispatch "closeAccept" to handlerTreeField
-   catch e
-      lcw_Notify (the params & CR & handlerTreeField), true
-      put the executioncontexts
-   end try
-   return empty
-end rev_SetSelectedHandlerTreeLineNum
 
 function rev_GetHandlerTreeCallbackTarget
    put rev_HandlerTree() into handlerTree
@@ -824,7 +702,7 @@ function rev_GetFirstScriptEditorSelectedHkey
    put word 1 of hInfo into hType
    if hType = "M" then put "c" into hType
    put toLower(hType) into hType
-   put rev_ScriptObject() into hObject
+   put scriptEditor_Object() into hObject
    
    put hName,hType,hObject,1 into hKey
    return hKey
@@ -901,67 +779,6 @@ function rev_DataGridBehavior
     return the long id of of btn "Data Grid" of group "Behaviors" of cd 1 of dataGridStack
 end rev_DataGridBehavior
 
-
---> Rev | Script Editor | Tabs
--
-command rev_ActivateScriptEditorTab someObject, pSetScript
-   put revRuggedId (someObject) into someObject
-   put rev_ListTabScriptObjects() into ruggedIDs
-   set the wholematches to true
-   if someObject is not among the lines of ruggedIDs then return false
-   
-   put rev_ScriptEditorGroup() into revScriptEditorGroup
-   dispatch "revSESetCurrentObject" to revScriptEditorGroup with someObject
-   
-   if pSetScript is not empty then
-      put rev_GetCachedScript (someObject) into oldCachedScript
-      rev_SetScriptEditorField pSetScript
-      set the clipboarddata to oldCachedScript
-      return oldCachedScript
-   else
-      return true
-   end if
-end rev_ActivateScriptEditorTab
-
-command rev_CreateNewTab someObject
-   breakpoint
-   send "revSEAddTargetObject someObject" to revScriptEditorGroup
-   put the result someError
-   return someError
-end rev_CreateNewTab
-
-command rev_CloseTab scriptObject, pDontWarn, pDontCloseIfLast, pDontChangeTab
-   # Parameters
-   #   pObject : reference to the object to remove
-   #   pDontWarn : whether or not to warn the user of losing unapplied changes (optional, defaults to false)
-   #   pDontCloseIfLast : optional, defaults to false. If true, then the script editor will not be closed when the last tab is deleted.
-   #   pDontChangeTab : optional, defaults to false, If true, then the script editor will not attempt to change tabs after removing the object
-   # Description
-   #   Removes the specified object from this script editor. If the removed object is the current
-   #   editing object, then changes the current object to the last selected object.
-   
-   put rev_ListTabScriptObjects() into tabScriptObjects
-   put the rugged_ID of scriptObject into scriptObject
-   if scriptObject is among the lines of tabScriptObjects then
-      
-      put rev_ScriptEditorGroup() into editorObject
-      put rev_ScriptEditorField() into editorObject
-      
-      dispatch "revSERemoveTargetObject" to editorObject with scriptObject,pDontWarn,pDontCloseIfLast,pDontChangeTab
-      switch it
-         case "handled" -- the message was handled and not passed
-            break
-         case "unhandled" -- no matching handlers were found
-            break
-         case "passed" -- the message was handled but passed by all handlers
-            break
-      end switch
-      return true
-   else
-      return false
-   end if
-end rev_CloseTab
-
 command rev_SetScriptEditorField pScript
    -- ignoreCall: textSetScript,c
    
@@ -1004,12 +821,6 @@ command rev_SearchScripts pQuery, pTarget, pCallback, pCallbackTarget
    put rev_ScriptEditorGroup() into revScriptEditorGroup
    dispatch "revSEFindAll" to revScriptEditorGroup with pQuery,pIsRegExp,pUseWildCards,pWholeMatches,pIgnoreCase,pTarget,pCallback,pCallbackTarget
 end rev_SearchScripts
-
-function rev_ListTabScriptObjects
-   send "revSEGetTargetObjects" to rev_ScriptEditorGroup()
-   put the result into ruggedIDs
-   return ruggedIDs
-end rev_ListTabScriptObjects
 
 function rev_GetCachedScript pObject
    -- ignoreCall: scriptGet,c

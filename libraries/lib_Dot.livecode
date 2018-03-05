@@ -6,12 +6,51 @@ name: lib_Dot
 type: library
 copyright: David Bovill
 licence:  GPLv3
-version: 1.0
+version: 1.1
 
 /*
 Shiny new library for processing all things dot.
 See also older library libOPN_GraphViz
 */
+
+--> Working on
+-
+command dot_MakelabelSafe @nodeLabel
+   -- there may be a number of things to clean up here
+   -- for now we replace quoted names
+   replace quote with "'" in nodeLabel
+end dot_MakelabelSafe
+
+command dot_ProcessAndSaveFiles dotText, graphStyle, @pDotFile, @imageFile, @cmapFile, @xdotFile, pOverlayName, pImageFormat
+   -- old
+   -- depends on dodgy technique to figure out dotFolder
+   
+   if pDotFile is empty then
+      put the tempname & "/" into dotFolder
+      folder_CreateNested dotFolder
+   else
+      put pDotFile into dotFolder
+      if char -1 of pDotFile is not "/" then
+         set the itemdelimiter to "/"
+         delete item -1 of dotFolder
+         put "/" after dotFolder
+      end if
+   end if
+   overlay_Files dotFolder, dotFile, imageFile, cmapFile, xdotFile, dotArrayFile, pOverlayName, pImageFormat
+   
+   file_CreateText dotText, dotFile
+   /*
+   if pGraphStyle = "hierarchical" then -- lets flatten it ?
+      put dot_UnFlatten (pDotFile, 12) into unFlatDotText
+      if word 1 of unFlatDotText is among the items of "digraph,graph" then
+         file_CreateText unFlatDotText, pDotFile
+      end if
+   end if
+   */
+   dot_DoImageMapShell graphStyle, dotFile, imageFile, cmapFile, xdotFile, "png"
+   return pDotFile
+end dot_ProcessAndSaveFiles
+
 
 --> Dot | Overlay Array
 -
@@ -19,7 +58,7 @@ See also older library libOPN_GraphViz
 A overlayArray is a datastructure that contains all the required information to draw a dot graph.
 
 Several dotArrays can be nested inside an overlayData structure (see libOPN_GraphData),
-which can be returned using the script_OverlayData of hkey_GetOverlayData.
+which can be returned using the script_OverlayData of hkey_FetchOverlayData.
 
 This library and it's handlers could be renamed to graphArray / libOPN_GraphArray,
 but overlayArray while not as intuitive, is at least unique (there may be other types of graph?).
@@ -160,36 +199,6 @@ function dot_FromLinkArray linkArray, graphPropertyModel, graphController, pOver
    return dotText
 end dot_FromLinkArray
 
-command dot_ProcessAndSaveFiles dotText, graphStyle, @pDotFile, @imageFile, @cmapFile, @xdotFile, pOverlayName, pImageFormat
-   -- old
-   -- depends on dodgy technique to figure out dotFolder
-   
-   if pDotFile is empty then
-      put the tempname & "/" into dotFolder
-      folder_CreateNested dotFolder
-   else
-      put pDotFile into dotFolder
-      if char -1 of pDotFile is not "/" then
-         set the itemdelimiter to "/"
-         delete item -1 of dotFolder
-         put "/" after dotFolder
-      end if
-   end if
-   overlay_Files dotFolder, dotFile, imageFile, cmapFile, xdotFile, dotArrayFile, pOverlayName, pImageFormat
-   
-   file_CreateText dotText, dotFile
-   /*
-   if pGraphStyle = "hierarchical" then -- lets flatten it ?
-      put dot_UnFlatten (pDotFile, 12) into unFlatDotText
-      if word 1 of unFlatDotText is among the items of "digraph,graph" then
-         file_CreateText unFlatDotText, pDotFile
-      end if
-   end if
-   */
-   dot_DoImageMapShell graphStyle, dotFile, imageFile, cmapFile, xdotFile, "png"
-   return pDotFile
-end dot_ProcessAndSaveFiles
-
 function dot_NewTemporaryFilePath dotText
    put the tempname & "/" into dotFolder
    folder_CreateNested dotFolder
@@ -263,6 +272,7 @@ function dot_ConstructDefaultDefLine nodeID, idArray
    put idArray [nodeID] into longName
    put item 1 of longName into nodeLabel -- allows for hKey labels with several items -> but only displaying the first
    
+   dot_MakelabelSafe nodeLabel
    put nodeID && "[label=" & kwote(nodeLabel) into nodeDefLine
    put urlencode (longName) into someUrl
    
@@ -931,47 +941,6 @@ function dot_DefSectionFromArray overlayArray, pOverlayName
    delete char -2 to -1 of defSection
    return defSection
 end dot_DefSectionFromArray
-
-function dot_ConstructDefSection dotGroupStyleArray, nodeIdArray
-   local defSection
-   repeat for each key numOrName in dotGroupStyleArray
-      put dotGroupStyleArray [numOrName] into groupStyleArray
-      overlayArray_DeconstructGroupStyleArray nodeIds, nodeStyleArray, groupStyleArray
-      put dot_StyleArrayToParams (nodeStyleArray) into styleParams
-      
-      if numOrName is not a number then
-         put "subgraph" && kwote(numOrName) & space after defSection
-      end if
-      put "{" & CR after defSection
-      put tab & "node [" & styleParams & "];" & CR after defSection
-      put CR after defSection
-      
-      -- replace CR with comma in nodeIDs -- lazy
-      repeat for each item nodeID in nodeIDs
-         put dot_ConstructDefaultDefLine (nodeID, nodeIdArray) into nodeDefLine
-         put tab & nodeDefLine & CR after defSection
-      end repeat
-      
-      put "}"  & CR after defSection
-      put CR after defSection
-   end repeat
-   delete char -2 to -1 of defSection
-   return defSection
-end dot_ConstructDefSection
-
-function dot_ConstructDefaultDefLine nodeID, idArray
-   -- this is a general version suitable for hkeys
-   put idArray [nodeID] into longName
-   put item 1 of longName into nodeLabel -- allows for hKey labels with several items -> but only displaying the first
-   
-   put nodeID && "[label=" & kwote(nodeLabel) into nodeDefLine
-   put urlencode (longName) into someUrl
-   
-   put space & "URL=" & kwote(someUrl) after nodeDefLine
-   
-   put "];" after nodeDefLine
-   return nodeDefLine
-end dot_ConstructDefaultDefLine
 
 -- getprop dot_Header [headerType]
    local dotPropertyArray

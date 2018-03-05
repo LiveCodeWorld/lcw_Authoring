@@ -15,6 +15,24 @@ local LocalArray
 
 --> Global | HkeyArray | Tree | Filter | Menu
 -
+on menu_RemoveStandaloneHandlers treeView, whichStack
+   -- put the defaultstack -- changed by menus
+   switch whichStack
+      case "topstack"
+         -- put line 2 of the openstacks into topStack
+         put the topstack into stackObject
+         break
+      case "scriptEditor_Object"
+         put scriptEditor_Object() into stackObject
+         break
+   end switch
+   
+   put the script_Hkeys of stackObject
+end menu_RemoveStandaloneHandlers
+
+on _
+end _
+
 on menu_RemoveObject treeView, depObject
    put the displayed_Array of treeView into hKeyArray
    deconstructLocalArray overlayFolder, hKey, stackLabel, scriptObject

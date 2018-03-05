@@ -24,9 +24,31 @@ local LocalArray
    return exists (hObject)
 end menu_CheckTarget
 
+on menu_Init tObject
+   /*
+   put hArray_ListHkeyObjects (hKey) into otherObjects
+   line_Delete hObject, otherObjects
+   put word 1 to -1 of otherObjects into LocalArray ["other objects"]
+   */
+end menu_Init
+
+
 
 --> Global | Handler | Menu
 -
+on menu_DeleteHandler hKey
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   set the script_Handler [hKey] of hObject to empty
+end menu_DeleteHandler
+
+on _
+end _
+
+on menu_DisplayHandlerGist hKey
+   put gist_UrlFromHkey (hKey) into gistURL
+   launch url gistURL
+end menu_DisplayHandlerGist
+
 on menu_SaveAsGist hKey
    local shortGistFile
    gist_SaveHkey hKey, shortGistFile
@@ -51,6 +73,16 @@ end menu_SaveAsPrivateGist
 on _
 end _
 
+on menu_TestHandler hKey
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   put the result into hkeyLine
+   put the script_Handler [hKey] of hObject
+end menu_TestHandler
+
+on menu_UnitTests hKey
+   display_UnitTests hKey
+end menu_UnitTests
+
 on menu_OtherObjectsWithHandler hKey, otherPlace
    put LocalArray ["friendlyArray"][otherPlace] into otherPlace
    put revRuggedID (otherPlace) into item 3 of hKey
@@ -72,13 +104,33 @@ getprop other_Places [hKey]
    return LocalArray ["orderedFriendlyObjects"]
 end other_Places
 
+function hArray_ListHkeyObjects hKey
+   put item 1 to 2 of hKey into shortHkey
+   put hArray_GetFoundHkeyArray (shortHkey) into hkeyArray
+   put keys (hkeyArray) into foundHkeys
+   repeat for each line foundHkey in foundHkeys
+      put item 3 of foundHkey & CR after foundObject
+   end repeat
+   return foundObject
+end hArray_ListHkeyObjects
+
+function hArray_GetFoundHkeyArray hKey, pHArray
+   put item 1 to 2 of hKey into shortHkey
+   if pHArray is an array then
+      return pHArray ["handlerArray"][shortHkey]
+   else
+      global gLCW
+      return gLCW ["handlerArray"][shortHkey]
+   end if
+end hArray_GetFoundHkeyArray
+
 getprop suite_Title
    rev_SetScriptEditorInfo hKey, someHandler, suiteTitle, scriptSuite, scriptObject
    return suiteTitle
 end suite_Title
 
 getprop suite_Titles
-   put rev_ScriptObject() into scriptObject
+   put scriptEditor_Object() into scriptObject
    put the script_SuiteTitles of scriptObject into suiteTitles
    -- display_Text suiteTitles
    return word 1 to -1 of suiteTitles
@@ -141,36 +193,6 @@ on menu_AnalizeMainStack hKey
    put the main_Stack of hObject into scriptObject
    display_ScriptObject scriptObject
 end menu_AnalizeMainStack
-
-on menu_UnitTests hKey
-   display_UnitTests hKey
-end menu_UnitTests
-
-on _
-end _
-
-on menu_AddHandlerToLibrary hKey
-   library_AddHkey hKey
-   
-   display_Hkey hKey, "project"
-   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
-   lcw_Notify someComment
-end menu_AddHandlerToLibrary
-
-on menu_EditHandler hKey
-   hkey_Edit hKey
-end menu_EditHandler
-
-on menu_EditHandlerHelp hKey
-   put hkey_FetchHelp (hKey) into helpText
-   put lcw_Ask ("Edit the help text...", helpText) into helpText
-   hkey_StoreHelp hKey, helpText
-end menu_EditHandlerHelp
-
-on menu_RevealHandlerHelpFile hKey
-   put hkey_HelpFile (hKey) into someFile
-   finder_Reveal someFile
-end menu_RevealHandlerHelpFile
 
 on _
 end _

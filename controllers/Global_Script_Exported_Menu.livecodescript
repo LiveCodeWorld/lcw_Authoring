@@ -44,7 +44,9 @@ end menu_CheckRecentScriptExports
 end menu_CheckAllScriptExports
 
 on menu_DisplayMergeScript scriptObject
-   answer file "Choose a script file to display..."
+   put the data_Folder of scriptObject into someFolder
+   
+   answer file "Choose a script file to display..." with someFolder
    put it into scriptFile
    if it is empty then exit to top
    

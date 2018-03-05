@@ -9,8 +9,13 @@ version: 0.4
 /*
 The menu for tree views of overlay arrays.
 See also "Global | Image | Dot | Menu" and "Global | Script | Dependency | Menu"
-These menus should be renamed "Global | Tree | HkeyArray | ...."
+These menus should be renamed "Global | HkeyArray | Tree | ...."
+
+This menu is designed to be the title menu of a tree or similar widget that presents an hkeyArray.
+it should allow export to the appropriate place on disk, as it can take a long time to process these arrays,
+and they may want to be examined before they are saved!
 */
+
 
 
 --> Variables
@@ -42,30 +47,46 @@ end _SetHkeyLine
 
 --> Global | HkeyArray | Menu
 -
+on menu_DisplayDepObjects mTarget
+   -- mTarget seems to be cardObject ???
+   put LocalArray ["treeView"] into treeView
+   
+   put the displayed_Object of treeView into hObject
+   put the displayed_Hkey of treeView into hKey
+   
+   put the hkey_Array of treeView into hkeyArray
+   -- put the view_Data of treeView into hkeyArray
+   put the displayed_Array of treeView into objectHkeyArray
+   
+   put keys (objectHkeyArray) into depObjects
+   put hKey into someTitle
+   put "DepObjects" into item 2 to -1 of someTitle
+   
+   display_Index depObjects, someTitle, "Global | DepObjects | Tree | Menu", "Global | DepObjects | Line | Menu"
+   put the result into indexView
+   
+   set the displayed_Hkey of indexView to hKey
+   --  set the displayed_Object of indexView to hObject
+   
+   set the displayed_HkeyArray of indexView to hkeyArray
+   set the displayed_ObjectHkeyArray of indexView to objectHkeyArray
+   
+   -- set the displayed_Object of indexView to hObject
+   set the displayed_Hkey of indexView to hKey
+end menu_DisplayDepObjects
+
+on _
+end _
+
 on menu_FetchHandler treeView
    _SetHkeyLine treeView, hKeyLine
-   put hkeyLine_FetchHandler (hKeyLine)
+   put hkey_FetchHandler (hKeyLine)
 end menu_FetchHandler
-
-getprop disabled_FetchHandler [treeView]
-   _SetHkeyLine treeView, hKeyLine
-   if hKeyLine is empty then
-      return true
-   else
-      return false
-   end if
-end disabled_FetchHandler
 
 on menu_DisplayHandlerDeps treeView
    _SetHkeyLine treeView, hKeyLine
    display_HandlerDeps hKeyLine
 end menu_DisplayHandlerDeps
-
-getprop disabled_DisplayHandlerDeps [treeView]
-   _SetHkeyLine treeView, hKeyLine
-   put hkeyLine_FetchCalls (hKeyLine) into hCalls
-   return hCalls is empty
-end disabled_DisplayHandlerDeps
 
 on menu_AddToDictionary treeView
    breakpoint
@@ -142,6 +163,21 @@ end menu_TestValue
 
 --> Global | HkeyArray | Menu | Disabled
 -
+getprop disabled_FetchHandler [treeView]
+   _SetHkeyLine treeView, hKeyLine
+   if hKeyLine is empty then
+      return true
+   else
+      return false
+   end if
+end disabled_FetchHandler
+
+getprop disabled_DisplayHandlerDeps [treeView]
+   _SetHkeyLine treeView, hKeyLine
+   put hkey_FetchCalls (hKeyLine) into hCalls
+   return hCalls is empty
+end disabled_DisplayHandlerDeps
+
 getprop disabled_DisplayHandlerDeps [treeView]
    put the hilited_Element of treeView into pathItems
    
@@ -241,19 +277,13 @@ end menu_RevealOverlayFolder
 
 --> Menu | Props
 -
-/*
-This menu is designed to be the title menu of a tree or similar widget that presents an hkeyArray.
-it should allow export to the appropriate place on disk, as it can take a long time to process these arrays,
-and they may want to be examined before they are saved!
-*/
-
 on menu_Init targetObject, mPath, mTitlePath
    put the tree_View of targetObject into treeView
    
    put the displayed_Object of treeView into scriptObject
    if exists (scriptObject) is true then
       put empty into hKey
-      put the mobile_Name of scriptObject into stackLabel
+      put the name of scriptObject into stackLabel
       put the overlay_Folder of scriptObject into overlayFolder 
    else
       put the displayed_Hkey of treeView into hKey
