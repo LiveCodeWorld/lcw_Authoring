@@ -98,19 +98,24 @@ command finder_Reveal pFileOrFolder
       end if
    end if
    
-   put folder_Above(pFileOrFolder) into enclosingFolder
-   
-   applescript_ConvertPath pFileOrFolder
+   finder_RevealFileOrFolder fileOrFolder
+   get the result
+   return it
+end finder_Reveal
+
+command finder_RevealFileOrFolder fileOrFolder
+   put folder_Above (fileOrFolder) into enclosingFolder
+   applescript_ConvertPath fileOrFolder
    applescript_ConvertPath enclosingFolder
-   
+   --
    put "tell application" && kwote("Finder") into someAppleScript
    put CR & tab & "activate" after someAppleScript
    put CR & tab & "open folder" && enclosingFolder after someAppleScript
    
-   put CR & "if file" && pFileOrFolder && "exists then" after someAppleScript
-   put CR & tab & "set appleScriptPath to file" && pFileOrFolder after someAppleScript
+   put CR & "if file" && fileOrFolder && "exists then" after someAppleScript
+   put CR & tab & "set appleScriptPath to file" && fileOrFolder after someAppleScript
    put CR & "else" after someAppleScript
-   put CR & tab & "set appleScriptPath to folder" && pFileOrFolder after someAppleScript
+   put CR & tab & "set appleScriptPath to folder" && fileOrFolder after someAppleScript
    put CR & "end if" after someAppleScript
    
    put CR & tab & "set toselectList to {}" after someAppleScript
@@ -118,11 +123,10 @@ command finder_Reveal pFileOrFolder
    put CR & tab & "select toselectList" after someAppleScript
    
    put CR & "end tell" after someAppleScript
-   
+   --
    do someAppleScript as AppleScript
-   -- put someAppleScript
    return the result
-end finder_Reveal
+end finder_RevealFileOrFolder
 
 command folder_Open someFolder
    finder_Reveal someFolder

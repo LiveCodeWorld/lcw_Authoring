@@ -53,6 +53,23 @@ on menu_SaveEditedStacks mTarget, editedStackName
    stack_SaveEdited editedStackName
 end menu_SaveEditedStacks
 
+on menu_Open scriptObject, openWhat
+   put the stack_Folder of scriptObject into stackFolder
+   put the stack_Name of scriptObject into stackName
+   
+   switch openWhat
+      case "Terminal"
+         launch_Terminal stackFolder
+         break
+      case "Stack in finder"
+         stack_RevealInFinder stackName
+         break
+      case "Git Status"
+         display_GitFolderStatus stackFolder
+         break
+   end switch
+end menu_Open
+
 on _
 end _
 
@@ -240,3 +257,8 @@ function object_MakeFriendly scriptObject
    end if
    return tFriendlyName
 end object_MakeFriendly
+
+
+on selectedObjectChanged
+   
+end selectedObjectChanged
