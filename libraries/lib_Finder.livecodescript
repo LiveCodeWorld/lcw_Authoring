@@ -83,21 +83,16 @@ command finder_EjectDisk diskName
     return the result
 end finder_EjectDisk
 
-command finder_Reveal pFileOrFolder
+command finder_Reveal fileOrFolder
    -- does not work for package contents?
-   
-   if pFileOrFolder is empty then
-      put the stack_Object of the target into stackObject
-      put the effective filename of stackObject into pFileOrFolder
-   end if
-   
-   put there is a folder pFileOrFolder is true into isFolder
+   /*
+   put there is a folder fileOrFolder is true into isFolder
    if isFolder is false then
-      if there is a file pFileOrFolder is false then
+      if there is a file fileOrFolder is false then
          put empty into isFolder
       end if
    end if
-   
+   */
    finder_RevealFileOrFolder fileOrFolder
    get the result
    return it

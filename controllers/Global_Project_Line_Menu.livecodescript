@@ -60,10 +60,13 @@ on menu_MoveUsed stackObject, newProjectName
    end if
    
    put the short name of stackObject into stackName
-   project_MoveLibrary stackName, newProjectName
+   project_MoveStackRelative stackName, newProjectName
    
    lcw_Notify merge ("Moved library to new project '[[newProjectName]]'!")
-   refreshDisplay newProjectName
+   
+   -- refreshDisplay newProjectName
+   display_RefreshProjectLibs oProjectName
+   display_ProjectLibs newProjectName
 end menu_MoveUsed
 
 on menu_StackIsUsed stackObject, someBoolean

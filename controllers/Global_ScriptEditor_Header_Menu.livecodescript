@@ -61,7 +61,7 @@ on menu_Open scriptObject, openWhat
       case "Terminal"
          launch_Terminal stackFolder
          break
-      case "Stack in finder"
+      case "Stack in Finder"
          stack_RevealInFinder stackName
          break
       case "Git Status"
@@ -69,6 +69,16 @@ on menu_Open scriptObject, openWhat
          break
    end switch
 end menu_Open
+
+getprop open_Whats
+   return "Terminal,Stack in Finder,Git Status"
+end open_Whats
+   
+on submenu_MyMenu
+   -- here we insert the user menu
+   -- should be started on startUp
+   return "Global | ScriptEditor | Recent | Custom | Menu"
+end submenu_MyMenu
 
 on _
 end _
@@ -164,6 +174,10 @@ end menu_SaveToIpfs
 
 --> Global | ScriptEditor | Header | Menu | Props
 -
+getprop open_Whats
+   return "Terminal,Stack in finder,Git Status"
+end open_Whats
+   
 getprop m_Title
    return ide_ShortTitle ("Recent")
 end m_Title
@@ -198,7 +212,7 @@ getprop disabled_RecentScripts
       return false
    end if
 end disabled_RecentScripts
-   
+
 getprop disabled_SaveRecentStacks
    put LocalArray ["editedStackNames"] into editedStackNames
    put LocalArray ["friendlyArray"] into friendlyArray
@@ -217,17 +231,22 @@ getprop disabled_SaveRecentStacks
       return false
    end if
 end disabled_SaveRecentStacks
-   
+
 getprop disabled_SaveEditedStacks
    put LocalArray ["editedStackNames"] into editedStackNames
-   return editedStackNames is empty
+   if editedStackNames is empty then
+      -- return true
+      return "delete"
+   else
+      return false
+   end if
 end disabled_SaveEditedStacks
 
 getprop disabled_DisplayLocalChanges [scriptObject]
    if the script_IsDifferent of scriptObject is true then
       return false
    else
-      return true
+      -- return true
       return "delete"
    end if
 end disabled_DisplayLocalChanges
@@ -257,8 +276,3 @@ function object_MakeFriendly scriptObject
    end if
    return tFriendlyName
 end object_MakeFriendly
-
-
-on selectedObjectChanged
-   
-end selectedObjectChanged

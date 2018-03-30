@@ -11,6 +11,46 @@ Here we define handlers that create projects and project specific stacks (librar
 */
 
 
+--> Props
+-
+getprop stack_IsKnown [projectName]
+   put the stack_Name of the target into stackName
+   put the effective filename of stack stackName into stackPath
+   if stackPath is empty then return false
+   if projectName is empty then put the project_Name of the target into projectName
+   if projectName is empty then return false
+   
+   put project_FindHomeStackPath (stackPath) into homeStackStackPath
+   
+   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
+   put stackFileArray [stackName] into knownRelativeFile
+   return knownRelativeFile is not empty
+end stack_IsKnown
+
+setprop stack_IsKnown [projectName] boolean
+   -- adds or removes a stack from the projects stack files
+   put the stack_Name of the target into stackName
+   if projectName is empty then put the project_Name of the target into projectName
+   
+   if boolean is true then
+      project_AddToStackFiles stackName, projectName, false
+   else
+      project_RemoveFromStackFiles stackName, projectName, false
+   end if
+   put the result into stackFileArray
+   return stackFileArray
+end stack_IsKnown
+
+setprop project_Move toProjectName
+   -- moves a stack to the same relative location in a new project folder
+   -- put the stack_Name of the target into stackName
+   put the short name of the defaultStack into stackName
+   project_MoveStackRelative stackName, toProjectName
+   put the result into newPath
+   return newPath
+end project_Move
+
+
 --> Working on
 -
 function project_NameToShortFolder moduleName
@@ -27,6 +67,154 @@ function project_ShortFolderToName moduleFolderName
    replace "_" with "|" in moduleFolderName
    return moduleFolderName
 end project_ShortFolderToName
+
+
+--> Project | Create
+-
+command project_AskCreate
+   put the stack_Folder of stack "LCW" into rootFolder
+   set the itemdelimiter to slash
+   delete item -1 of rootFolder
+   
+   set the itemdelimiter to comma
+   answer folder "Select a root folder for your new project.." with rootFolder
+   if it is empty then exit to top   
+   
+   put lcw_Ask ("What name do you want to give the new project?", "lcw_XXX") into newProjectName
+   put library_ListProjectNames() into existingProjectNames
+   if newProjectName is among the lines of existingProjectNames then
+      answer warning merge ("You already have a project named '[[newProjectName]]'!")
+      exit to top
+   end if
+   
+   if exists (stack newProjectName) is true then
+      answer warning merge ("There is already a stack named '[[newProjectName]]'!")
+      exit to top
+   end if
+   
+   text_AddTrailing rootFolder, slash
+   put rootFolder & newProjectName & slash into newProjectFolder
+   if there is a folder newProjectFolder then
+      answer warning merge ("There is already a folder named '[[newProjectName]]' in this location!")
+      exit to top
+   end if
+   
+   project_Create newProjectFolder
+   put the result into homeStackPath
+   
+   edit the script of stack homeStackPath
+end project_AskCreate
+
+command project_Create projectFolder
+   project_CreateStandardFolders projectFolder
+   put project_ConstructHomeStackPath (projectFolder) into homeStackPath
+   
+   put project_GetShortFolder (projectFolder) into homeStackName -- a clean default
+   create script only stack homeStackName
+   set the filename of stack homeStackName to homeStackPath
+   
+   put metadata_ConstructUripArray (homeStackName, "home") into uRipArray
+   set the script_MetaData of stack homeStackName to uRipArray
+   
+   put scaffold_GetTemplate ("lcw_HomeStackScript") into templateScript
+   put merge (templateScript) into lcwHomeStackScript
+   set the script of stack homeStackName to lcwHomeStackScript
+   
+   save stack homeStackName
+   
+   library_StoreProjectFolder homeStackName, projectFolder
+   env_SetProjectFolder homeStackName, projectFolder
+   return homeStackPath
+end project_Create
+
+command project_CreateStandardFolders projectFolder, pShortFolders
+   if pShortFolders is empty then put "assets,behaviors,controllers,libraries,models,modules,views" into pShortFolders
+   folder_CreateNested projectFolder
+   repeat for each item shortFolder in pShortFolders
+      put projectFolder & shortFolder & slash into subFolder
+      create folder subFolder
+   end repeat
+end project_CreateStandardFolders
+
+command project_Trash projectName
+   put project_GetFolder (projectName) into projectFolder
+   put project_ListAllStackPaths (projectFolder) into projectStackPaths
+   repeat for each line projectStackPath in projectStackPaths
+      if exists (stack projectStackPath) is false then
+         -- should not be
+         breakpoint
+         next repeat
+      end if
+      
+      delete stack projectStackPath
+   end repeat
+   
+   revDeleteFolder projectFolder
+   library_DeleteProjectArray projectName
+end project_Trash
+
+
+--> Project | Move
+-
+command project_MoveStackRelative stackName, toProjectName
+   -- moves a stack to the same relative location in a new project folder
+   -- powerful but be careful!
+   
+   if exists (stack stackName) is false then
+      breakpoint
+      return empty
+   end if
+   
+   put the name of stack stackName into stackObject
+   -- put the short name of stackObject into stackName
+   put the project_Folder of stackObject into fromProjectFolder
+   if fromProjectFolder is empty then return empty
+   
+   put library_FetchProjectFolder (toProjectName) into toProjectFolder
+   if toProjectFolder is empty then
+      breakpoint
+      return empty
+   end if
+   text_AddTrailing toProjectFolder, slash -- just in case
+   
+   -- move to same relative location
+   put the filename of stackObject into fromPath
+   set the itemdelimiter to slash
+   put the number of items of fromProjectFolder into iNum
+   put item (iNum + 1) to -1 of fromPath into relPath
+   put toProjectFolder & relPath into toPath
+   put toPath into toFolder
+   put empty into item -1 of toFolder
+   folder_CreateNested toFolder
+   
+   -- first let's make sure it is saved!
+   save stack stackName
+   
+   if exists (stack stackName) then
+      stop using stack stackName
+      delete stack stackName -- should probably check script editor has not got unsaved edits?
+   end if
+   
+   -- move
+   rename file fromPath to toPath
+   start using stack toPath
+   
+   -- need to fix the stackfiles
+   project_MoveStackFile toPath, fromProjectFolder, toProjectFolder
+   
+   return newPath
+end project_MoveStackRelative
+
+command project_MoveStackFile toPath, fromProjectFolder, toProjectFolder
+   put the short name of stack toPath into stackName
+   put the effective filename of stack toPath into stackFile
+   
+   put project_ConstructHomeStackPath (fromProjectFolder) into fromHomePath
+   put project_ConstructHomeStackPath (toProjectFolder) into toHomePath
+   
+   set the stackFile_AddPaths of stack toHomePath to toPath
+   set the stackFile_RemovePaths of stack fromHomePath to toPath
+end project_MoveStackFile
 
 command project_MoveStack oldStackPath, newStackPath, pLeaveAlias
    if exists (stack oldStackPath) is false then
@@ -111,34 +299,6 @@ end project_NameToShortFile
 
 --> Project | Stackfiles
 -
-getprop stack_IsKnown [projectName]
-   put the stack_Name of the target into stackName
-   put the effective filename of stack stackName into stackPath
-   if stackPath is empty then return false
-   if projectName is empty then put the project_Name of the target into projectName
-   if projectName is empty then return false
-   
-   put project_FindHomeStackPath (stackPath) into homeStackStackPath
-   
-   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
-   put stackFileArray [stackName] into knownRelativeFile
-   return knownRelativeFile is not empty
-end stack_IsKnown
-
-setprop stack_IsKnown [projectName] boolean
-   -- adds or removes a stack from the projects stack files
-   put the stack_Name of the target into stackName
-   if projectName is empty then put the project_Name of the target into projectName
-   
-   if boolean is true then
-      project_AddToStackFiles stackName, projectName, false
-   else
-      project_RemoveFromStackFiles stackName, projectName, false
-   end if
-   put the result into stackFileArray
-   return stackFileArray
-end stack_IsKnown
-
 command project_RemoveFromStackFiles stackName, projectName, pDontSave
    local commonPath
    if exists (stack projectName) is true then
@@ -259,160 +419,6 @@ function project_ConstructStandardFile stackName, projectFolder, pShortFolder, p
    put standardFolder & shortFile into standardFile
    return standardFile
 end project_ConstructStandardFile
-
-command project_Create projectFolder
-   project_CreateStandardFolders projectFolder
-   put project_ConstructHomeStackPath (projectFolder) into homeStackPath
-   
-   put project_GetShortFolder (projectFolder) into homeStackName -- a clean default
-   create script only stack homeStackName
-   set the filename of stack homeStackName to homeStackPath
-   
-   put metadata_ConstructUripArray (homeStackName, "home") into uRipArray
-   set the script_MetaData of stack homeStackName to uRipArray
-   
-   put scaffold_GetTemplate ("lcw_HomeStackScript") into templateScript
-   put merge (templateScript) into lcwHomeStackScript
-   set the script of stack homeStackName to lcwHomeStackScript
-   
-   save stack homeStackName
-   
-   library_StoreProjectFolder homeStackName, projectFolder
-   env_SetProjectFolder homeStackName, projectFolder
-   return homeStackPath
-end project_Create
-
-
---> Project | Move
--
-setprop project_Move toProjectName
-   -- moves a stack to the same relative location in a new project folder
-   -- put the stack_Name of the target into stackName
-   put the short name of the defaultStack into stackName
-   project_MoveLibrary stackName, toProjectName
-   put the result into newPath
-   return newPath
-end project_Move
-
-command project_MoveLibrary stackName, toProjectName
-   -- moves a stack to the same relative location in a new project folder
-   if exists (stack stackName) is false then
-      breakpoint
-      return empty
-   end if
-   
-   put the name of stack stackName into stackObject
-   -- put the short name of stackObject into stackName
-   put the project_Folder of stackObject into fromProjectFolder
-   if fromProjectFolder is empty then return empty
-   
-   put library_FetchProjectFolder (toProjectName) into toProjectFolder
-   if toProjectFolder is empty then
-      breakpoint
-      return empty
-   end if
-   text_AddTrailing toProjectFolder, slash -- just in case
-   
-   put the filename of stackObject into fromPath
-   set the itemdelimiter to slash
-   put the number of items of fromProjectFolder into iNum
-   put item (iNum + 1) to -1 of fromPath into relPath
-   put toProjectFolder & relPath into toPath
-   put toPath into toFolder
-   put empty into item -1 of toFolder
-   folder_Createnested toFolder
-   
-   -- first let's make sure it is saved!
-   save stack stackName
-   
-   if exists (stack stackName) then
-      stop using stack stackName
-      delete stack stackName -- should probably check script editor has not got unsaved edits?
-   end if
-   
-   -- move
-   rename file fromPath to toPath
-   start using stack toPath
-   
-   -- need to fix the stackfiles
-   project_MoveStackFile toPath, fromProjectFolder, toProjectFolder
-   
-   return newPath
-end project_MoveLibrary
-
-command project_MoveStackFile toPath, fromProjectFolder, toProjectFolder
-   put the short name of stack toPath into stackName
-   put the effective filename of stack toPath into stackFile
-   
-   put project_ConstructHomeStackPath (fromProjectFolder) into fromHomePath
-   put project_ConstructHomeStackPath (toProjectFolder) into toHomePath
-   
-   set the stackFile_AddPaths of stack toHomePath to toPath
-   set the stackFile_RemovePaths of stack fromHomePath to toPath
-end project_MoveStackFile
-
-
---> Project | Create
--
-on project_AskCreate
-   put the stack_Folder of stack "LCW" into rootFolder
-   set the itemdelimiter to slash
-   delete item -1 of rootFolder
-   
-   set the itemdelimiter to comma
-   answer folder "Select a root folder for your new project.." with rootFolder
-   if it is empty then exit to top   
-   
-   put lcw_Ask ("What name do you want to give the new project?", "lcw_XXX") into newProjectName
-   put library_ListProjectNames() into existingProjectNames
-   if newProjectName is among the lines of existingProjectNames then
-      answer warning merge ("You already have a project named '[[newProjectName]]'!")
-      exit to top
-   end if
-   
-   if exists (stack newProjectName) is true then
-      answer warning merge ("There is already a stack named '[[newProjectName]]'!")
-      exit to top
-   end if
-   
-   text_AddTrailing rootFolder, slash
-   put rootFolder & newProjectName & slash into newProjectFolder
-   if there is a folder newProjectFolder then
-      answer warning merge ("There is already a folder named '[[newProjectName]]' in this location!")
-      exit to top
-   end if
-   
-   project_Create newProjectFolder
-   put the result into homeStackPath
-   
-   edit the script of stack homeStackPath
-end project_AskCreate
-
-command project_CreateStandardFolders projectFolder, pShortFolders
-   if pShortFolders is empty then put "assets,behaviors,controllers,libraries,models,modules,views" into pShortFolders
-   folder_CreateNested projectFolder
-   repeat for each item shortFolder in pShortFolders
-      put projectFolder & shortFolder & slash into subFolder
-      create folder subFolder
-   end repeat
-end project_CreateStandardFolders
-
-command project_Trash projectName
-   put project_GetFolder (projectName) into projectFolder
-   put project_ListAllStackPaths (projectFolder) into projectStackPaths
-   repeat for each line projectStackPath in projectStackPaths
-      if exists (stack projectStackPath) is false then
-         -- should not be
-         breakpoint
-         next repeat
-      end if
-      
-      delete stack projectStackPath
-   end repeat
-   
-   revDeleteFolder projectFolder
-   library_DeleteProjectArray projectName
-end project_Trash
 
 
 --> Private

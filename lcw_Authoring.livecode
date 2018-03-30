@@ -35,7 +35,7 @@ on project_Init
    project_LoadModules projectHomeStackFile
    
    -- custom
-   send "display_ProjectList" to me in 2 ticks
+   send "display_LcwProjectList" to me in 2 ticks
    _setAuthoringMenus
 end project_Init
 

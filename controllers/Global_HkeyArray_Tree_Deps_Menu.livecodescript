@@ -65,7 +65,7 @@ on menu_MoveUsed treeView, newProjectName
    end if
    
    put the short name of stackObject into stackName
-   project_MoveLibrary stackName, newProjectName
+   project_MoveStackRelative stackName, newProjectName
    put the result into newPath
    
    put the stack_Object of treeView into displayStackObject

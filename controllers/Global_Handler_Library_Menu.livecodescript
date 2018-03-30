@@ -19,16 +19,6 @@ on menu_DisplayProjectDeps hKey
    put project_ListProjectDepNames (projectName)
 end menu_DisplayProjectDeps
 
-getprop disabled_DisplayProjectDeps [hKey]
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   put the project_Name of hObject into projectName
-   if projectName is empty then
-      return true
-   else
-      return false
-   end if
-end disabled_DisplayProjectDeps
-
 on _
 end _
 
@@ -69,6 +59,16 @@ end submenu_Dev
 
 --> Global | Handler | Library | Menu | Disabled
 -
+getprop disabled_DisplayProjectDeps [hKey]
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   put the project_Name of hObject into projectName
+   if projectName is empty then
+      return true
+   else
+      return false
+   end if
+end disabled_DisplayProjectDeps
+
 getprop disabled_RevealHandlerFile [hkey]
    put hkey_HandlerFile (hkey) into handlerFile
    if there is a file handlerFile then
@@ -108,7 +108,7 @@ on menu_AddHandlerToLibrary hKey
    library_AddHkey hKey
    
    display_Hkey hKey, "project"
-   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
+   put merge ("Added handler 'hKey' to the handler library!") into someComment
    lcw_Notify someComment
 end menu_AddHandlerToLibrary
 
@@ -202,9 +202,9 @@ library_AddHkey shortHkey, otherHandler
 
 put hkey_IsInLibrary (shortHkey) into someBoolean
 if someBoolean is true then
-   lcw_Notify merge ("Exported handler '[[shortHkey]]', and added it to the hkey library array!")
+   lcw_Notify merge ("Exported handler 'shortHkey', and added it to the hkey library array!")
 else
-   lcw_Notify merge ("Failed to add handler '[[shortHkey]]' to the hkey library array!")
+   lcw_Notify merge ("Failed to add handler 'shortHkey' to the hkey library array!")
 end if
 end hkey_AddHandlerFromObject
 
@@ -265,42 +265,3 @@ function hkey_ExportStatus hKey, pHandlerScript
          return "no object script"
    end switch
 end hkey_ExportStatus
-
---getprop disabled_DisplayLibraryHandler [hKey]
-put hkey_IsExported (hKey) into isInLibrary
-if isInLibrary is true then
-   return false
-else
-   return true
-end if
-end disabled_DisplayLibraryHandler
-
---getprop disabled_AddHandlerToLibrary [hKey]
--- want to be able to re-add it
-put hkey_IsInLibrary (hKey) into isInLibrary
-if isInLibrary is true then
-   return "delete"
-else
-   return false
-end if
-end disabled_AddHandlerToLibrary
-
---getprop disabled_DisplayLibraryHandler [hKey]
-   -- want to be able to re-add it
-   put hkey_IsInLibrary (hKey) into isInLibrary
-   if isInLibrary is true then
-      return false
-   else
-      return true
-   end if
-end disabled_DisplayLibraryHandler
-
---getprop disabled_ReplaceHandlerInLibrary [hKey]
-   -- want to be able to re-add it
-   put hkey_IsInLibrary (hKey) into isInLibrary
-   if isInLibrary is true then
-      return false
-   else
-      return "delete"
-   end if
-end disabled_ReplaceHandlerInLibrary

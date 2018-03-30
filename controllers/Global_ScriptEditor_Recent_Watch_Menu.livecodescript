@@ -36,12 +36,6 @@ end menu_Target
 
 --> Global | ScriptEditor | Recent | Watch | Menu
 -
-on submenu_My
-   -- here we insert the user menu
-   -- should be started on startUp
-   return "Global | ScriptEditor | Recent | Custom | Menu"
-end submenu_My
-
 on insert_HeaderMenu
    return "Global | ScriptEditor | Header | Menu"
 end insert_HeaderMenu
@@ -54,7 +48,7 @@ on menu_ObjectProperties scriptObject
 end menu_ObjectProperties
 
 on menu_Environment scriptObject
-   display_ProjectList
+   display_LcwProjectList
 end menu_Environment
 
 on _
@@ -236,51 +230,6 @@ private command _safeGoProjectStack projectStackName
    end if
 end _safeGoProjectStack
 
-command terminal_Diff thisText, lastText, pThisShortFile, pLastShortFile
-   -- from "libOPN_PatchAndDiff"
-   
-   if pThisShortFile is empty then put "this.txt" into pThisShortFile
-   if pLastShortFile is empty then put "last.txt" into pLastShortFile
-   
-   put specialfolderpath ("Desktop") into desktopFolder
-   put desktopFolder & "/OPN/Temp/Compare/" into compareFolder
-   folder_CreateNested compareFolder
-   
-   put compareFolder & pThisShortFile into thisFile
-   put compareFolder & pLastShortFile into lastFile
-   
-   diff_CreateTempFile thisText, pThisShortFile
-   put the result into thisFile
-   
-   diff_CreateTempFile lastText, pLastShortFile
-   put the result into lastFile
-   
-   diff_Files thisFile, lastFile
-   return the result
-end terminal_Diff
-
-command diff_CreateTempFile someText, shortFile
-   -- from "libOPN_PatchAndDiff"
-   
-   put specialfolderpath ("Desktop") into desktopFolder
-   put desktopFolder & "/OPN/Temp/Compare/" into compareFolder
-   folder_CreateNested compareFolder
-   
-   put compareFolder & shortFile into someFile
-   put someText into url ("binfile:" & someFile)
-   return someFile
-end diff_CreateTempFile
-
-command diff_Files thisFile, lastFile
-   -- from "libOPN_PatchAndDiff"
-   
-   put "opendiff" into someShell
-   -- put "sdiff" into someShell
-   put space & kwote(thisFile) && kwote(lastFile) after someShell
-   put shell (someShell) into shellResult
-   return shellResult
-end diff_Files
-
 command objects_MakeFriendly someObjects, @orderedFriendlyObjects, @friendlyArray
    repeat for each line someObject in someObjects
       put the long id of someObject into longIDObject
@@ -339,3 +288,7 @@ end submenu_LivecodePrefs
 end menu_FindFromKeywords
 
 
+
+on pushNotificationRegistered pSignature
+   
+end pushNotificationRegistered
