@@ -4,12 +4,79 @@
 name: lib_Geometry
 license: GPLv3
 type: library
-version: 0.8
+version: 0.9
 copyright: David Bovill
+
+
+--> Rect | Scale
+-
+function rect_RelativeRect someRect, someCentre
+    put item 1 of someCentre into xCentre
+    put item 2 of someCentre into yCentre
+    
+    subtract xCentre from item 1 of someRect
+    subtract xCentre from item 3 of someRect
+    subtract yCentre from item 2 of someRect
+    subtract yCentre from item 4 of someRect
+    
+    return someRect
+end rect_RelativeRect
+
+function rect_ScaleFromCentre someRect, someMagnification, scaleCentre
+    if scaleCentre is empty then put 0,0 into scaleCentre
+    
+    put item 1 of scaleCentre into xVector
+    put item 2 of scaleCentre into yVector
+    put rect_TranslateByVector(someRect, -xVector, -yVector) into translatedRect
+    put rect_ScaleByVectors(translatedRect, someMagnification, someMagnification) into tScaleRect
+    put rect_TranslateByVector(tScaleRect, xVector, yVector) into finalRect
+    return finalRect
+end rect_ScaleFromCentre
+
+command rect_ScaleGroup someGroup, sFactor, scaleCentre, pScaleGroup
+   lock screen
+   put the rect of someGroup into groupRect
+   
+   put the top_Controls of someGroup into groupElements
+   repeat for each line groupElement in groupElements
+      put the rect of groupElement into elementRect
+      put rect_ScaleFromCentre (elementRect, sFactor, scaleCentre) into newElementRect
+      set the rect of groupElement to newElementRect
+   end repeat
+   
+   if the locklocation of someGroup is true and pScaleGroup is not false then 
+      put rect_ScaleFromCentre (groupRect, sFactor, scaleCentre) into newGroupRect
+      set the rect of someGroup to newGroupRect
+   end if
+   unlock screen
+end rect_ScaleGroup
+
+command rect_SetScaleVectors someRect, targetRect, @scaleX, @scaleY
+   -- work out the scale factor
+   -- was "set_scaleVector"
+   put item 3 of someRect - item 1 of someRect into someWidth
+   put item 3 of targetRect - item 1 of targetRect into targetWidth
+   put targetWidth/someWidth into scaleX
+   
+   put item 4 of someRect - item 2 of someRect into someHeight
+   put item 4 of targetRect - item 2 of targetRect into targetHeight
+   put targetHeight/someHeight into scaleY
+   
+   return scaleX,scaleY
+end rect_SetScaleVectors
 
 
 --> Geometry | Props
 -
+getprop square_Rect [newWidth]
+   if newWidth is empty then
+      put the width of the target into newWidth
+   end if
+   put the loc of the target into someLoc
+   put rect_LocWidthHeight (someLoc, newWidth, newWidth) into newRect
+   return newRect
+end square_Rect
+    
 getprop smaller_Rect [someMargin]
    if someMargin is empty then put 8 into someMargin
    put the rect of the target into someRect
@@ -621,8 +688,7 @@ end rect_GetGlobal
 
 function rect_GetCentre someRect
    -- does not always return the same as the loc
-   -- out by one pixel (rounding error)?
-   -- trunc or round?
+   -- out by one pixel (rounding error)? trunc or round?
    put item 1 of someRect into someLeft
    put trunc((item 3 of someRect - someLeft)/2) into halfWidth
    -- put round((item 3 of someRect - someLeft)/2) into halfWidth
@@ -659,7 +725,7 @@ function rect_FromWidthAndHeight someRect, someWidth, someHeight
    if someHeight is not empty then put item 2 of someRect + someHeight into item 4 of someRect
    return someRect
 end rect_FromWidthAndHeight
-    
+
 function rect_LocWidthHeight someLoc, newW, newH
    put round(newW/2) into leftBit
    put newW - leftBit into rightBit
@@ -819,7 +885,7 @@ command rect_AddVector @someRect, pointVector
    rect_Translate someRect, xVector, yVector
 end rect_AddVector
 
-on rect_SubtractVector @someRect, pointVector
+command rect_SubtractVector @someRect, pointVector
    put -1 * (item 1 of pointVector) into xVector
    put  -1 * (item 2 of pointVector) into yVector
    rect_Translate someRect, xVector, yVector
@@ -832,67 +898,6 @@ command rect_Translate @someRect, xVector, yVector
    add yVector to item 2 of someRect
    add yVector to item 4 of someRect
 end rect_Translate
-
-
-
---> Rect | Scale
--
-function rect_RelativeRect someRect, someCentre
-    put item 1 of someCentre into xCentre
-    put item 2 of someCentre into yCentre
-    
-    subtract xCentre from item 1 of someRect
-    subtract xCentre from item 3 of someRect
-    subtract yCentre from item 2 of someRect
-    subtract yCentre from item 4 of someRect
-    
-    return someRect
-end rect_RelativeRect
-
-function rect_ScaleFromCentre someRect, someMagnification, scaleCentre
-    if scaleCentre is empty then put 0,0 into scaleCentre
-    
-    put item 1 of scaleCentre into xVector
-    put item 2 of scaleCentre into yVector
-    put rect_TranslateByVector(someRect, -xVector, -yVector) into translatedRect
-    put rect_ScaleByVectors(translatedRect, someMagnification, someMagnification) into tScaleRect
-    put rect_TranslateByVector(tScaleRect, xVector, yVector) into finalRect
-    return finalRect
-end rect_ScaleFromCentre
-
-on rect_ScaleGroup someGroup, sFactor, scaleCentre, scaleGroup
-    lock screen
-    put the rect of someGroup into groupRect
-     
-    put the object_Controls of someGroup into groupElements
-    repeat for each line groupElement in groupElements
-        get the name of groupElement
-        put the rect of groupElement into elementRect
-        put rect_ScaleFromCentre(elementRect, sFactor, scaleCentre) into newElementRect
-        set the rect of groupElement to newElementRect
-    end repeat
-    
-    if the locklocation of someGroup is true and scaleGroup is not false then 
-        put rect_ScaleFromCentre(groupRect, sFactor, scaleCentre) into newGroupRect
-        -- rect_CreateTestButton newGroupRect
-        set the rect of someGroup to newGroupRect
-    end if
-    unlock screen
-end rect_ScaleGroup
-
-on rect_SetScaleVectors someRect, targetRect, @scaleX, @scaleY
-    -- work out the scale factor
-    -- was "set_scaleVector"
-    put item 3 of someRect - item 1 of someRect into someWidth
-    put item 3 of targetRect - item 1 of targetRect into targetWidth
-    put targetWidth/someWidth into scaleX
-     
-    put item 4 of someRect - item 2 of someRect into someHeight
-    put item 4 of targetRect - item 2 of targetRect into targetHeight
-    put targetHeight/someHeight into scaleY
-     
-    return scaleX,scaleY
-end rect_SetScaleVectors
 
 
 --> Loc

@@ -81,6 +81,7 @@ getprop control_Type
 end control_Type
 
 setprop control_Type [pClassOrViewName] controlType
+   -- should not do this if they control_Type is already controlType
    lock screen
    -- 
    put the long id of the target into targetObject
@@ -396,6 +397,10 @@ function control_ConstructCreateDoScript controlType, someName, targetOwner, pCl
          return doScript
       case controlType = "treeView"
          put widget_ConstructCreateDoScript (someName, "com.livecode.widget.treeView", targetOwner) into doScript
+         return doScript
+      case controlType begins with "com.livecode.widget."
+         put controlType into pClassOrViewName
+         put widget_ConstructCreateDoScript (someName, pClassOrViewName, targetOwner) into doScript
          return doScript
       case controlType = "widget"
          put widget_ConstructCreateDoScript (someName, pClassOrViewName, targetOwner) into doScript

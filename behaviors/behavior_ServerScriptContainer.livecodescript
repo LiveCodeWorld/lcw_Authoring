@@ -91,7 +91,7 @@ on listImages
    
    put imagePageTitle into pageArray ["title"]
    put fedwiki_ConstructStoryItemArray (pageImages, "markdown") into itemArray
-   fedwiki_PageArrayAddToEnd itemArray, pageArray
+   fedwiki_AddItemArrayToStoryEnd itemArray, pageArray
    put json_FromArray (pageArray) into pageJSON
    
    fedwiki_ReturnJSON pageJSON

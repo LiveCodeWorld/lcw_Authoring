@@ -4,7 +4,7 @@
 license: GPLv3
 name: model_Script
 type: model
-version: 0.2
+version: 0.3
 
 /*
 Handlers that work on the scripts of objects
@@ -13,65 +13,6 @@ Handlers that work on the scripts of objects
 
 --> Working on
 -
-function hkeyLine_GetHandlers hkeyLines, hTable, someScript
-   repeat for each line hkeyLine in hkeyLines
-      hkeyLine_FindInTable hkeyLine, hTable, startLineNum, endLineNum
-      if endLineNum = 0 then next repeat
-      put line startLineNum to endLineNum of someScript into foundHandler
-      put foundHandler & CR & CR after foundHandlers
-   end repeat
-   delete char -2 to -1 of foundHandlers
-   return foundHandlers
-end hkeyLine_GetHandlers
-
-function hkey_ExtractHandlerFromObject hKey
-   -- see also "hkeyLine_GetHandler" 
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum 
-   
-   try
-      put the revAvailableHandlers of hObject into hTable
-      hkey_FindInTable hKey, hTable, startLineNum, endLineNum
-      if startLineNum = 0 then
-         -- look for private handler?
-         put "P" before item 2 of hKey
-         hkey_FindInTable hKey, hTable, startLineNum, endLineNum
-         if startLineNum = 0 then
-            return empty
-         end if
-      end if
-      put the script of hObject into someScript
-      put line startLineNum to endLineNum of someScript into foundHandler
-      return foundHandler
-   catch someError
-      return empty -- a locked stack
-   end try
-end hkey_ExtractHandlerFromObject
-
-function hkey_GetObjectHandler hKey, pNotPrivate
-   put item 3 of hKey into hObject
-   if exists (hObject) is false then return empty
-   if pNotPrivate is true then
-      put the script of hObject into someScript
-      put script_ExtractHandler (hKey, someScript, pNotPrivate) into someHandler
-   else
-      put the script_Handler [hKey] of hObject into someHandler
-   end if
-   return someHandler
-end hkey_GetObjectHandler
-
-
---> Hkey | Handler | Model | Wrappers
--
-function hkey_GetHandler hKey
-   return hkey_ExtractHandlerFromObject (hKey)
-   
-   -- does this also get it from hierarchy???
-   put item 1 to 2 of hKey into shortHKey
-   put item 3 of hKey into hObject
-   if exists (hObject) is false then return empty
-   return the script_Handler [shortHKey] of hObject
-end hkey_GetHandler
-
 
 --> Script | Handler | Model
 -
@@ -82,7 +23,7 @@ For handlers that work on exported handlers see "model_HandlerLibrary"
 
 getprop script_Handler [shortHKey]
    if shortHKey is empty then return empty
-   hkeyLine_Normalise shortHKey
+   hkeyLine_Normalize shortHKey
    
    put the long id of the target into hObject
    put the revAvailableHandlers of hObject into hTable
@@ -94,7 +35,7 @@ end script_Handler
 
 setprop script_Handler [shortHKey] someHandler
    if shortHKey is empty then return empty
-   hkeyLine_Normalise shortHKey
+   hkeyLine_Normalize shortHKey
    
    put the long id of the target into hObject
    put the revAvailableHandlers of hObject into hTable
@@ -103,7 +44,7 @@ setprop script_Handler [shortHKey] someHandler
    if someHandler is empty then
       script_DeleteHandler someScript, shortHKey, hTable
    else
-      hkeyLine_FindInTable shortHKey, hTable, startLineNum, endLineNum
+      htable_ExactLineOffsets shortHKey, hTable, startLineNum, endLineNum
       put someHandler into line startLineNum to endLineNum of someScript
    end if
    set the script of hObject to someScript
@@ -111,7 +52,7 @@ setprop script_Handler [shortHKey] someHandler
 end script_Handler
 
 command script_DeleteHandler @someScript, hkeyLine, hTable
-   hkeyLine_FindInTable hkeyLine, hTable, startLineNum, endLineNum
+   htable_ExactLineOffsets hkeyLine, hTable, startLineNum, endLineNum
    put endLineNum + 1 into afterEndLineNum
    put word 1 to -1 of line afterEndLineNum of someScript into lineAfterEnd
    if lineAfterEnd is empty then add 1 to endLineNum
@@ -138,7 +79,7 @@ getprop script_Handlers [whichType]
                -- put "* [[" & shortHkey & "]]" & CR after hLines
                break
             case "start line"
-               put handler_ConstructStartLine (shortHkey) into hLine
+               put hkeyLine_ConstructStart (shortHkey) into hLine
                put hLine & CR after hLines
             default
                put word 2 of someLine & CR after hLines
@@ -172,14 +113,14 @@ getprop script_ShortHKeys
    try
       put the long id of the target into tObject
       put the revAvailableHandlers of tObject into handlerTable
-      return hkeyline_MakeShort (handlerTable) 
+      return hTable_GetShortHkeys (handlerTable) 
    catch someError
       return empty -- a locked stack
    end try
 end script_ShortHKeys
 
 getprop script_FirstHkeys [returnShort]
-   -- not in order found in script
+   -- revAvailableHandlers only return first handler.
    try
       put the long id of the target into tObject
       put revRuggedID (tObject) into tObject
@@ -193,7 +134,7 @@ getprop script_FirstHkeys [returnShort]
          if returnShort is true then
             put hName,hType & CR after hKeys
          else
-            put hName,hType,tObject,1 & CR after hKeys -- revAvailableHandlers only return first handler.
+            put hName,hType,tObject,1 & CR after hKeys
          end if
       end repeat
       delete char -1 of hKeys
@@ -213,22 +154,6 @@ getprop script_Events
    put script_ExtractMessageHandlers (someScript, scriptObject) into scriptEvents
    return scriptEvents
 end script_Events
-
-
---> Script | Handler | Offsets 
--
-function script_ExtractHandler hKey, pSomeScript, pNotPrivate
-   -- this version uses offsets to find the handler not an hArray index
-   local startHandler, endHandler
-   if pSomeScript is empty then
-      hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
-      if exists(scriptObject) is false then return empty
-      put the script of scriptObject into pSomeScript
-   end if
-   hkey_SetOffsets hKey, startHandler, endHandler, pSomeScript, pNotPrivate
-   put the result into someHandler
-   return someHandler
-end script_ExtractHandler
 
 getprop script_SetProp [handlerName]
    put the script of the target into someScript
@@ -272,6 +197,22 @@ getprop script_FunctionHandlers
    put the script of scriptObject into someScript
    return script_ExtractFunctionHandlers (someScript, scriptObject)
 end script_FunctionHandlers
+
+
+--> Script | Handler | Offsets 
+-
+function script_ExtractHandler hKey, pSomeScript, pNotPrivate
+   -- this version uses offsets to find the handler not an hArray index
+   local startHandler, endHandler
+   if pSomeScript is empty then
+      hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
+      if exists(scriptObject) is false then return empty
+      put the script of scriptObject into pSomeScript
+   end if
+   hkey_SetOffsets hKey, startHandler, endHandler, pSomeScript, pNotPrivate
+   put the result into someHandler
+   return someHandler
+end script_ExtractHandler
 
 
 --> Script | Handler
@@ -344,33 +285,6 @@ function script_ExtractPrivateHandler handlerName, onWord, someScript
    put the result into foundHandler
    return foundHandler
 end script_ExtractPrivateHandler
-
-command hkey_SetOffsets hKey, @startHandler, @endHandler, pScript, notPrivate
-   -- much better in general to use the revAvailableHandlers of pObject
-   -- see "hkey_ExtractHandlerFromObject"
-   
-   -- get offsets to first found handler only
-   put 0 into startHandler
-   put 0 into endHandler
-   hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
-   
-   if pScript is empty then
-      if exists(scriptObject) is false then return empty
-      put the script of scriptObject into pScript
-   end if
-   
-   if char 1 of handlerType = "p" then
-      if notPrivate is true then return empty
-      delete char 1 of handlerType
-      put handler_ConvertType (handlerType) into onWord
-      script_SetPrivateHandlerOffsets startHandler, endHandler, handlerName, onWord, pScript
-   else
-      put handler_ConvertType (handlerType) into onWord
-      script_SetHandlerOffsets startHandler, endHandler, handlerName, onWord, pScript
-   end if   
-   put the result into foundHandler
-   return foundHandler
-end hkey_SetOffsets
 
 command script_SetHandlerOffsets @startHandler, @endHandler, handlerName, onWord, someScript
    local startH, endHandlerName, startEndHandlerLine, endH
@@ -451,6 +365,33 @@ private function script_MatchEnd handlerName, startHandler, someScript
       return empty
    end if
 end script_MatchEnd
+
+command hkey_SetOffsets hKey, @startHandler, @endHandler, pScript, notPrivate
+   -- much better in general to use the revAvailableHandlers of pObject
+   -- see "handler_Get"
+   
+   -- get offsets to first found handler only
+   put 0 into startHandler
+   put 0 into endHandler
+   hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
+   
+   if pScript is empty then
+      if exists(scriptObject) is false then return empty
+      put the script of scriptObject into pScript
+   end if
+   
+   if char 1 of handlerType = "p" then
+      if notPrivate is true then return empty
+      delete char 1 of handlerType
+      put handler_ConvertType (handlerType) into onWord
+      script_SetPrivateHandlerOffsets startHandler, endHandler, handlerName, onWord, pScript
+   else
+      put handler_ConvertType (handlerType) into onWord
+      script_SetHandlerOffsets startHandler, endHandler, handlerName, onWord, pScript
+   end if   
+   put the result into foundHandler
+   return foundHandler
+end hkey_SetOffsets
 
 command text_EscapeRegularExpression @someString
    put "\" & tab & quote & "[]|*.?()" into specialChars

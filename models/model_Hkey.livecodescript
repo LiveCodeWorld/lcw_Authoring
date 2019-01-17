@@ -6,21 +6,9 @@ name: model_Hkey
 type: model
 version: 0.9
 
-
 /*
 A model for indexing handlers.
 */
-
-
---> Handler
--
-function handler_IsComponent someHandler
-   -- this uses regular expression (http://www.regextester.com/pregsyntax.html)
-   -- may be faster way of checking
-   put "--\s*component\s*:\s*true\b" into someReg
-   put matchtext (someHandler, someReg) into someBoolean
-   return someBoolean
-end handler_IsComponent
 
 
 --> Hkey | Help
@@ -157,157 +145,22 @@ command hkey_CheckBackLinks @backLinks
 end hkey_CheckBackLinks
 
 
---> hkey | Model | Deps
+--> Hkey | Wrappers
 -
-function hkey_FetchDeps hKey, pFetchHow  
-   local hKeyArray
-   hkey_RecurseCallArray hKey, hkeyArray, pFetchHow
-   put array_AllNodes (hKeyArray) into allShortDeps
-   put item 1 to 2 of hKey into shortKey
-   line_Delete shortKey, allShortDeps
-   return allShortDeps
-end hkey_FetchDeps
-
--- function hkey_FetchFilteredDeps shortHKey
-   return library_HkeyDeps (shortHKey)
+command hKey_DeconstructStoredArray hKey, @hKeyCalls, @backLinks, @allCalls, pVersionName, pOverlayName
+   put hkey_GetOverlayArray (hKey, pOverlayName, pVersionName) into overlayArray
+   put overlayArray ["data"]["backLinks"] into backLinks
+   overlayArray_DeconstructData overlayArray, linkArray, idArray, idLinkArray, reverseIdArray, dotClusterArray
    
-   -- fetches all deps from link text files
-   local hKeyArray
-   hkey_RecurseCallArray shortHKey, hkeyArray, "filtered"
-   put array_AllNodes (hKeyArray) into allShortDeps
-   put item 1 to 2 of shortHKey into shortKey
-   line_Delete shortKey, allShortDeps
-   return allShortDeps
-end hkey_FetchFilteredDeps
-
-function hkey_FetchDepsFromLinkArray hKey, pReturnShortHkey
-   put item 1 to 2 of hKey into shortHKey
-   put hkey_GetLinkArray (shortHKey, "hierarchical") into hkeyDepArray
-   return deps_FromHkeyArray (hKey, hkeyDepArray, pReturnShortHkey)
-end hkey_FetchDepsFromLinkArray
-
-function script_FetchDepsFromScriptArray hKey, pReturnShortHkey
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   put the script_LinkArray of hObject into scriptLinkArray
-   put hkeyArray_ExtractSubArray (hKey,scriptLinkArray) into hkeyLinkArray
-   return deps_FromHkeyArray (hKey, hkeyLinkArray, pReturnShortHkey)
-end script_FetchDepsFromScriptArray
-
-function deps_FromHkeyArray hKey, hkeyDepArray, pReturnShortHkey
-   put array_AllNodes (hkeyDepArray) into allHkeys
-   sort allHkeys by item 1 of each
-   repeat for each line depKey in allHkeys
-      put item 1 to 2 of depKey into shortDepKey
-      if shortDepKey =  item 1 to 2 of hKey then next repeat
-      if pReturnShortHkey is not false then
-         put shortDepKey & CR after hKeyDeps
-      else
-         put depKey & CR after hKeyDeps
-      end if
-   end repeat
-   delete char -1 of hKeyDeps
-   return hKeyDeps
-end deps_FromHkeyArray
-
-function hkeyArray_ShortNodes hkeyArray
-   local indexArray
-   repeat for each key hKey in hkeyArray
-      put item 1 to 2 of hKey into shortHkey
-      put empty into indexArray [shortHkey]
-      put hkeyArray [hKey] into childHkeys
-      repeat for each line childHkey in childHkeys
-         put item 1 to 2 of childHkey into shortHkey
-         put empty into indexArray [shortHkey]
-      end repeat
-   end repeat
-   return keys (indexArray)
-end hkeyArray_ShortNodes
-
-function hkey_ExternalHkeysFromArray externalHkeyArray
-   repeat for each key shortExternalCall in externalHkeyArray
-      put externalHkeyArray [shortExternalCall] into callArray
-      put line 1 of keys (callArray) into parentKey
-      put callArray [parentKey] into externalHkey
-      put externalHkey & CR after externalHkeys
-   end repeat
-   delete char -1 of externalHkeys
-   return externalHkeys
-end hkey_ExternalHkeysFromArray 
-
-function hArray_FetchHkeyDeps hKey
-   put item 3 of hKey into hObject
-   if exists (hObject) is false then return false -- maybe it is a shortheky in a library?
-   put the mainstack_WalkArray of hObject into mainstackHkeyWalkArray
-   if mainstackHkeyWalkArray is not an array then return false
-   put mainstackHkeyWalkArray ["hkeyArray"] into hkeyArray
-   if mainstackHkeyWalkArray is not an array then return false
-   put hkeyArray_ExtractSubArray (hKey, hkeyArray) into hkeySubArray
-   
-   put array_AllNodes (hkeySubArray) into hKeyDeps
-   line_Delete hKey, hKeyDeps
-   sort hKeyDeps by item 1 of each
-   return hKeyDeps
-end hArray_FetchHkeyDeps
-
-function hkey_FetchLinkArray hKey, pFetchHow
-   -- this handler is mainly to show the different ways of fetching hkeyLinkArray
-   switch pFetchHow
-      case "stored hkeyLinkArray"
-         put hkey_GetLinkArray (hKey) into hkeyLinkArray
-         return hkeyLinkArray
-      case "stored script_LinkArray"
-         hkey_Deconstruct hKey, hName, hType, hObject, hNum
-         put the script_LinkArray of hObject into scriptLinkArray
-         put hkeyArray_ExtractSubArray (hKey,scriptLinkArray) into hkeyLinkArray
-         return hkeyLinkArray
-      case "from object"
-         -- does not use hArray
-         put hkey_ScriptDependencyArray (hKey) into hkeyLinkArray
-         return hkeyLinkArray
-      case "library_HkeyFolder()"
-         -- mixture of hArray and walking
-         put library_HkeyFolder (hKey) into hkeyLinkArray
-         return hkeyLinkArray
-      default  -- everywhere but fastest first
-         put hkey_GetLinkArray (hKey) into hkeyLinkArray
-         if hkeyLinkArray is an array then return hkeyLinkArray
-         
-         hkey_Deconstruct hKey, hName, hType, hObject, hNum
-         if exists (hObject) is false then
-            -- breakpoint
-            return empty
-         end if
-         
-         put the script_LinkArray of hObject into hkeyLinkArray
-         if hkeyLinkArray is an array then return hkeyLinkArray
-         
-         put library_HkeyFolder (hKey) into hkeyLinkArray
-         return hkeyLinkArray
-   end switch
-end hkey_FetchLinkArray
+   put linkArray [hKey] into hKeyCalls
+   put array_AllNodes (linkArray) into allCalls
+   sort allCalls
+   line_Delete hKey, allCalls -- just in case
+end hKey_DeconstructStoredArray
 
 
---> hkey | Model | Global
+--> hkey | Model | Arrays | Utils
 -
-/*
-A LinkArray is used to graph arrays. To do this LinkArrays provide a suite of tools that take complex keys and convert them into simple IDs,
-and dictionaries to translate from these IDS to the orginal keys.
-*/
-
-function hkey_GetLinkArray hKey, pOverlayName
-   put hkey_GetOverlayArray (hKey, pOverlayName) into overlayArray
-   put overlayArray ["data"]["linkArray"] into hkeyArray
-   return hkeyArray
-end hkey_GetLinkArray
-
-command hkey_SetLinkArray hKey, hkeyArray, pOverlayName, pGraphStyle
-   -- makes no sense to set hkeyArray without setting the rest of the derived arrays
-   put library_HandlerFile (hKey, empty, false) into overlayFolder
-   overlay_SetLinkArray overlayFolder, hkeyArray, pOverlayName, pGraphStyle
-   put the result into overlayArray
-   return overlayArray
-end hkey_SetLinkArray
-
 function hkey_GetGeometryArray hKey, pOverlayName
    put hkey_GetOverlayArray (hKey, pOverlayName) into overlayArray
    put hFileArray ["data"]["geometry"] into geometryArray
@@ -346,15 +199,58 @@ function hkey_GetDefaultGraphName
 end hkey_GetDefaultGraphName
 
 
---> Hkey | Wrappers
+--> hkey | Model | Arrays
 -
-command hKey_DeconstructStoredArray hKey, @hKeyCalls, @backLinks, @allCalls, pVersionName, pOverlayName
-   put hkey_GetOverlayArray (hKey, pOverlayName, pVersionName) into overlayArray
-   put overlayArray ["data"]["backLinks"] into backLinks
-   overlayArray_DeconstructData overlayArray, linkArray, idArray, idLinkArray, reverseIdArray, dotClusterArray
+/*
+A LinkArray is used to graph arrays. To do this LinkArrays provide a suite of tools that take complex keys and convert them into simple IDs,
+and dictionaries to translate from these IDS to the orginal keys.
+*/
+
+function hkey_GetLinkArray hKey, pOverlayName
+   put hkey_GetOverlayArray (hKey, pOverlayName) into overlayArray
+   put overlayArray ["data"]["linkArray"] into hkeyArray
+   return hkeyArray
+end hkey_GetLinkArray
+
+command hkey_SetLinkArray hKey, hkeyArray, pOverlayName, pGraphStyle
+   -- makes no sense to set hkeyArray without setting the rest of the derived arrays
+   put library_HandlerFile (hKey, empty, false) into overlayFolder
+   overlay_SetLinkArray overlayFolder, hkeyArray, pOverlayName, pGraphStyle
+   put the result into overlayArray
+   return overlayArray
+end hkey_SetLinkArray
+
+function hkey_GetOverlayArray hKey, pOverlayName
+   put hkey_FetchOverlayData (hKey) into overlayData
+   overlayData_NormalizeName pOverlayName, overlayData
+   put overlayData [pOverlayName] into overlayArray
+   return overlayArray
+end hkey_GetOverlayArray
+
+function hkey_FetchOverlayData hKey
+   put hkey_OverlayDataFile (hKey) into someFile
+   -- put array_Fetch (hkeyArrayFile) into overlayData
+   put url ("binfile:" & someFile) into encodedArray
+   if encodedArray is empty then return empty
+   put arraydecode (encodedArray) into overlayData
+   return overlayData
+end hkey_FetchOverlayData 
+
+command hkey_SaveOverlayData hKey, overlayData
+   put hkey_OverlayDataFile (hKey) into someFile
    
-   put linkArray [hKey] into hKeyCalls
-   put array_AllNodes (linkArray) into allCalls
-   sort allCalls
-   line_Delete hKey, allCalls -- just in case
-end hKey_DeconstructStoredArray
+   if overlayData is an array then
+      put arrayencode (overlayData) into encodedArray
+      put encodedArray into url ("binfile:" & someFile)
+      return someFile
+   else if overlayData is empty then
+      put hkey_Files (hKey, pVersionName) into someFiles
+      set the itemdelimiter to "/"
+      repeat for each line someFile in someFiles
+         put item -1 of someFile into shortFile
+         if shortFile is among the items of "handler.txt/help.html" then next repeat
+         delete file someFile
+      end repeat
+      return empty
+   end if
+end hkey_SaveOverlayData

@@ -626,19 +626,10 @@ function rev_GetSelectedHandlerTreeLineNum pHkey
    put rev_HandlerTreeField() into handlerField
    
    if pHkey is not empty then
-      put scriptEditor_Object() into scriptObject
-      -- put item 3 of pHkey into scriptObject
-      put the revAvailableHandlers of scriptObject into handlerTable
-      hkey_FindInTable pHkey, handlerTable, startLineNum, endLineNum
+      put scriptEditor_Object() into hObject
+      put the revAvailableHandlers of hObject into hTable
+      hTable_FlexibleLineOffsets pHkey, hTable, startLineNum, endLineNum
       return startLineNum
-      
-      /*
-      -- hack is no longer working
-      put the htmltext of rev_HandlerTreeField() into someHtml
-      put rev_ConstructHkeyTitle (pHkey) into htmlTitle
-      set the wholematches to true
-      put lineOffset (htmlTitle, someHtml) into lineNum
-      */
    else
       put the hilitedLine of handlerField into lineNum
    end if

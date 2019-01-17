@@ -133,7 +133,7 @@ on menu_DisplayArray someView, menuChoice
    put the result into treeView
    put the tree_Field of treeView into treeField
    
-   put the object_Hkey ["tree_BackspaceKey,c"] of me into hKey
+   put the object_Hkey ["M tree_BackspaceKey"] of me into hKey
    set the event_Trigger ["backspaceKey"] of treeField to hKey
    set the linked_View of treeField to someView
 end menu_DisplayArray

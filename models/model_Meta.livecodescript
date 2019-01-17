@@ -31,7 +31,7 @@ function object_FetchScript objectScriptFolder
 end object_FetchScript
 
 getprop meta_Script
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put object_FetchScript (objectFolder) into someScript
    return someScript
 end meta_Script
@@ -44,13 +44,13 @@ setprop meta_Script [pExportHandlersAndCalls] someScript
 end meta_Script
 
 getprop meta_MetaArray
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put object_FetchMetadataArray (objectFolder) into objectMetaArray
    return objectMetaArray
 end meta_MetaArray
 
 setprop meta_MetaArray metadataArray
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    object_ExportMetadataArray objectFolder, metadataArray
    return the result
 end meta_MetaArray
@@ -59,13 +59,13 @@ end meta_MetaArray
 --> Meta
 -
 getprop meta_Image
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put object_FetchMetaImage (objectFolder) into someImage
    return someImage
 end meta_Image
 
 setprop meta_Image someImage
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    object_ExportMetaImage objectFolder, someImage
    return the result
 end meta_Image
@@ -84,7 +84,7 @@ setprop meta_ManifestArray manifestArray
 end meta_ManifestArray
 
 getprop meta_CustomArray
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put the meta_CustomArrayFile of the target is empty into pUseCustomFolders
    put object_FetchCustomArray (objectFolder, pUseCustomFolders) into customArray
    return customArray
@@ -92,43 +92,43 @@ end meta_CustomArray
 
 setprop meta_CustomArray customArray
    breakPoint -- should delte as syntax is ugly (use dispatch instead"
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    object_ExportCustomArray objectFolder, customArray
    return the result
 end meta_CustomArray
 
 getprop meta_Html
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put object_FetchMetaHtml (objectFolder) into objectHtml
    return objectHtml
 end meta_Html
 
 setprop meta_Html objectHtml
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    object_ExportMetaHtml objectFolder, objectHtml
    return the result
 end meta_Html
 
 getprop meta_Text
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put object_FetchMetaText (objectFolder) into objectText
    return objectText
 end meta_Text
 
 setprop meta_Text objectText
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    object_ExportMetaText objectFolder, objectText
    return the result
 end meta_Text
 
 getprop meta_RevPropText
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put object_FetchRevPropText (objectFolder) into revPropText
    return revPropText
 end meta_RevPropText
 
 setprop meta_RevPropText revPropText
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    object_ExportRevPropText objectFolder, revPropText
    return the result
 end meta_RevPropText
@@ -235,7 +235,7 @@ end object_ExportRevPropText
 --> Meta | Files
 -
 getprop meta_CustomArrayFile
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put meta_GetCustomArrayFile (objectFolder) into someFile
    if there is a file someFile then
       return someFile
@@ -245,7 +245,7 @@ getprop meta_CustomArrayFile
 end meta_CustomArrayFile
 
 getprop meta_ScriptMetaDataFile
-   put the data_Folder of the target into objectFolder
+   put the dataObject_Folder of the target into objectFolder
    put meta_ScriptMetaDataFile (objectFolder) into someFile
    return someFile
 end meta_ScriptMetaDataFile

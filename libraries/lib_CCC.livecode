@@ -159,7 +159,7 @@ function ccc_ConvertArray cccArray, pSourceArray
    put cccArray ["pageSubTitle"] into pageSubTitle
    put cccArray ["description"] into pageDescription
    
-   put fedwiki_ConstructSimplePageArray (pageTitle, pageSubTitle) into pageArray
+   put fedwiki_ConstructPageArray (pageTitle, pageSubTitle) into pageArray
    
    put ccc_ConstructVideoHtml (cccArray) into videoHTML
    fedwiki_AddHtmlToPageArray pageArray, videoHTML

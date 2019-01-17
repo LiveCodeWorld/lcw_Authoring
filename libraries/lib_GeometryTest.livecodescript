@@ -10,8 +10,8 @@ version: 0.2
 --> Create
 -
 command create_PlaceHolder someName, pRect, pGroupID, pColour, pShowName
-   if someRect is a rect then
-      set the rect of the templateButton to someRect
+   if pRect is a rect then
+      set the rect of the templateButton to pRect
    end if
    
    switch pColour
@@ -77,7 +77,12 @@ setprop rect_Mask [someRect] someColour
          end switch
          return placeholderButton
       default
-         create_Placeholder someName, pRect, pGroupID, someColour
+         if word 1 of targetObject = "group" then
+            put the short id of targetObject into groupID
+         else
+            put empty into groupID
+         end if
+         create_Placeholder someName, someRect, groupID, someColour
          put the result into placeholderButton
          return placeholderButton
    end switch

@@ -12,7 +12,109 @@ This library is a collection of handlers that encode and decode strings.
 In particular we focus on getting into and out of utf8 for XML and JSON.
 
 This all needs sorting and researching and organising, with some good documentation written.
+We also for now include general text processing handlers
+that would be used by any library that needs to manipulate scaped text.
+
+command file_SaveTempText someText, pFileExt
+   if pFileExt is empty then put "txt" into pFileExt
+   put the tempname & "." & pFileExt into someFile
+   put someText into url ("file:" & someFile)
+   return someFile
+end file_SaveTempText
 */
+
+--> Encoding | HTML | Entities
+-
+function html_ReplaceEntities someHtml
+   -- pulled out "text_ReplaceHtmlEntities"
+   text_ReplaceHtmlEntities someHtml
+   return someHtml
+end html_ReplaceEntities
+
+command text_HtmlEntityEscape @someText, pNotQuotes
+   local sNum, eNum
+   put 0 into countNum
+   put "(&[^;]+;)" into someReg
+   
+   put html_EntityList (pNotQuotes) into htmlEntities
+   put html_EntityCharNums (pNotQuotes) into entityCharNums
+   set the wholematches to true
+   repeat
+      get matchchunk (someText, someReg, sNum, eNum)
+      if sNum is not a number then return empty -- breakpoint -- bug
+      if it is false then return countNum
+      
+      put char sNum to eNum of someText into foundEntity
+      if char 1 to 2 of foundEntity = "&#" then
+         put char 3 to -2 of foundEntity into cNum
+         if cNum is not a number then
+            -- breakpoint -- bug
+            return empty
+         end if
+      else
+         put itemOffset (foundEntity, htmlEntities) into itemNum
+         if itemNum is 0 then
+            -- next repeat -- infinite loop
+         end if
+         put item itemNum of entityCharNums into cNum
+      end if
+      put numToChar (cNum) into eChar
+      --
+      put eChar into char sNum to eNum of someText
+      --
+      add 1 to countNum
+   end repeat
+   return countNum
+end text_HtmlEntityEscape
+
+function html_EntityList pNotQuotes
+   /*
+   Updated to add &quote;
+   Special characters (whose ASCII value is greater than 127) are encoded as HTML entities.
+   Revolution recognizes the following named entities:
+   */
+   get "&Aacute;,&aacute;,&Acirc;,&acirc;,&acute;,&AElig;,&aelig;,&Agrave;,&agrave;,&Aring;,&aring;,&Atilde;,&atilde;,&Auml;,&auml;,&brvbar;,&Ccedil;,&ccedil;,&cedil;,&cent;,&copy;,&curren;,&deg;,&divide;,&Eacute;,&eacute;,&Ecirc;,&ecirc;,&Egrave;,&egrave;,&ETH;,&eth;,&Euml;,&euml;,&frac12;,&frac14;,&frac34;,&gt;,&Iacute;,&iacute;,&Icirc;,&icirc;,&iexcl;,&Igrave;,&igrave;,&iquest;,&Iuml;,&iuml;,&laquo;,&lt;,&macr;,&micro;,&middot;,&nbsp;,&not;,&Ntilde;,&ntilde;,&Oacute;,&oacute;,&Ocirc;,&ocirc;,&Ograve;,&ograve;,&ordf;,&ordm;,&Oslash;,&oslash;,&Otilde;,&otilde;,&Ouml;,&ouml;,&para;,&plusmn;,&pound;,&raquo;,&reg;,&sect;,&shy;,&sup1;,&sup2;,&sup3;,&szlig;,&THORN;,&thorn;,&times;,&Uacute;,&uacute;,&Ucirc;,&ucirc;,&Ugrave;,&ugrave;,&uml;,&Uuml;,&uuml;,&Yacute;,&yacute;,&yen;,&yuml"
+   --
+   put "&amp;" & comma before it
+   if pNotQuotes is not true then
+      put "&quot;" & comma before it
+   end if
+   return it
+end html_EntityList
+
+function html_EntityCharNums pNotQuotes
+   get "231,135,229,137,171,174,190,203,136,129,140,204,139,128,138,3,130,141,252,162,169,219,161,214,131,142,230,144,233,143,15,19,232,145,12,11,14,62,234,146,235,148,193,237,147,192,236,149,199,60,248,181,225,202,194,132,150,238,151,239,153,241,152,187,188,175,191,205,155,133,154,166,177,163,200,168,164,4,7,5,6,167,18,21,16,242,156,243,158,244,157,172,134,159,17,20,180,216"
+   --
+   put 38 & comma before it
+   if pNotQuotes is not true then
+      put 34 & comma before it
+   end if
+   return it
+end html_EntityCharNums
+
+command text_ReplaceHtmlEntities @someText
+   -- uses simple "replace"
+   -- Replace all the html entities that Rev understands with their character equivalents.
+   put html_EntityList() into htmlEntities
+   put html_EntityCharNums() into entityCharNums
+   repeat with ii = 1 to the number of items of htmlEntities
+      put item ii of entityCharNums into entityCharNum
+      put numtochar (entityCharNum) into someChar
+      replace item ii of htmlEntities with someChar in someText
+   end repeat
+   return htmlEntities
+end text_ReplaceHtmlEntities
+
+command text_EntityEscape @someText
+   -- fast and dumb
+   text_Utf8Encode someText
+   -- maybe some others need escaping, maybe none of these are actually needed
+   replace "%3A" with ":" in someURL
+   replace "%26" with "&" in someURL
+   replace "%3D" with "=" in someURL
+   xml_Escape someText
+end text_EntityEscape
+
 
 --> Encoding
 -
@@ -420,3 +522,399 @@ function text_Utf8ToHtml someUtf8, someField
     delete char -4 to -1 of someHtml
     return someHtml
 end text_Utf8ToHtml
+
+
+--> HTML | Tidy
+-
+/*
+Everything below here came from lib_FedWikiPedia
+*/
+
+function html_FetchTidy someURL
+   put "curl -s" && someURL && "| tidy -asxhtml --quiet yes --tidy-mark no --show-warnings false --show-errors 0" into someShell
+   put shell (someShell) into someXHTML
+   return someXHTML
+end html_FetchTidy
+
+command html_Tidy @someHtml
+   put the tempname & ".html" into inputFile 
+   put someHtml into url ("file:" & inputFile)
+   
+   put "tidy --force-output true --char-encoding utf8 --input-encoding utf8 --output-encoding utf8 --output-xml true -asxml -m" && inputFile into someShell
+   put shell (someShell) into shellResult   
+   put url ("file:" & inputFile) into someHtml
+end html_Tidy
+
+command html_FetchScraped someURL, @tidyXML, @xmlArray, @treeID
+   put html_FetchTidy (someURL) into tidyXML
+   put revXMLCreateTree (tidyXML, false, true, false) into treeID
+   xml_ExtractEncoding tidyXML, versionMatch, theXMLEncoding
+   put xml_ArrayFromID (treeID, theXMLEncoding) into xmlArray
+end html_FetchScraped
+
+
+--> Encoding | Text
+-
+command text_StripReg @wikiText, someReg, pReplaceText
+   local refStart, refEnd
+   put 0 into indexNum
+   repeat
+      get matchchunk (wikiText, someReg, sNum, eNum)
+      if sNum is not a number then
+         put the result into testResult
+         -- breakpoint
+         exit repeat -- regExp bug???
+      end if
+      
+      if it is true then
+         -- this bit not needed (remove for speed)
+         -- put char refStart to refEnd of wikiText into someTest
+         put sNum into stripResultArray [indexNum]["sNum"]
+         put eNum into stripResultArray [indexNum]["eNum"]
+         add 1 to indexNum
+         --
+         -- delete char sNum to eNum of wikiText
+         put pReplaceText into char sNum to eNum of wikiText
+      else
+         exit repeat
+      end if
+   end repeat
+   return stripResultArray
+end text_StripReg
+
+command text_StipQuoted @someText
+   put "(" & quote & "[^" & quote & "]*" & quote & ")" into quoteReg
+   text_StripReg someText, quoteReg, "•••"
+end text_StipQuoted
+
+function text_CountStrings someString, someText
+   -- not tested
+   put 0 into charsToSkip
+   put 0 into someCount
+   
+   repeat
+      put offset (someString, someText, charsToSkip) into offsetNum
+      if offsetNum = 0 then
+         return someCount
+      else
+         add 1 to someCount
+         add offsetNum to charsToSkip
+      end if
+   end repeat
+end text_CountStrings
+   
+command text_Utf8Encode @someText
+   -- put unidecode(uniencode(someText),"UTF8") into someText
+   put utf8_Encode (someText) into someText
+end text_Utf8Encode
+
+
+--> Encoding | XML | HTML
+-
+function html_StripTags pHtml
+   -- returns the meaningful text from a web page
+   local tRegex,tPrevText
+   -----
+   replace return with space in pHtml
+   replace numtochar(13) with empty in pHtml
+   replace tab with empty in pHtml
+   -----
+   put replacetext(pHtml,"(?Usi)<SCRIPT.*</SCRIPT>","") into pHtml
+   put replacetext(pHtml,"(?Usi)<STYLE>.*</STYLE>","") into pHtml
+   put replacetext(pHtml,"(?Usi)<\?.*\?>","") into pHtml
+   -----
+   replace "&nbsp;" with space in pHtml
+   replace "<BR>" with return in pHtml
+   replace "<p>" with return in pHtml
+   -----
+   put  "<[^><]*>" into tRegex
+   put replacetext(pHtml,tRegex,"") into pHtml
+   put replacetext(pHtml,tRegex,"") into pHtml
+   -----
+   repeat until tPrevText is pHtml
+      put pHtml into tPrevText
+      put replacetext(pHtml," +",space) into pHtml
+      put replacetext(pHtml,"^ ","") into pHtml
+   end repeat
+   -----
+   replace (space & return) with return in pHtml
+   replace (return & space) with return in pHtml
+   filter pHtml without empty
+   -----
+   put html_ReplaceEntities (pHtml) into pHtml
+   -----
+   return pHtml
+end html_StripTags
+
+
+--> Encoding | XML
+-
+function xml_ToArray pXML, pTranslateKeyBoolean, pStoreEncodedAs, pUseValueKey, pGoodXML
+   -- was "xml_ConvertXmlToArray"
+   local theArray, theResult, theRootNode, treeID
+   local theXMLEncoding
+   
+   ## Create an XML tree from XML text
+   put pGoodXML is true into pGoodXML
+   put revCreateXMLTree (pXML, pGoodXML, true, false) into treeID
+   
+   if treeID is an integer then
+      xml_ExtractEncoding pXML, versionMatch, theXMLEncoding
+      
+      ## Now convert to array.
+      ## The 1st dimension has one key which is the name of the root node.
+      put revXMLRootNode(treeID) into theRootNode
+      if theRootNode is not empty and not (theRootNode begins with "xmlerr,") then
+         put xml_ConvertXMLNodeToArray (treeID, theRootNode, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArray [theRootNode]
+      end if
+      
+      revDeleteXMLTree treeID
+   end if
+   return theArray
+end xml_ToArray
+
+function xml_ArrayFromID treeID, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean
+   xml_ExtractEncoding pXML, versionMatch, theXMLEncoding
+   put revXMLRootNode (treeID) into theRootNode
+   if theRootNode is not empty and not (theRootNode begins with "xmlerr,") then
+      put xml_ConvertXMLNodeToArray (treeID, theRootNode, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArray [theRootNode]
+   else
+      return empty
+   end if
+   return theArray
+end xml_ArrayFromID
+
+private function xml_ConvertXMLNodeToArray pTreeID, pNode, pXMLTreeEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean
+   /*
+   Helper function for xml_ToArray.
+   Converts an XML node to a multi-dimensional array.-- Calls itself recursively.
+   */
+   local theArrayA, theAttributes, theChildNode, theKey
+   
+   ## Look for attributes of the node. Store as array in "@attributes" key
+   put revXMLAttributes (pTreeID, pNode, tab, cr) into theAttributes
+   if theAttributes is not empty then
+      put xml_EncodeString (theAttributes, pXMLTreeEncoding, pStoreEncodedAs) into theAttributes
+      split theAttributes by cr and tab -- create array
+      put theAttributes into theArrayA ["@attributes"]
+   end if
+   
+   ## Look for children nodes.
+   set the itemdelimiter to slash
+   put revXMLFirstChild (pTreeID, pNode) into theChildNode
+   if theChildNode is empty or theChildNode begins with "xmlerr," then
+      put xml_EncodeString (revXMLNodeContents (pTreeID, pNode), pXMLTreeEncoding, pStoreEncodedAs) into theValue
+      if word 1 to -1 of theValue is empty and the keys of theArrayA is not empty then
+         ## Empty node that has attributes
+         return theArrayA
+      else if pUseValueKey then
+         ## Force value into @value
+         put theValue into theArrayA ["@value"]
+         return theArrayA
+      else
+         ## Single Node with value: Return value. Attributes are ignored.
+         return theValue
+      end if
+   else
+      ## Child nodes were found. Recursively call self and store result in array.
+      repeat while theChildNode is not empty and not (theChildNode begins with "xmlerr,")
+         put the last item of theChildNode into theKey
+         
+         /*
+         if pTranslateKeyBoolean is true then
+            put the array_KeyTranslation [theKey] of the target into theKey
+            if theKey is empty then next repeat -- this can repeat forever
+         end if 
+         */
+         
+         put xml_ConvertXMLNodeToArray (pTreeID, theChildNode, pXMLTreeEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArrayA [theKey]
+         put revXMLNextSibling (pTreeID, theChildNode) into theChildNode
+      end repeat
+      
+      return theArrayA
+   end if
+end xml_ConvertXMLNodeToArray
+
+private function xml_EncodeString pString, pInEncoding, pOutEncoding
+   -- Helper function for converting the encoding of strings when converting to and from XML.
+   
+   ## convert utf-8 to utf8 for uniencode/decode
+   replace "-" with empty in pInEncoding
+   replace "-" with empty in pOutEncoding
+   
+   if pInEncoding is not empty then
+      -- if pOutEncoding is empty then pString will be converted to the current platform encoding
+      return unidecode(uniencode(pString, pInEncoding), pOutEncoding)
+   else
+      if pOutEncoding is not empty then
+         -- if pInEncoding is empty then pString is assumed to be in the current platform encoding
+         return unidecode(uniencode(pString, pInEncoding), pOutEncoding)
+      else
+         return pString
+      end if
+   end if
+end xml_EncodeString
+
+command xml_ExtractEncoding someXML, @versionMatch, @xmlEncoding
+   put matchtext(someXML, "<\?xml (.*)encoding=" & quote & "(.*)" & quote & "\?>", versionMatch, xmlEncoding) into theResult
+   if xmlEncoding is empty then put "utf-8" into xmlEncoding
+   return theResult
+end xml_ExtractEncoding
+
+
+--> Deps
+-
+function line_BeginsWith startLineChars, someLines, pLinesToSkip
+   -- probably a faster way of doing this
+   -- find the first line starting with...
+   -- set the wholematches to false
+   -- put lineoffset ("{{", wikiText) into startLineNum -- though I could do this with wholematches
+   
+   if pLinesToSkip is a number then delete line 1 to pLinesToSkip of someLines
+   
+   put CR & startLineChars into startlineChars
+   put CR & someLines into testContainer
+   put offset (startlineChars, testContainer) into startCharNum
+   if startCharNum is 0 then
+      return 0
+   else
+      get char 2 to (startCharNum + the number of chars of startLineChars - 1) of testContainer
+      put the number of lines of it into lineNum
+      return lineNum
+   end if
+end line_BeginsWith
+   
+function url_Construct siteRoot, pPath, pShortFile
+   text_AddTrailing siteRoot, "/"
+   put siteRoot into someURL
+   if pPath is empty then return someURL -- could add index
+   
+   text_TopAndTail pPath, "/"
+   put pPath after someURL
+   
+   if pShortFile is empty then return someURL
+   
+   text_AddTrailing someURL, "/"
+   put pShortFile after someURL
+   return someURL
+end url_Construct
+
+command text_TopAndTail @someText, someChar
+   if char 1 of someText is someChar then delete char 1 of someText
+   if char -1 of someText is someChar then delete char -1 of someText
+end text_TopAndTail
+
+command text_AddTrailing @someText, someChar
+   if char -1 of someText is not someChar then
+      put someChar after someText
+   end if
+end text_AddTrailing
+
+function date_ConstructWc3Datetime someDate
+   -- extended is true:  1981-04-05T14:30:30-05:00
+   put date_Construct8601 (someDate, true, true) into someDate
+   replace space with empty in someDate
+   return someDate
+end date_ConstructWc3Datetime
+
+command date_Wc3Datetime @revisionDate
+   -- https://www.w3.org/TR/NOTE-datetime
+   
+   replace "T" with return in revisionDate
+   put line 1 of revisionDate into someDate
+   put line 2 of revisionDate into someTime
+   
+   replace "-" with comma in someDate
+   
+   set the itemdelimiter to "+"
+   put item 1 of someTime into colonTime
+   put item 2 of someTime into colonTimeDifference
+   replace ":" with empty in colonTimeDifference
+   put format("%04d", colonTimeDifference) into timeDifference
+   -- put ":" after char 2 of timeDifference
+   
+   replace ":" with comma in colonTime
+   
+   set the itemdelimiter to comma
+   put someDate into someDateItems
+   put colonTime into item 4 of someDateItems
+   
+   put 0 into item 7 of someDateItems
+   
+   convert someDateItems to internet date
+   put timeDifference into char -4 to -1 of someDateItems
+   -- replace space with empty in someDateItems
+   
+   put someDateItems into revisionDate
+end date_Wc3Datetime
+
+function date_Construct8601 someDate, extended, convertToUTC
+   -- extended is true:  1981-04-05T14:30:30-05:00
+   -- extended is false: 19810405T14:30:30-05 00
+   
+   convert someDate to internet date
+   put word -1 of someDate into utcOffset
+   
+   convert someDate to dateItems
+   put item 1 of someDate into y
+   put item 2 of someDate into mons
+   put item 3 of someDate into d
+   put item 4 of someDate into h
+   put item 5 of someDate into mins
+   put item 6 of someDate into s
+   
+   if convertToUTC is true then
+      put char 2 to 3 of utcOffset into extraHours
+      put char 4 to 5 of utcOffset into extraMin
+      
+      if char 1 of utcOffset is "+" then
+         add extraHours to h
+         add extraMin to m
+      else
+         subtract extraHours from h
+         subtract extraMin from m
+      end if
+      
+      if extended is true then
+         put "%04d-%02d-%02dT%02d:%02d:%02d" into baseString
+      else
+         put "%04d%02d%02dT%02d:%02d:%02d" into baseString
+      end if
+      put format(baseString, y, mons, d, h, mins, s) into fDate
+      if char -3 to -1 of fDate = ":00" then delete char -3 to -1 of fDate
+      return fDate & " Z"
+   else
+      if extended is true then
+         put "%04d-%02d-%02dT%02d:%02d:%02d %s" into baseString
+      else
+         put "%04d%02d%02dT%02d:%02d:%02d %s" into baseString
+      end if
+      put format(baseString, y, mons, d, h, mins, s, utcOffset) into fDate
+      return fDate
+   end if
+end date_Construct8601
+
+command date_Convert8601 @revisionDate
+   -- converts to "internet date"
+   replace "T" with return in revisionDate
+   put line 1 of revisionDate into someDate
+   
+   put line 2 of revisionDate into someTime
+   put last char of someTime into timeZoneThing
+   delete last char of someTime
+   
+   replace "-" with comma in someDate
+   
+   set the itemdelimiter to "."
+   put item 1 of someTime into colonTime
+   put item 2 of someTime into colonSeconds
+   replace ":" with comma in colonTime
+   
+   set the itemdelimiter to comma
+   put someDate into someDateItems
+   put colonTime into item 4 of someDateItems
+   
+   put 0 into item 7 of someDateItems
+   convert someDateItems to internet date
+   put someDateItems into revisionDate
+end date_Convert8601

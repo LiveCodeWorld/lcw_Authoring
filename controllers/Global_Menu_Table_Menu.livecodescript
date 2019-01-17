@@ -23,7 +23,9 @@ on menu_ListGlobalMenus
    display_Outline globalMenuTitles, "Global Menus", "Global | Menu | Tree | Menu", pLineMenuTitle
    put the result into treeView
    put the tree_Field of treeView into treeField
-   put the object_Hkey ["editTreeMenu,c"] of me into hKey
+   --
+   put the object_Hkey ["M editTreeMenu"] of me into hKey
+   --
    set the event_Trigger ["mouseDoubleUp"] of treeField to hKey
 end menu_ListGlobalMenus
 

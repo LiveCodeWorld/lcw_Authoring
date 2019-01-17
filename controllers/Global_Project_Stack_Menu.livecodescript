@@ -4,43 +4,26 @@
 license: GPLv3
 name: Global | Project | Stack | Menu
 type: controller
-version: 0.3
+version: 0.4
 
 
 --> Global | Project | Stack | Menu
 -
 /*
 First section uses code from "lib_DisplayGraph"
-This depends on "textStack_HkeyArrayFile" 
+This depends on "projectOverlay_File ["processedHkey.array"]" 
 which is a complicated hArray based walk using "deps_SaveMainstackAndExportArrays"
+
+The menu was originally designed to work with indexViews of project stacks,
+but can equally be used directly in the ScriptEditor.
 */
 
-on menu_DisplayDependencyObjectArray stackObject
-   put the textstack_HkeyObjectArray of stackObject into depObjectArray
-   display_Array depObjectArray
-end menu_DisplayDependencyObjectArray
-
-on menu_ScriptLibraryDependencies stackObject
-   -- in "lib_DisplayGraph" (depends on hArray based walk and "deps_SaveMainstackAndExportArrays")
-   put the script_DepLibs of stackObject -- into dependencyStacks
-end menu_ScriptLibraryDependencies
-
-on menu_IndexScript stackObject
-   script_IndexAndCreateOverlay stackObject
-end menu_IndexScript
-
-on menu_RevealProjectOverlayFolder stackObject
-   put the project_OverlayFolder of stackObject into projectOverlayFolder
-   put projectOverlayFolder
-   finder_Reveal projectOverlayFolder
-end menu_RevealProjectOverlayFolder
+on menu_GraphScript stackObject
+   graph_Project stackObject
+end menu_GraphScript
 
 on _
 end _
-
--- on submenu_Script
-   return "Global | Script | Menu"
-end submenu_Script
 
 on menu_GoToStack stackObject
    object_GoTo stackObject
@@ -64,13 +47,6 @@ end menu_UseStack
 on _
 end _
 
-on menu_RefreshIndex
-   dispatch "refresh" to _indexView() 
-end menu_RefreshIndex
-
-on _
-end _
-
 on menu_TrashStack stackObject
    put merge ("Are you sure you want to delete the file, and remove the [[stackObject]] from all projects?") into someQuestion
    answer someQuestion with "OK" or "Cancel"
@@ -86,7 +62,12 @@ on menu_TrashStack stackObject
    delete stackObject
    delete file longStackFile
    
-   dispatch "refresh" to _indexView() 
+   breakpoint
+   put menu_GetTargetObject() into tObject
+   put the index_View of stackObject into indexView
+   if exists (indexView) then
+      dispatch "refresh" to _indexView()
+   end if
 end menu_TrashStack
 
 on menu_DisplaySubstack stackObject, subStackName
@@ -97,52 +78,39 @@ end menu_DisplaySubstack
 on _
 end _
 
-on menu_AddToThisProject stackObject
-   if exists (stackObject) is false then
-      answer warning merge ("I cannot locate [[stackObject]]. Please locate and add to the stackfiles.")
-      exit to top
-   end if
-   
-   put _indexView() into indexView
-   put the displayed_project of indexView into projectName
-   
-   library_AddUsedStack stackObject, projectName
-   
-   put the short name of stackObject into stackName
-   start using stack stackName
-   start using stackObject -- seems to have changed
-   
-   dispatch "refresh" to indexView
-   set the hilite_Used of indexView to true
-end menu_AddToThisProject
+on submenu_Index
+   return "Global | Project | Stack | Tree | Menu"
+end submenu_Index
 
-on menu_AddToAllProjects stackObject
-   put _indexView() into indexView
-   
-   start using stackObject
-   put lcw_ListProjects() into projectNames
-   repeat for each line projectName in projectNames   
-      library_AddUsedStack stackObject, projectName
-   end repeat
-   
-   dispatch "refresh" to indexView
-   set the hilite_Used of indexView to true
-end menu_AddToAllProjects
+on submenu_Deps
+   return "Deps | Menu"
+end submenu_Deps
+
+
+--> Deps | Menu
+-
+on menu_StackDeps stackObject
+   display_StackDeps stackObject
+end menu_StackDeps
 
 on _
 end _
 
-on menu_RemoveFromThisProject stackObject
-   stop using stackObject 
-   library_DeleteUsedStack stackObject
-   _displayAndHilite
-end menu_RemoveFromThisProject
+on menu_RevealProjectOverlayFolder stackObject
+   put the project_OverlayFolder of stackObject into projectOverlayFolder
+   put projectOverlayFolder
+   finder_Reveal projectOverlayFolder
+end menu_RevealProjectOverlayFolder
 
-on menu_RemoveFromAllProjects stackObject
-   stop using stackObject 
-   library_RemoveStackFromAllProjects stackObject
-   _displayAndHilite
-end menu_RemoveFromAllProjects
+on menu_DisplayDependencyObjectArray stackObject
+   put the textstack_HkeyObjectArray of stackObject into depObjectArray
+   display_Array depObjectArray
+end menu_DisplayDependencyObjectArray
+
+on menu_ScriptLibraryDependencies stackObject
+   -- in "lib_DisplayGraph" (depends on hArray based walk and "deps_SaveMainstackAndExportArrays")
+   put the script_DepLibs of stackObject -- into dependencyStacks
+end menu_ScriptLibraryDependencies
 
 
 --> Global | Project | Stack | Menu | Props
@@ -161,14 +129,19 @@ end sub_StackNames
 
 --> Global | Project | Stack | Menu | Disabled
 -
+getprop disabled_Index [scriptObject]
+   put the index_View of the target into indexView
+   return indexView is empty
+end disabled_Index
+
 getprop disabled_DisplayDependencyObjectArray [stackObject]
-   put the textStack_HkeyArrayFile of stackObject into processedHkeyArrayFile
+   put the projectOverlay_File ["processedHkey.array"] of stackObject into processedHkeyArrayFile
    put there is a file processedHkeyArrayFile into fileExists
    return fileExists is false
 end disabled_DisplayDependencyObjectArray
 
 getprop disabled_DependencyObjects [stackObject]
-   put the textStack_HkeyArrayFile of stackObject into processedHkeyArrayFile
+   put the projectOverlay_File ["processedHkey.array"] of stackObject into processedHkeyArrayFile
    put there is a file processedHkeyArrayFile into fileExists
    return fileExists is false
 end disabled_DependencyObjects
@@ -182,36 +155,3 @@ getprop disabled_DisplaySubstack [stackObject]
    put the substacks of stackObject into subStackNames
    return subStackNames is empty
 end disabled_DisplaySubstack
-
-
---> Deps
--
-command _displayAndHilite
-   put _rescueDisplayCard() into displayCard
-   if exists(displayCard) is false then return empty
-   
-   lock screen
-   set the hilite_Used of displayCard to true
-   dispatch "display_ProjectArray" to displayCard
-   unlock screen
-   return displayCard
-end _displayAndHilite
-
-
-
---> Objects
--
-function _indexView
-   put menu_GetTargetObject() into tObject
-   put the index_View of tObject into indexView
-   return indexView
-end _indexView
-
-function _rescueDisplayCard
-   if there is a stack "Rescue livecode World" then
-      put the long id of card 1 of stack "Rescue livecode World" into displayCard
-      return displayCard
-   else
-      return empty
-   end if
-end _rescueDisplayCard

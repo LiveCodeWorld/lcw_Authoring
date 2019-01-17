@@ -39,6 +39,14 @@ end shell_TextFile
 
 --> Atom
 -
+command atom_Edit someFile
+   if there is a file someFile then
+      atom_DisplayFile someFile
+   else
+      atom_DisplayText someText
+   end if
+end atom_Edit
+
 command atom_DisplayText someText, pFileExtension, pUseBinary
    put the tempname into someFile
    if pFileExtension is not empty then

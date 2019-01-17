@@ -9,14 +9,14 @@ version: 0.1
 
 --> Global | DepObjects | Tree | Menu
 -
-on menu_DisplayStoredyDepArray indexView
+on menu_DisplayStoredDepArray indexView
    put the displayed_HkeyArray of indexView into hkeyArray
    put the displayed_ObjectHkeyArray of indexView into objectHkeyArray
    -- put the displayed_Object of treeView into hObject
    put the displayed_Hkey of indexView into hKey
    
    display_HkeyDepArray hKey
-end menu_DisplayStoredyDepArray
+end menu_DisplayStoredDepArray
 
 on menu_DisplayHkeySvg indexView
    put the displayed_Hkey of indexView into hKey

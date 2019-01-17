@@ -4,7 +4,7 @@
 license: GPLv3
 name: Global_View_Card_Tools_Menu
 type: controller
-version: 0.1
+version: 0.2
 
 --> Variables
 -
@@ -32,9 +32,22 @@ end submenu_ViewScript
 on _
 end _
 
-on menu_DisplayViewTools
+on menu_DisplayViewTools displayView
+   put the displayed_Object of displayView into someView
+   put the template_Object of displayView into svgView
+   --
+   put the module_Name of svgView into moduleName
+   put the project_Name of svgView into projectName
+   --
    display_ModuleFromName moduleName, projectName
 end menu_DisplayViewTools
+
+on menu_ReIndexMenus displayView
+   -- module menus are not being indexed
+   put the template_Object of displayView into templateView
+   -- 
+   module_ReIndexMenus templateView
+end menu_ReIndexMenus
 
 on menu_OpenSubstack someView, substackName
    go to stack substackName

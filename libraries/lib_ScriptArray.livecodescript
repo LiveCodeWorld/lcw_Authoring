@@ -9,84 +9,6 @@ version: 0.5
 
 --> Working on
 -
-function script_ExternalHkeys
-   put the script_Calls [true] of the target into hTableLines
-   -- put script_FetchHkeyPlaceArray() into hkeyPlaceArray
-   repeat for each line hTableLine in hTableLines
-      -- put hkey_GetPlace (hTableLine, hkeyPlaceArray) into cObject
-      -- put hTableLine,cObject into externalHkey
-      put word 1 of hTableLine into hType
-      if htype = "P" then next repeat
-      put word 2 of hTableLine into hName
-      --
-      put hkeyline_Find (hName, hType, externalObjects) into externalHkey
-      --
-      put externalHkey & CR after externalHKeys
-   end repeat
-   delete char -1 of externalHKeys
-   return externalHKeys
-end script_ExternalHkeys
-
-getprop script_Calls [pExternalOnly]
-   put the script_CallArray [pExternalOnly] of the target into callArray
-   put keys (callArray) into allCalls
-   sort allCalls by item 1 of each
-   return allCalls
-end script_Calls
-
-getprop script_CallArray [pExternalOnly]
-   local callArray
-   
-   put the long id of the target into tObject
-   put the revAvailableHandlers of tObject into hTable
-   put the data_Folder of tObject into dataFolder
-   put revRuggedID (tObject) into pObject
-   put script_FetchHkeyPlaceArray() into hkeyPlaceArray
-   
-   repeat for each line hTableLine in hTable
-      put word 1 to 2 of hTableLine into pShortHkey -- new word based version 
-      put handler_FetchCalls (pShortHkey, dataFolder) into shortCalls
-      put pShortHkey && "of" && pObject into pHkey
-      
-      set the wholematches to false
-      repeat for each line shortCall in shortCalls
-         if pExternalOnly is true then
-            put shortCall & space into searchString
-            if lineOffset (searchString, hTable) > 0 then next repeat
-         end if
-         
-         put hkey_GetPlace (shortCall, hkeyPlaceArray) into cObject
-         put shortCall && "of" && cObject into cHkey
-         
-         put empty into callArray [cHkey][pHkey]
-      end repeat
-   end repeat
-   return callArray
-end script_CallArray
-
-getprop script_ShortCallArray [pExternalOnly]
-   local callArray
-   
-   put the long id of the target into tObject
-   put the revAvailableHandlers of tObject into hTable
-   put the data_Folder of tObject into dataFolder
-   put revRuggedID (tObject) into rObject
-   repeat for each line hTableLine in hTable
-      put word 1 to 2 of hTableLine into shortHkey -- new word based version
-      put handler_FetchCalls (shortHkey, dataFolder) into shortCalls
-      set the wholematches to false
-      repeat for each line shortCall in shortCalls
-         if pExternalOnly is true then
-            put shortCall & space into searchString
-            if lineOffset (searchString, hTable) > 0 then next repeat
-         end if
-         put empty into callArray [shortCall][shortHkey]
-      end repeat
-   end repeat
-   return callArray
-end script_ShortCallArray
-
-
 --> Script | Array
 -
 getprop object_ScriptArray
@@ -154,9 +76,6 @@ getprop script_BreakdownArray [pKeepSpacer]
    return script_ConstructBreakDownArray (scriptArray)
 end script_BreakdownArray
 
-
---> Script | Hkeys
--
 getprop hArray_Hkeys
    put the hArray_ScriptData of the target into scriptArray
    repeat for each key indexNum in scriptArray
@@ -440,7 +359,8 @@ command script_ConstructArraysFromScript someScript, @handlerArray, @uniqueArray
    set the wholematches to true
    repeat for each line handlerLine in someScript
       if handlerLine is empty then next repeat
-      handler_Deconstruct handlerLine, handlerName, hType, privateBit
+      --
+      hkeyLine_DeconstructStart handlerLine, handlerName, hType, privateBit
       if handlerName = "_" then next repeat
       
       switch char 1 of hType

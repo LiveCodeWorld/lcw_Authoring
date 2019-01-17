@@ -16,6 +16,68 @@ The handlers in this library are gradually being moved over from the older scrip
 with the "script_" extension being replaces by "hkey_"
 */
 
+
+--> Working on
+-
+
+--> hKey | Props
+-
+getprop script_MessageHandlers [pReturnHow]
+   try
+      put the long id of the target into tObject
+      put the revAvailableHandlers of tObject into handlerTable -- revAvailableHandlers only return first handler.
+      put the script of tObject into someScript
+      put script_HkeysFromAvailable (handlerTable, someScript, pReturnHow) into hKeys
+      return hKeys
+   catch someError
+      -- a locked stack
+      return empty
+   end try
+end script_MessageHandlers
+
+getprop script_DictionaryHkeys
+   put the long id of the target into someObject
+   put the script of someObject into someScript
+   put script_ExtractDictionaryHkeys (someScript, someObject) into hKeys
+   return hKeys
+end script_DictionaryHkeys
+
+getprop script_AndBehavior
+   put the script of the target into targetScript
+   put the behavior of the target into someBehavior
+   if exists(someBehavior) then put CR & CR & the script of someBehavior after targetScript
+   return targetScript
+end script_AndBehavior
+
+getprop hkey_FetchHow
+   put the uOPN ["hkey_FetchHow"] of me into hkeyFetchHow
+   if hkeyFetchHow is empty then
+      return "local"
+   else
+      return hkeyFetchHow
+   end if
+end hkey_FetchHow
+
+setprop hkey_FetchHow hkeyFetchHow
+   set the uOPN ["hkey_FetchHow"] of me to hkeyFetchHow
+end hkey_FetchHow
+
+getprop hkey_FetchHows
+   return "object,file,-,git,revcode"
+end hkey_FetchHows
+
+
+--> hKey | Objects
+-
+function hkey_ExtractObjects hkeys
+   repeat for each line hkey in hkeys
+      hkey_Deconstruct hkey, handlerName, handlerType, scriptObject, handlerNum
+      put hKey into dumpArray [scriptObject]
+   end repeat
+   return keys (dumpArray)
+end hkey_ExtractObjects
+
+
 --> Hkeys
 -
 command hkey_SimpleStripObject @hkeys, scriptObject
@@ -108,23 +170,6 @@ function library_ConstructDisplayDataArray hKeys
    return dgArray
 end library_ConstructDisplayDataArray
 
-setprop hkey_FetchHow hkeyFetchHow
-   set the uOPN ["hkey_FetchHow"] of me to hkeyFetchHow
-end hkey_FetchHow
-
-getprop hkey_FetchHow
-   put the uOPN ["hkey_FetchHow"] of me into hkeyFetchHow
-   if hkeyFetchHow is empty then
-      return "local"
-   else
-      return hkeyFetchHow
-   end if
-end hkey_FetchHow
-
-getprop hkey_FetchHows
-   return "object,file,-,git,revcode"
-end hkey_FetchHows
-
 
 --> Hkey | Tests
 -
@@ -135,12 +180,6 @@ end is_Hkey
 
 --> Work in Progress
 -
-getprop object_Hkey [shortHkey]
-   put the rugged_ID of the target into scriptObject
-   put shortHkey,scriptObject,1 into hKey
-   return hKey
-end object_Hkey
-
 function script_HkeyLineNumber hKey, pScript
    hkey_SetOffsets hKey, startHandler, endHandler, pScript
    put the number of lines of char 1 to startHandler of pScript into lineNum
@@ -280,13 +319,6 @@ end hkey_RedrawDependencyGraph
 
 --> Script
 -
-getprop script_AndBehavior
-   put the script of the target into targetScript
-   put the behavior of the target into someBehavior
-   if exists(someBehavior) then put CR & CR & the script of someBehavior after targetScript
-   return targetScript
-end script_AndBehavior
-
 function script_ExtractHandlerType handlerName, someScript, handlerType, notPrivate
    local startHandler, endHandler
    put handlerName,handlerType into shortHkey
@@ -328,33 +360,6 @@ command object_StripIndex objectsToRemove, @objectIndex
       end repeat
    end repeat
 end object_StripIndex
-
-
---> hKey | Objects
--
-function hkey_ExtractObjects hkeys
-   repeat for each line hkey in hkeys
-      hkey_Deconstruct hkey, handlerName, handlerType, scriptObject, handlerNum
-      put hKey into dumpArray [scriptObject]
-   end repeat
-   return keys (dumpArray)
-end hkey_ExtractObjects
-
-function hkeyArray_ExtractObjects hkeyLinkArray
-   repeat for each key hKey in hkeyLinkArray
-      hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
-      put hKey into dumpArray [scriptObject]
-      
-      put hkeyLinkArray [hKey] into linkedKeys
-      repeat for each line linkedKey in linkedKeys
-         hkey_Deconstruct linkedKey, handlerName, handlerType, scriptObject, handlerNum
-         put hKey into dumpArray [scriptObject]
-      end repeat
-   end repeat
-   
-   put keys (dumpArray) into scriptObjects
-   return scriptObjects
-end hkeyArray_ExtractObjects
 
 
 --> hdb | Search | Edit
@@ -416,19 +421,6 @@ command hkey_EditFoundHandler hkey
    -- lcw_Notify revHandlerTreeLineNum, true
    return true
 end hkey_EditFoundHandler
-
-getprop script_MessageHandlers [pReturnHow]
-   try
-      put the long id of the target into tObject
-      put the revAvailableHandlers of tObject into handlerTable -- revAvailableHandlers only return first handler.
-      put the script of tObject into someScript
-      put script_HkeysFromAvailable (handlerTable, someScript, pReturnHow) into hKeys
-      return hKeys
-   catch someError
-      -- a locked stack
-      return empty
-   end try
-end script_MessageHandlers
 
 function script_HkeysFromAvailable handlerTable, someScript, pReturnHow
    repeat for each line someLine in handlerTable
@@ -787,13 +779,6 @@ function handler_ConstructBehaviorHkeyIndex
    sort allKeys
    return word 1 to -1 of allKeys
 end handler_ConstructBehaviorHkeyIndex
-
-getprop script_DictionaryHkeys
-   put the long id of the target into someObject
-   put the script of someObject into someScript
-   put script_ExtractDictionaryHkeys (someScript, someObject) into hKeys
-   return hKeys
-end script_DictionaryHkeys
 
 function script_ExtractDictionaryHkeys someScript, someObject
    put script_DeleteSuite ("Geometry", someScript) into someScript

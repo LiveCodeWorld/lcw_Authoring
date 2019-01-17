@@ -154,10 +154,6 @@ end submenu_Dev
 
 --> Global | Menu | Global | Menu | Props
 -
-getprop project_Name
-   return env_GetProjectFocus()
-end project_Name
-
 getprop project_Names
    return library_ListProjectNames ()
 end project_Names

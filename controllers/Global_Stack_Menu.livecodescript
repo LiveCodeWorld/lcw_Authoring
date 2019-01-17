@@ -229,7 +229,3 @@ on menu_GoToStack scriptObject
    go to stackObject
    if the result is not empty then beep
 end menu_GoToStack
-
-
---> Menu | Props
--

@@ -54,9 +54,9 @@ on menu_DisplayObjectArray treeView
    put the displayed_Hkey of treeView into hKey
    if hKey is empty then
       put the displayed_Object of treeView into hObject
-      display_ObjectHkeyArray hkeyArray, hObject
+      display_ObjectDepArray hObject, hkeyArray
    else
-      display_ObjectHkeyArray hkeyArray, hKey
+      display_ObjectDepArray hKey, hkeyArray
    end if
 end menu_DisplayObjectArray
 

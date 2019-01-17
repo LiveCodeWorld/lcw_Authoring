@@ -9,52 +9,109 @@ version: 0.2
 /*
 Handlers, their calls and their metadata are now stored in a folder that reflects the folder structure of project and object scripts:
 
-Scripts are stored as merge files inside the data_Folder eg:
+Scripts are stored as merge files inside the dataObject_Folder eg:
 -- /lcw_User/lcw_Metadata/LCW/data/objects/stack/lcw_script.txt
 
-Handlers and calls are stored inside the data_Folder:
+Handlers and calls are stored inside the dataObject_Folder:
 -- /lcw_User/lcw_Metadata/LCW/data/objects/stack/handlers/M someCommand/lcw_handler.txt
--  put textStack_HandlerDataFolder (hKey, objectScriptFolder) into hkeyFolder
+-  put textStack_ConstructHandlerFolder (hKey, objectScriptFolder) into hkeyFolder
 
-While hander graphs and dependency arrays are stored inside the metadat_Folder:
+While hander graphs and dependency arrays are stored inside the metadataObject_Folder:
 -- /lcw_User/lcw_Metadata/LCW/data/objects/stack/handlers/M someCommand/lcw_handler.txt
 
 The old hkey_Folder was here:
 -  put library_HkeyFolder (hKey, pDontCreate) into hkeyFolder
 */
 
+--> Props
+-
+
+--> TextStack | Construct
+-
+function textStack_ConstructCallsFile hKeyLine, dataFolder
+   put textStack_ConstructHandlerFolder (hKeyLine, dataFolder) & "lcw_calls.txt" into callsFile
+   return callsFile
+end textStack_ConstructCallsFile
+
+function textStack_ConstructHandlerFile shortHkey, dataFolder
+   -- see also "hkey_HandlerFile"
+   put textStack_ConstructHandlerFolder (shortHkey, dataFolder) & "lcw_handler.txt" into handlerFile
+   return handlerFile
+end textStack_ConstructHandlerFile
+
+function textStack_ConstructHandlerFolder hKeyLine, dataFolder
+   hkeyLine_Normalize hKeyLine
+   text_AddTrailing dataFolder, slash
+   put word 1 to 2 of hKeyLine into folderName
+   put dataFolder & "handlers/" & folderName & "/" into handlerFolder
+   return handlerFolder
+end textStack_ConstructHandlerFolder
+
 
 --> Working on
 -
--->  Hkey | Files
+
+
+--> hkey | Handler | File
 -
-function hkey_SvgFile hKey, pGraphStyle
-   if pGraphStyle is empty then
-      put "hierarchical" into pGraphStyle
-   end if
-   put hkey_MetadataFolder (hKey) into hkeyMetadataFolder
-   put hkeyMetadataFolder & pGraphStyle & ".svg" into svgFile
-   return svgFile
-end hkey_SvgFile
+function hkey_HandlerFile hKey, pDontCreate
+   put hkey_DataFolder (hKey, pDontCreate) into dataFolder
+   put textStack_ConstructHandlerFile (hKey, dataFolder) into handlerFile
+   return handlerFile
+   -- return hkey_Folder (hKey, pDontCreate) & "script.txt"
+end hkey_HandlerFile
+
+command hkey_DeleteHandlerFile hKey
+   put hkey_HandlerFile (hKey) into someFile
+   delete file someFile
+end hkey_DeleteHandlerFile
 
 
 -->  Hkey | Folder | Model
 -
-function hkey_DataFolder hKey, pDontCreate
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   put the data_Folder [pDontCreate] of hObject into dataFolder
-   return dataFolder
-end hkey_DataFolder
-
 function hkey_MetadataFolder hKey
    hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   put the metadata_Folder of hObject into metaDataFolder
-   put textStack_HandlerDataFolder (hKey, metaDataFolder) into hkeyMetadataFolder
+   put the metadataObject_Folder of hObject into metaDataFolder
+   put textStack_ConstructHandlerFolder (hKey, metaDataFolder) into hkeyMetadataFolder
    return hkeyMetadataFolder
 end hkey_MetadataFolder
 
+function hkey_DataFolder hKey, pDontCreate
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   put the dataObject_Folder [pDontCreate] of hObject into dataFolder
+   return dataFolder
+end hkey_DataFolder
 
---> Hkey | Files
+function hkey_Folder hKey
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   if exists (hObject) is false then return empty
+   
+   put the dataObject_Folder [true] of hObject into dataFolder
+   put textStack_ConstructHandlerFolder (hKey, dataFolder) into handlerFolder
+   return handlerFolder
+end hkey_Folder
+
+command hkey_DeleteFolder hKey
+   put hkey_Folder (hKey) into hkeyFolder
+   revDeleteFolder hkeyFolder
+end hkey_DeleteFolder
+
+
+--> Handler | Calls | File
+-
+function hkey_CallsFile hKey
+   hkeyLine_Normalize hKey
+   put the result into shortHkey
+   hKeyLine_Deconstruct hKey, hName, hType, hObject
+   if exists (hObject) is false then return empty
+   
+   put the dataObject_Folder of hObject into dataFolder
+   put dataFolder & "handlers/" & shortHkey & "/lcw_calls.txt" into callsFile
+   return callsFile
+end hkey_CallsFile
+
+
+-->  Hkey | Files
 -
 function hkey_LibraryImagetFile hKey, pOverlayName
    put library_HandlerMetadataFolder (hKey, true) into overlayFolder
@@ -78,6 +135,15 @@ function hkey_CmapxFile hKey, pOverlayName, pDontCreate
    put pOverlayName & "." & "cmapx" into shortFile
    return hkey_Folder (hKey, pDontCreate) & shortFile
 end hkey_CmapxFile
+
+function hkey_SvgFile hKey, pGraphStyle
+   if pGraphStyle is empty then
+      put "hierarchical" into pGraphStyle
+   end if
+   put hkey_MetadataFolder (hKey) into hkeyMetadataFolder
+   put hkeyMetadataFolder & pGraphStyle & ".svg" into svgFile
+   return svgFile
+end hkey_SvgFile
 
 function hkey_ImageFile hKey, pOverlayName, pDontCreate
    hkey_NormalizeGraphName pOverlayName

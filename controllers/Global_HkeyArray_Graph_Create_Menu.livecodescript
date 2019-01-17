@@ -77,7 +77,7 @@ on menu_CreateSvgGraph scriptObject, graphStyle
    local pProjectName
    put LocalArray ["hkeyArray"] into hkeyArray
    
-   script_CreateGraph hKeyArray, scriptObject, pProjectName, graphStyle
+   graph_ObjectHkeyArray hKeyArray, scriptObject, graphStyle
    put the result into imageFile
    
    display_SVG imageFile, scriptObject
@@ -85,21 +85,16 @@ on menu_CreateSvgGraph scriptObject, graphStyle
    set the displayed_Object of displayView to scriptObject
 end menu_CreateSvgGraph
 
-on menu_CreateAndDisplaySvg scriptObject, projectName
-   local pGraphStyle, pProcessObject, pForceCreate
-   
-   display_IndexScriptAndDisplaySVG scriptObject, projectName, pGraphStyle, pProcessObject, false
-   put the result into imageFile
-   
-   put the textStack_HkeyArray of scriptObject into processedHkeyArray
-   display_HkeyArray processedHkeyArray, scriptObject
-   display_ObjectHkeyArray processedHkeyArray, scriptObject
-end menu_CreateAndDisplaySvg
+on menu_DisplayObjectGraph scriptObject
+   local pGraphStyle, pProcessObject, projectName
+   --
+   display_ObjectGraph scriptObject, projectName, pGraphStyle, pProcessObject, false
+   --
+   display_ObjectDepArray scriptObject
+end menu_DisplayObjectGraph
 
 on menu_DisplayProcessedHkeyArray scriptObject
-   put the textStack_HkeyArray of scriptObject into processedHkeyArray
-   display_HkeyArray processedHkeyArray, scriptObject
-   display_ObjectHkeyArray processedHkeyArray, scriptObject
+   display_ObjectDepArray scriptObject
 end menu_DisplayProcessedHkeyArray
 
 on menu_DisplaySvg treeView
@@ -108,18 +103,16 @@ on menu_DisplaySvg treeView
    display_SVG svgFile
 end menu_DisplaySvg
 
-on menu_DisplayProjectMetadataFolder treeView
+on menu_DisplayProjectOverlayFolder treeView
    put the displayed_Object of treeView into scriptObject
-   put the textStack_ProjectOverlayFolder of scriptObject into projectMetaDataFolder
-   
-   put projectMetaDataFolder
+   put the project_OverlayFolder of scriptObject into projectMetaDataFolder
    finder_Reveal projectMetaDataFolder
-end menu_DisplayProjectMetadataFolder
+end menu_DisplayProjectOverlayFolder
 
 getprop disabled_DisplaySvg [treeView]
    -- should be a simpler way
    put the displayed_Object of treeView into scriptObject
-   put the textStack_ProjectOverlayFolder of scriptObject into projectMetaDataFolder
+   put the project_OverlayFolder of scriptObject into projectMetaDataFolder
    put empty into pOverlayName
    put overlay_GetArray (projectMetaDataFolder, pOverlayName) into overlayArray
    put overlayArray_GetImageFile (overlayArray, projectMetaDataFolder) into svgFile
@@ -180,8 +173,6 @@ on menu_CreateTemporaryObjectGraphFromTree treeView, graphStyle
    put the displayed_Object of treeView into scriptObject
    
    put the displayed_OverlayFolder of treeView into overlayFolder
-   -- put the textStack_ProjectOverlayFolder of scriptObject into overlayFolder
-   -- put the overlay_Folder of scriptObject into overlayFolder 
    put the displayed_OverlayName of treeView into overlayName
    
    put overlay_GetData (overlayFolder) into overlayData

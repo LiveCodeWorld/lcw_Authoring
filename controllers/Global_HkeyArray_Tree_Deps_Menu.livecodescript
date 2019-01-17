@@ -34,14 +34,6 @@ end _DisplaySVG
 
 --> Global | HkeyArray | Tree | Deps | Menu
 -
-on submenu_Export
-   return "Global | Project | Export | Menu"
-end submenu_Export
-
-on submenu_Place
-   return "Global | Place | Menu"
-end submenu_Place
-
 on menu_ProjectDepStacks treeView, callProjectName
    put LocalArray ["tree_View"] into treeView
    
@@ -98,21 +90,18 @@ on _
 end _
 
 on menu_ExternalCallGraph scriptObject
-   -- based on menu_CreateSvgGraph of "Global | Tree | HkeyArray | Graph | Create | Menu"
-   local pProjectName
    put LocalArray ["hkeyShortArray"] into hkeyShortArray
-   
-   script_CreateGraph hkeyShortArray, scriptObject, pProjectName, "fast undirected spring"
+   --
+   graph_ObjectHkeyArray hkeyShortArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    _DisplaySVG imageFile, scriptObject
 end menu_ExternalCallGraph
 
 on menu_ObjectDependencyGraph scriptObject
-   local pProjectName
    put LocalArray ["hkeyShortArray"] into hkeyShortArray
-   --
    put hkeyArray_ShortToLong (hkeyShortArray) into hKeyArray
-   script_CreateGraph hKeyArray, scriptObject, pProjectName, "fast undirected spring"
+   --
+   graph_ObjectHkeyArray hKeyArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    _DisplaySVG imageFile, scriptObject
 end menu_ObjectDependencyGraph
@@ -125,28 +114,6 @@ function stack_ListUsed
    delete char -1 of stackObjects
    return stackObjects
 end stack_ListUsed
-
-function hkeyArray_ShortToLong hkeyShortArray, pSearchObjects
-   -- could be something else as a default?
-   if pSearchObjects is empty then put stack_ListUsed() into pSearchObjects
-   --
-   repeat for each key hkey in hkeyShortArray
-      put hkeyShortArray [hkey] into shortHkeyLine
-      --
-      -- put hkey_GetPlace (shortCall, pHkeyPlaceArray) into cObject
-      put word 1 of shortHkeyLine into hType
-      put word 2 of shortHkeyLine into hName
-      put hkeyline_Find (hName, hType, pSearchObjects) into externalHkey
-      
-      if externalHkey is empty then
-         put shortHkeyLine into hKeyArray [hkey]
-      else
-         put externalHkey into hKeyArray [hkey]
-      end if
-      --
-   end repeat
-   return hKeyArray
-end hkeyArray_ShortToLong
 
 on _
 end _
@@ -168,18 +135,13 @@ on submenu_CreateGraph
    return "Global | Tree | HkeyArray | Graph | Create | Menu"
 end submenu_CreateGraph
 
-on _
-end _
+on submenu_Export
+   return "Global | Project | Export | Menu"
+end submenu_Export
 
-on menu_DisplayActiveProject mTarget, activeProject
-   put activeProject
-end menu_DisplayActiveProject
-
-on menu_ExtraDictionaryTerms
-   put ide_ListExtraDicTerms() into extTerms
-   sort extTerms
-   display_Index extTerms, "ide_ListExtraDicTerms()"
-end menu_ExtraDictionaryTerms
+on submenu_Place
+   return "Global | Place | Menu"
+end submenu_Place
 
 on _
 end _
@@ -363,13 +325,13 @@ on menu_ConstructMenuLibraryHandlers treeView
    put "menu_PopUp,c|menu_PullDown,c|menu_SendMessage,c" into shortHkeys
    set the itemdelimiter to "|"
    repeat for each item shortHkey in shortHkeys
-      put the hkey_Find [shortHkey] of scriptObject & CR after hKeys
+      put the found_Call [shortHkey] of scriptObject & CR after hKeys
    end repeat
    delete char -1 of hKeys
    
    put hkey_DependencyArrayFromObjects (hKeys) into hkeyArray
    
-   display_ObjectHkeyArray hkeyArray, scriptObject, "pop,pull,send"
+   display_ObjectDepArray scriptObject, hkeyArray, "pop,pull,send"
    return empty
    
    set the cursor to watch

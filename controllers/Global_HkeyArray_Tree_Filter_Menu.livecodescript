@@ -43,7 +43,7 @@ on menu_RemoveObject treeView, depObject
    put merge ("Filtered hkeyArray") into someTitle
    
    if exists(scriptObject) then
-      display_ObjectHKeyArray hKeyArray, scriptObject
+      display_ObjectDepArray scriptObject, hKeyArray
    else
       display_HKeyArray hKeyArray, hkey
    end if

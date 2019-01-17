@@ -384,12 +384,3 @@ on menu_DisplayGhkeyArray mTarget
    global gLCW
    display_Array gLCW, "Global gLCW"
 end menu_DisplayGhkeyArray
-
-on _
-end _
-
-on menu_EditCustomProperties
-    put library_PrefFolder("opn_Preferences.rev") into someFile
-    put the name of stack someFile into stackObject
-    object_Inspect stackObject
-end menu_EditCustomProperties

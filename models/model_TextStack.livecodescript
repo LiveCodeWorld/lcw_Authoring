@@ -17,41 +17,55 @@ while the metadata folder should contain any information which desribes or graph
 
 -->  Working on
 -
+getprop projectOverlay_SvgFile [projectName]
+   -- LCW.svg
+   put the long id of the target into scriptObject
+   if projectName is empty then
+      put the project_Name of the target into shortFile
+   end if
+   put the project_OverlayFolder [false] of scriptObject into overlayFolder
+   put overlayFolder & shortFile & ".svg" into svgFile
+   return svgFile
+end projectOverlay_SvgFile
+
 
 --> TextStack | HkeyObject | Array
 -
 getprop textstack_HkeyObjectArray
-   put the textStack_HkeyArray of the target into processedHkeyArray  
+   put the projectOverlay_Array ["processedHkey.array"] of the target into processedHkeyArray  
    put hkeyArray_ConstructObjectArray (processedHkeyArray) into hkeyObjectArray
    return hkeyObjectArray
 end textstack_HkeyObjectArray
 
 
---> TextStack | HkeyObject | Array
+--> ProjectOverlay | Array
 -
-getprop textStack_HkeyArray
+/*
+TextStack is a synonym for projectOverlay  metadata folder.
+*/
+
+getprop projectOverlay_Array [pShortFile]
+   -- was "textstack_ProcessedHkeyArray" then "textStack_HkeyArray"
+   put the projectOverlay_File [pShortFile] of the target into someFile
+   put array_Fetch (someFile) into hkeyArray
+   return hkeyArray
+end projectOverlay_Array
+
+setprop projectOverlay_Array [pShortFile] hkeyArray
    -- was "textstack_ProcessedHkeyArray"
-   put the textStack_HkeyArrayFile of the target into someFile
-   put array_Fetch (someFile) into rigHkeyArray
-   return rigHkeyArray
-end textStack_HkeyArray
-
-setprop textStack_HkeyArray rigHkeyArray
-   -- was "textstack_ProcessedHkeyArray"
-   put the textStack_HkeyArrayFile of the target into someFile
-   array_Save someFile, rigHkeyArray
+   put the projectOverlay_File [pShortFile] of the target into someFile
+   array_Save someFile, hkeyArray
    return someFile
-end textStack_HkeyArray
+end projectOverlay_Array
 
-
---> TextStack | HkeyArray | File
--
-getprop textStack_HkeyArrayFile
-   -- this puts object hkeyarray files in the project overlay folder (wrong place)
-   put the textStack_ProjectOverlayFolder of the target into projectOverlayFolder
-   put projectOverlayFolder & "processedHkey.array" into someFile
+getprop projectOverlay_File [pShortFile]
+   put the long id of the target into tObject
+   --
+   if pShortFile is empty then put "processedHkey.array" into pShortFile
+   put the project_OverlayFolder of tObject into projectOverlayFolder
+   put projectOverlayFolder & pShortFile into someFile
    return someFile
-end textStack_HkeyArrayFile
+end projectOverlay_File
 
 
 -->  TextStack | Folders
@@ -65,7 +79,12 @@ getprop textStack_MetadataFolder [pDontCreate]
 end textStack_MetadataFolder
 
 getprop textStack_DataFolder [pDontCreate]
+   /*
+   This is the projects (ie for now stacks) top-level data folder.
    -- /lcw_User/lcw_Metadata/LCW/data/
+   
+   If you want the data folder for a specific script/object then use "the dataObject_Folder of sObject"
+   */
    put the textStack_Folder of the target into textStackFolder
    put textStackFolder & "data/" into textStackDataFolder
    if pDontCreate is not true then folder_CreateNested textStackDataFolder
@@ -79,6 +98,14 @@ getprop textStack_Folder [pDontCreate]
    return textStackFolder
 end textStack_Folder
 
+getprop textStack_Root
+   put lcw_UserMetadataFolder() into lcwUserMetadataFolder
+   return lcwUserMetadataFolder
+end textStack_Root
+
+
+-->  TextStack | Functions
+-
 function textStack_ConstructFolder mainStackName
    -- mainStackName is the same as the name of the folder in the datafolder
    put lcw_UserMetadataFolder() into textStackRoot
@@ -87,14 +114,6 @@ function textStack_ConstructFolder mainStackName
    return textStackFolder
 end textStack_ConstructFolder
 
-getprop textStack_Root
-   put lcw_UserMetadataFolder() into lcwUserMetadataFolder
-   return lcwUserMetadataFolder
-end textStack_Root
-
-
--->  TextStack | File | Script
--
 function textStack_ScriptFile dataFolder, pDontCreate
    if pDontCreate is false then
       folder_CreateNested dataFolder

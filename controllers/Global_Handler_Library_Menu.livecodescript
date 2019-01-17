@@ -9,9 +9,11 @@ version: 0.1
 
 --> Global | Handler | Library | Menu
 -
-on menu_StoredObjectHkeyArray hKey
+on menu_StoredDepArray hKey
+   -- fetch stored hKeyArray for hkey
+   -- turn it into a depObjectArray
    display_HkeyDepArray hKey
-end menu_StoredObjectHkeyArray
+end menu_StoredDepArray
 
 on menu_DisplayProjectDeps hKey
    hkey_Deconstruct hKey, hName, hType, hObject, hNum
@@ -29,7 +31,7 @@ end menu_RevealHandlerFile
 
 on menu_RevealHkeyFolder hkey
    put hkey_Folder (hkey) into hkeyFolder
-   finder_Reveal handlerFolder
+   finder_Reveal hkeyFolder
 end menu_RevealHkeyFolder
 
 on menu_RevealHandlerDataFolder hkeyLine
@@ -39,6 +41,19 @@ end menu_RevealHandlerDataFolder
 
 on _
 end _
+
+on menu_SpotlightHandler hkeyLine
+   hkey_Deconstruct hkeyLine, hName, hType, hObject, hNum
+   
+   put spotlight_FindHandlerFile (hkeyLine) into handlerFile
+   if there is a file asfd then
+      atom_Edit handlerFile
+   end if
+end menu_SpotlightHandler
+
+on menu_DisplaySpotlight hkeyLine
+   display_SpotlightHandler hkeyLine
+end menu_DisplaySpotlight
 
 on menu_RevealHandlerMetadataFolder hkeyLine
    put hkey_MetadataFolder (hKeyLine) into hkeyMetadataFolder
@@ -265,3 +280,4 @@ function hkey_ExportStatus hKey, pHandlerScript
          return "no object script"
    end switch
 end hkey_ExportStatus
+

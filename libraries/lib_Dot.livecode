@@ -13,14 +13,44 @@ Shiny new library for processing all things dot.
 See also older library libOPN_GraphViz
 */
 
---> Working on
+--> Dot | Label
 -
+function dot_ConstructDefaultDefLine nodeID, idArray
+   -- this is a general version suitable for hkeys
+   put idArray [nodeID] into nodeValue
+   dot_MakelabelSafe nodeValue
+   --
+   dispatch "dot_ConstructLabel" to the target with nodeValue
+   if it is "handled" then
+      put the result into nodeName
+   else
+      put nodeValue into nodeName
+   end if
+   --
+   put nodeID && "[label=" & kwote (nodeName) into nodeDefLine
+   
+   dispatch "dot_ConstructURL" to the target with nodeValue
+   if it is "handled" then
+      put the result into someUrl
+   else
+      put nodeValue into someUrl
+   end if
+   --
+   put space & "URL=" & kwote (someUrl) after nodeDefLine
+   --
+   put "];" after nodeDefLine
+   return nodeDefLine
+end dot_ConstructDefaultDefLine
+
 command dot_MakelabelSafe @nodeLabel
    -- there may be a number of things to clean up here
    -- for now we replace quoted names
    replace quote with "'" in nodeLabel
 end dot_MakelabelSafe
 
+
+--> Dot | Create
+-
 command dot_ProcessAndSaveFiles dotText, graphStyle, @pDotFile, @imageFile, @cmapFile, @xdotFile, pOverlayName, pImageFormat
    -- old
    -- depends on dodgy technique to figure out dotFolder
@@ -50,6 +80,108 @@ command dot_ProcessAndSaveFiles dotText, graphStyle, @pDotFile, @imageFile, @cma
    dot_DoImageMapShell graphStyle, dotFile, imageFile, cmapFile, xdotFile, "png"
    return pDotFile
 end dot_ProcessAndSaveFiles
+
+
+--> Props
+-
+/*
+These properties are only used localy by the linkArray_Model to change the way nodes are named.
+They are not essential, and graphs will otherwise be drawn using the node IDs in the linkArray and hIdArray (nodeDictionary)
+*/
+
+getprop hkey_DotText [hKey]
+   -- was "linkarray_ModelDotText", then "hkey_DotText"
+   put the long id of the target into pTargetObject
+   if hKey is empty then put the displayed_Hkey of pTargetObject into hKey
+   
+   put hkey_GetLinkArray (hKey) into hkeyArray
+   linkArray_IdConstruct hkeyArray, hLinkArray, hIdArray
+   
+   put the overlay_Name of pTargetObject into graphName
+   put the dot_ClusterType of pTargetObject into dotClusterType
+   switch dotClusterType
+      case "Object"
+         put the dot_Header of pTargetObject into graphHeader
+         put hKeyArray_ConstructObjectDot (hLinkArray, hIdArray, graphName, graphHeader, pTargetObject) into dotText
+         return dotText
+      case "Nested Trac Text"
+         put the linkarray_TracGraphHeader [defaultNodeUrl] of pTargetObject into graphHeader
+         put _ConstructNestedObjectDot (hLinkArray, hIdArray, graphName, graphHeader, pTargetObject) into dotText
+         
+         put "{{{" & CR after tracMacro
+         put "#!graphviz" & CR after tracMacro
+         put dotText & CR after tracMacro
+         put "}}}" & CR after tracMacro
+         
+         delete char -1 of tracMacro
+         return tracMacro
+      default -- case "Nested"
+         put the dot_Header of pTargetObject into graphHeader
+         put _ConstructNestedObjectDot (hLinkArray, hIdArray, graphName, graphHeader, pTargetObject) into dotText
+         return dotText
+   end switch
+end hkey_DotText
+
+getprop dot_NodeID [nodeID]
+   -- a default (Should not change it)
+   return nodeID
+end dot_NodeID
+
+getprop dot_NodeType [nodeID]
+   -- default value
+   put the uOPN ["dot_NodeType"] of the linkArray_Model of the target into nodeType
+   if nodeType is empty then
+      put "nodeID" into nodeType
+      set the uOPN ["dot_NodeType"] of the linkArray_Model of the target to nodeType
+   end if
+   return nodeType
+end dot_NodeType
+
+setprop dot_NodeType [nodeID] graphNodeType
+   set the uOPN ["dot_NodeType"] of the linkArray_Model of the target to graphNodeType
+end dot_NodeType
+
+getprop dot_NodeTypes
+   return the hKey_CaseConditions ["dot_ConstructNodeID,f"] of me
+end dot_NodeTypes
+
+-- setprop dot_Header dotHeader
+-- could also update arrays?
+-- a default value, which you can override locally
+put the dot_Text of the target into dotText
+dot_SetHeader dotText, dotHeader
+set the dot_Text of the target to dotText
+return dotText
+end dot_Header
+
+getprop dot_Header [pOverlayName]
+   -- a default value, which you can override locally
+   if pOverlayName is empty then put the displayed_OverlayName of the target into pOverlayName
+   put the overlay_Array of the target into overlayArray
+   put dot_HeaderFromArray (overlayArray, pOverlayName) into dotHeader
+   return dotHeader
+end dot_Header
+
+getprop dot_DefSection [pOverlayName]
+   -- a default value, which you can override locally
+   put the overlay_Array of the target into overlayArray
+   put dot_DefSectionFromArray (overlayArray, pOverlayName) into defSection
+   return defSection
+end dot_DefSection
+
+getprop dot_LinkSection
+   put the displayed_OverlayName of the target into graphName
+   put the overlay_Array of the target into overlayArray
+   
+   if dotClusterArray is an array then
+      -- put linkArray_ConstructClusterDefs (overlayArray, pGraphController) into linkSection
+      put overlayData_ConstructClusterSection (overlayArray, graphName) into linkSection
+   else
+      overlayArray_DeconstructData overlayArray, linkArray, idArray, idLinkArray, reverseIdLinkArray, dotClusterArray
+      put linkArray_DotNodeLinks (linkArray) into linkSection
+   end if
+   return linkSection
+end dot_LinkSection
 
 
 --> Dot | Overlay Array
@@ -89,79 +221,8 @@ function dot_FromArray overlayArray, pOverlayName
    return dotText
 end dot_FromArray
 
-command dot_NormalizeArray @overlayArray
-   local dotPropertyArray, graphPropertyArray
-   
-   put overlayArray ["metadata"]["graph_PropertyArray"] into graphPropertyArray
-   if graphPropertyArray ["overlay_Size"] is empty then put "full" into graphPropertyArray ["overlay_Size"]
-   if graphPropertyArray ["graph_UseInches"] is empty then put true into graphPropertyArray ["graph_UseInches"]
-   -- if graphPropertyArray ["graph_FlattenNum"] is empty then put 12 into graphPropertyArray ["graph_FlattenNum"]
-   if graphPropertyArray ["overlay_Style"] is empty then put "hierarchical" into graphPropertyArray ["overlay_Style"]
-   put graphPropertyArray into overlayArray ["metadata"]["graph_PropertyArray"]
-   
-   put overlayArray ["metadata"]["dot_PropertyArray"] into dotPropertyArray
-   -- if dotPropertyArray ["concentrate"] is empty then put true into dotPropertyArray ["concentrate"]
-   if dotPropertyArray ["shape"] is "none" then delete local dotPropertyArray ["shape"]
-   if dotPropertyArray is an array then put dotPropertyArray into overlayArray ["metadata"]["dot_PropertyArray"] 
-end dot_NormalizeArray
 
-
---> Hkey | MetaData | Dot
--
-getprop hkey_DotText [hKey]
-   -- was "linkarray_ModelDotText", then "hkey_DotText"
-   put the long id of the target into pTargetObject
-   if hKey is empty then put the displayed_Hkey of pTargetObject into hKey
-   
-   put hkey_GetLinkArray (hKey) into hkeyArray
-   linkArray_IdConstruct hkeyArray, hLinkArray, hIdArray
-   
-   put the overlay_Name of pTargetObject into graphName
-   put the dot_ClusterType of pTargetObject into dotClusterType
-   switch dotClusterType
-      case "Object"
-         put the dot_Header of pTargetObject into graphHeader
-         put hKeyArray_ConstructObjectDot (hLinkArray, hIdArray, graphName, graphHeader, pTargetObject) into dotText
-         return dotText
-      case "Nested Trac Text"
-         put the linkarray_TracGraphHeader [defaultNodeUrl] of pTargetObject into graphHeader
-         put hKeyArray_ConstructNestedObjectDot (hLinkArray, hIdArray, graphName, graphHeader, pTargetObject) into dotText
-         
-         put "{{{" & CR after tracMacro
-         put "#!graphviz" & CR after tracMacro
-         put dotText & CR after tracMacro
-         put "}}}" & CR after tracMacro
-         
-         delete char -1 of tracMacro
-         return tracMacro
-      default -- case "Nested"
-         put the dot_Header of pTargetObject into graphHeader
-         put hKeyArray_ConstructNestedObjectDot (hLinkArray, hIdArray, graphName, graphHeader, pTargetObject) into dotText
-         return dotText
-   end switch
-end hkey_DotText
-
-function hKeyArray_ConstructNestedObjectDot hLinkArray, hIdArray, graphName, graphHeader, pTargetObject
-   dot_EscapeQuotes graphName
-   if graphName is empty then put "Test" into graphName
-   
-   put hKeyArray_DotNodeSubGraphDefs (hLinkArray, hIdArray, pTargetObject) into colourDefs
-   
-   put hKeyArray_DotNestedObjectClusters(hIdArray, hLinkArray) into clusterDefs
-   put colourDefs & CR & CR & clusterDefs into defSection
-   
-   put hKeyArray_DotNodeLinks (hLinkArray, empty, pTargetObject) into linkSection
-   if defSection is empty then
-      put linkSection into nodeSection
-   else
-      put defSection & CR & CR & linkSection into nodeSection
-   end if
-   put dot_Construct(graphName, nodeSection, graphHeader) into dotText
-   return dotText
-end hKeyArray_ConstructNestedObjectDot
-
-
---> DOT
+--> Dot
 -
 function dot_TextFromSections dotHeader, defSection, clusterSection, linkSection, pOverlayName
    put dotHeader into dotSection
@@ -184,7 +245,7 @@ function dot_FromLinkArray linkArray, graphPropertyModel, graphController, pOver
    linkArray_IdConstruct linkArray, idLinkArray, idArray -- this should already be constructed and set in the global store
    put linkArray_ConstructDataArray (linkArray, idLinkArray, idArray) into OPN_LinkArray
    
-   put hkey_LinkTypeArray (idArray) into nodeTypeArray
+   put _LinkTypeArray (idArray) into nodeTypeArray
    
    if exists(graphPropertyModel) then
       if pGraphStyle is not empty then set the overlay_Style of graphPropertyModel to pGraphStyle
@@ -267,21 +328,6 @@ function dot_ConstructDefSection dotGroupStyleArray, nodeIdArray
    return defSection
 end dot_ConstructDefSection
 
-function dot_ConstructDefaultDefLine nodeID, idArray
-   -- this is a general version suitable for hkeys
-   put idArray [nodeID] into longName
-   put item 1 of longName into nodeLabel -- allows for hKey labels with several items -> but only displaying the first
-   
-   dot_MakelabelSafe nodeLabel
-   put nodeID && "[label=" & kwote(nodeLabel) into nodeDefLine
-   put urlencode (longName) into someUrl
-   
-   put space & "URL=" & kwote(someUrl) after nodeDefLine
-   
-   put "];" after nodeDefLine
-   return nodeDefLine
-end dot_ConstructDefaultDefLine
-
 
 --> Dot | Header
 -
@@ -390,32 +436,32 @@ function dot_GraphSectionToArray dotHeader
 end dot_GraphSectionToArray
 
 -- function dot_HeaderFromArrays pGraphPropertyArray, pDotPropertyArray
-   -- old way of doing things
-   put pGraphPropertyArray ["overlay_Style"] into graphStyle
-   put pGraphPropertyArray ["overlay_Size"] into graphSize
-   -- put pGraphPropertyArray ["overlay_FlattenNum"]
-   put pGraphPropertyArray ["overlay_UseInches"] into pUseInches
-   
-   put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
-   
-   put "graph [" & CR after dotHeader
-   put outline_IncreaseIndent (graphHeaderBase) & CR after dotHeader
-   put "];" & CR after dotHeader
-   
-   -- default node section
-   dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-   
-   if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
-   if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
-   if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after dotHeader
-   
-   repeat for each key someKey in dotPropertyArray
-      put dotPropertyArray [someKey] into someValue
-      put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-   end repeat
-   
-   delete last char of dotHeader
-   return dotHeader
+-- old way of doing things
+put pGraphPropertyArray ["overlay_Style"] into graphStyle
+put pGraphPropertyArray ["overlay_Size"] into graphSize
+-- put pGraphPropertyArray ["overlay_FlattenNum"]
+put pGraphPropertyArray ["overlay_UseInches"] into pUseInches
+
+put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
+
+put "graph [" & CR after dotHeader
+put outline_IncreaseIndent (graphHeaderBase) & CR after dotHeader
+put "];" & CR after dotHeader
+
+-- default node section
+dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
+
+if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
+if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
+if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after dotHeader
+
+repeat for each key someKey in dotPropertyArray
+   put dotPropertyArray [someKey] into someValue
+   put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
+end repeat
+
+delete last char of dotHeader
+return dotHeader
 end dot_HeaderFromArrays
 
 
@@ -703,13 +749,13 @@ function dot_BboxSize someRect
 end dot_BboxSize
 
 on dot_ConvertToInches @pixelSize, screenRez
-    -- was "dot_ConvertSizeToInches"
-    if screenRez is empty then put 96 into screenRez
-    set the numberformat to "0.0000"
-    repeat with itemNum = 1 to the number of items of pixelSize
-        put item itemNum of pixelSize into someNumber
-        put someNumber / screenRez  into item itemNum of pixelSize
-    end repeat
+   -- was "dot_ConvertSizeToInches"
+   if screenRez is empty then put 96 into screenRez
+   set the numberformat to "0.0000"
+   repeat with itemNum = 1 to the number of items of pixelSize
+      put item itemNum of pixelSize into someNumber
+      put someNumber / screenRez  into item itemNum of pixelSize
+   end repeat
 end dot_ConvertToInches
 
 function dot_GraphInchSize someRect, expandIfNeeded
@@ -750,16 +796,6 @@ function dot_RectFromSize graphSize
    end switch 
 end dot_RectFromSize
 
-function hkey_LinkTypeArray idArray
-   -- this is what splits the nodes into types
-   repeat for each key nodeID in idArray
-      put idArray [nodeID] into hKey
-      hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
-      array_AddToIndex nodeID, handlerType, IdTypeArray
-   end repeat
-   return IdTypeArray
-end hkey_LinkTypeArray
-
 
 --> Dot
 -
@@ -784,7 +820,7 @@ function dot_FromLinkArray linkArray, graphPropertyModel, graphController, pOver
    linkArray_IdConstruct linkArray, idLinkArray, idArray -- this should already be constructed and set in the global store
    put linkArray_ConstructDataArray (linkArray, idLinkArray, idArray) into OPN_LinkArray
    
-   put hkey_LinkTypeArray (idArray) into nodeTypeArray
+   put _LinkTypeArray (idArray) into nodeTypeArray
    
    if exists(graphPropertyModel) then
       if pGraphStyle is not empty then set the overlay_Style of graphPropertyModel to pGraphStyle
@@ -806,11 +842,6 @@ end dot_FromLinkArray
 This entire suite can be copied and customised in the same script as the linkArray_Model.
 The scripts below just represent the default behaviour.
 */
-
-getprop dot_NodeID [nodeID]
-   -- a default (Should not change it)
-   return nodeID
-end dot_NodeID
 
 function dot_ConstructNodeID nodeID, nodeDictionary, pNodeType
    -- some of these are very specific to hKeys and handlers
@@ -841,73 +872,6 @@ function dot_ConstructNodeID nodeID, nodeDictionary, pNodeType
    end switch
 end dot_ConstructNodeID
 
-
---> Dot | NodeID | Customisation | Model
--
-/*
-These properties are only used localy by the linkArray_Model to change the way nodes are named.
-They are not essential, and graphs will otherwise be drawn using the node IDs in the linkArray and hIdArray (nodeDictionary)
-*/
-
-getprop dot_NodeType [nodeID]
-   -- default value
-   put the uOPN ["dot_NodeType"] of the linkArray_Model of the target into nodeType
-   if nodeType is empty then
-      put "nodeID" into nodeType
-      set the uOPN ["dot_NodeType"] of the linkArray_Model of the target to nodeType
-   end if
-   return nodeType
-end dot_NodeType
-
-setprop dot_NodeType [nodeID] graphNodeType
-   set the uOPN ["dot_NodeType"] of the linkArray_Model of the target to graphNodeType
-end dot_NodeType
-
-getprop dot_NodeTypes
-   return the hKey_CaseConditions ["dot_ConstructNodeID,f"] of me
-end dot_NodeTypes
-
-
---> overlayArray | Sections
--
--- setprop dot_Header dotHeader
-   -- could also update arrays?
-   -- a default value, which you can override locally
-   put the dot_Text of the target into dotText
-   dot_SetHeader dotText, dotHeader
-   set the dot_Text of the target to dotText
-   return dotText
-end dot_Header
-
-getprop dot_Header [pOverlayName]
-   -- a default value, which you can override locally
-   if pOverlayName is empty then put the displayed_OverlayName of the target into pOverlayName
-   put the overlay_Array of the target into overlayArray
-   put dot_HeaderFromArray (overlayArray, pOverlayName) into dotHeader
-   return dotHeader
-end dot_Header
-
-getprop dot_DefSection [pOverlayName]
-   -- a default value, which you can override locally
-   put the overlay_Array of the target into overlayArray
-   put dot_DefSectionFromArray (overlayArray, pOverlayName) into defSection
-   return defSection
-end dot_DefSection
-
-getprop dot_LinkSection
-   put the displayed_OverlayName of the target into graphName
-   put the overlay_Array of the target into overlayArray
-   
-   if dotClusterArray is an array then
-      -- put linkArray_ConstructClusterDefs (overlayArray, pGraphController) into linkSection
-      put overlayData_ConstructClusterSection (overlayArray, graphName) into linkSection
-   else
-      overlayArray_DeconstructData overlayArray, linkArray, idArray, idLinkArray, reverseIdLinkArray, dotClusterArray
-      put linkArray_DotNodeLinks (linkArray) into linkSection
-   end if
-   return linkSection
-end dot_LinkSection
-  
 function dot_DefSectionFromArray overlayArray, pOverlayName
    local defSection
    overlayArray_DeconstructMetadata overlayArray, graphPropertyArray, dotHeaderArray, nodePropertyArray, edgePropertyArray, dotGroupStyleArray, pOverlayName
@@ -943,36 +907,36 @@ function dot_DefSectionFromArray overlayArray, pOverlayName
 end dot_DefSectionFromArray
 
 -- getprop dot_Header [headerType]
-   local dotPropertyArray
-   put the long id of the target into targetObject
-   
-   switch headerType
-      case "base"
-         put empty into dotPropertyArray
-         break
-      default
-         put the dot_HeaderArray of targetObject into dotPropertyArray
-   end switch
-   put the overlay_Size of targetObject into graphSize
-   put the overlay_Style of targetObject into graphStyle
-   -- put the overlay_UseInches of targetObject into useInches
-   put true into useInches
-   put dot_ConstructHeader (graphSize, dotPropertyArray, graphStyle, useInches) into dotHeader
-   return dotHeader
+local dotPropertyArray
+put the long id of the target into targetObject
+
+switch headerType
+   case "base"
+      put empty into dotPropertyArray
+      break
+   default
+      put the dot_HeaderArray of targetObject into dotPropertyArray
+end switch
+put the overlay_Size of targetObject into graphSize
+put the overlay_Style of targetObject into graphStyle
+-- put the overlay_UseInches of targetObject into useInches
+put true into useInches
+put dot_ConstructHeader (graphSize, dotPropertyArray, graphStyle, useInches) into dotHeader
+return dotHeader
 end dot_Header
 
 -- getprop dot_LinkSection
-   put the long id of the target into pTargetObject
-   
-   put the model_IdArray [pModelName] of modelObject into idArray
-   put the model_IdLinkArray [pModelName] of modelObject into idLinkArray
-   -- put the model_LinkArray [pModelName] of modelObject into linkArray
-   -- linkArray_IdConstruct linkArray, idLinkArray, idArray
-   
-   -- construct dot section
-   put hkey_LinkTypeArray (idArray) into nodeTypeArray
-   put hKeyArray_ConstructNodeSection (idArray, idLinkArray, pTargetObject, nodeTypeArray) into nodeSection
-   return nodeSection
+put the long id of the target into pTargetObject
+
+put the model_IdArray [pModelName] of modelObject into idArray
+put the model_IdLinkArray [pModelName] of modelObject into idLinkArray
+-- put the model_LinkArray [pModelName] of modelObject into linkArray
+-- linkArray_IdConstruct linkArray, idLinkArray, idArray
+
+-- construct dot section
+put _LinkTypeArray (idArray) into nodeTypeArray
+put hKeyArray_ConstructNodeSection (idArray, idLinkArray, pTargetObject, nodeTypeArray) into nodeSection
+return nodeSection
 end dot_LinkSection
 
 
@@ -1083,32 +1047,32 @@ function dot_GraphSectionToArray dotHeader
 end dot_GraphSectionToArray
 
 -- function dot_HeaderFromArrays pGraphPropertyArray, pDotPropertyArray
-   -- old way of doing things
-   put pGraphPropertyArray ["overlay_Style"] into graphStyle
-   put pGraphPropertyArray ["overlay_Size"] into graphSize
-   -- put pGraphPropertyArray ["overlay_FlattenNum"]
-   put pGraphPropertyArray ["overlay_UseInches"] into pUseInches
-   
-   put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
-   
-   put "graph [" & CR after dotHeader
-   put outline_IncreaseIndent (graphHeaderBase) & CR after dotHeader
-   put "];" & CR after dotHeader
-   
-   -- default node section
-   dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-   
-   if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
-   if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
-   if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after dotHeader
-   
-   repeat for each key someKey in dotPropertyArray
-      put dotPropertyArray [someKey] into someValue
-      put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-   end repeat
-   
-   delete last char of dotHeader
-   return dotHeader
+-- old way of doing things
+put pGraphPropertyArray ["overlay_Style"] into graphStyle
+put pGraphPropertyArray ["overlay_Size"] into graphSize
+-- put pGraphPropertyArray ["overlay_FlattenNum"]
+put pGraphPropertyArray ["overlay_UseInches"] into pUseInches
+
+put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
+
+put "graph [" & CR after dotHeader
+put outline_IncreaseIndent (graphHeaderBase) & CR after dotHeader
+put "];" & CR after dotHeader
+
+-- default node section
+dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
+
+if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
+if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
+if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after dotHeader
+
+repeat for each key someKey in dotPropertyArray
+   put dotPropertyArray [someKey] into someValue
+   put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
+end repeat
+
+delete last char of dotHeader
+return dotHeader
 end dot_HeaderFromArrays
 
 
@@ -1396,13 +1360,13 @@ function dot_BboxSize someRect
 end dot_BboxSize
 
 on dot_ConvertToInches @pixelSize, screenRez
-    -- was "dot_ConvertSizeToInches"
-    if screenRez is empty then put 96 into screenRez
-    set the numberformat to "0.0000"
-    repeat with itemNum = 1 to the number of items of pixelSize
-        put item itemNum of pixelSize into someNumber
-        put someNumber / screenRez  into item itemNum of pixelSize
-    end repeat
+   -- was "dot_ConvertSizeToInches"
+   if screenRez is empty then put 96 into screenRez
+   set the numberformat to "0.0000"
+   repeat with itemNum = 1 to the number of items of pixelSize
+      put item itemNum of pixelSize into someNumber
+      put someNumber / screenRez  into item itemNum of pixelSize
+   end repeat
 end dot_ConvertToInches
 
 function dot_GraphInchSize someRect, expandIfNeeded
@@ -1476,7 +1440,7 @@ private command _AddHeaderStuff @dotHeaderArray, graphPropertyArray
       default
    end switch
 end _AddHeaderStuff
-  
+
 private command _ExtractHeaderArrayDimensions headerArray, @graphWidth, @graphHeight
    put headerArray ["bb"] into bb
    if bb is empty then
@@ -1488,3 +1452,32 @@ private command _ExtractHeaderArrayDimensions headerArray, @graphWidth, @graphHe
       put item 4 of bb into graphHeight
    end if
 end _ExtractHeaderArrayDimensions
+
+private function _LinkTypeArray idArray
+   -- this is what splits the nodes into types
+   repeat for each key nodeID in idArray
+      put idArray [nodeID] into hKey
+      hkey_Deconstruct hKey, handlerName, handlerType, scriptObject, handlerNum
+      array_AddToIndex nodeID, handlerType, IdTypeArray
+   end repeat
+   return IdTypeArray
+end _LinkTypeArray
+
+private function _ConstructNestedObjectDot hLinkArray, hIdArray, graphName, graphHeader, pTargetObject
+   dot_EscapeQuotes graphName
+   if graphName is empty then put "Test" into graphName
+   
+   put hKeyArray_DotNodeSubGraphDefs (hLinkArray, hIdArray, pTargetObject) into colourDefs
+   
+   put hKeyArray_DotNestedObjectClusters(hIdArray, hLinkArray) into clusterDefs
+   put colourDefs & CR & CR & clusterDefs into defSection
+   
+   put hKeyArray_DotNodeLinks (hLinkArray, empty, pTargetObject) into linkSection
+   if defSection is empty then
+      put linkSection into nodeSection
+   else
+      put defSection & CR & CR & linkSection into nodeSection
+   end if
+   put dot_Construct(graphName, nodeSection, graphHeader) into dotText
+   return dotText
+end _ConstructNestedObjectDot

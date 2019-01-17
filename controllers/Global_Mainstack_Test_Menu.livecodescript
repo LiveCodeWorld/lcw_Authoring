@@ -36,7 +36,7 @@ end _
 
 on menu_DisplayProjectDependencyGraph scriptObject
    set the cursor to watch
-   put the textStack_ProjectOverlayFolder [true] of scriptObject into overlayFolder
+   put the project_OverlayFolder [true] of scriptObject into overlayFolder
    display_Overlay overlayFolder, "Mainstack Structure"
 end menu_DisplayProjectDependencyGraph
 

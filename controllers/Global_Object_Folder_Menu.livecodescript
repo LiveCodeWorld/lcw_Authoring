@@ -12,7 +12,7 @@ version: 0.1
 on menu_RevealFolder scriptObject, folderProp
    /*
    switch folderProp
-      case "data_Folder"
+      case "dataObject_Folder"
    end switch
    */
    
@@ -21,5 +21,5 @@ on menu_RevealFolder scriptObject, folderProp
 end menu_RevealFolder
 
 getprop folder_Props
-   return "data_Folder,textStack_Folder,-,project_Folder,overlay_Folder"
+   return "dataObject_Folder,textStack_Folder,-,project_Folder,overlay_Folder"
 end folder_Props
