@@ -22,7 +22,9 @@ Consider using a database.
 -
 getprop found_HandlerLine [shortHkey]
    put the long id of the target into targetObject
-   put hkey_FindHandlerLine (shortHkey, targetObject) into hLine
+   put true into matchPrivate
+   put stack_PathsToObjects (the stacksinUse) into externalObjects
+   put hkey_FindHandlerLine (shortHkey, targetObject, externalObjects, matchPrivate) into hLine
    return hLine
 end found_HandlerLine
 
@@ -77,27 +79,54 @@ end hkey_StartLine
 These newer handlers use the more flexible "getprop script_Hierarchy" and built on "revAvailableHandlers"
 */
 
+function hkey_FindMissing hKeys
+   hkey_SetFound hKeys, foundHkeys, stillMissing
+   return foundHkeys
+end hkey_FindMissing
+
+command hkey_SetFound hKeys, @foundHkeys, @stillMissing
+   repeat for each line hKey in hKeys
+      put hkey_Find (hKey) into foundHkey
+      if foundHkey is empty then
+         put hKey & CR after stillMissing
+      else
+         put foundHkey & CR after foundHkeys
+      end if
+   end repeat
+   delete char -1 of foundHkeys
+   delete char -1 of stillMissing
+end hkey_SetFound
+
 function hkey_Find hKey, pObject, pExternalObjects
    -- should take any form of hKey
-   -- finds the first occurence in teh default or specified script_Hierarchy
-   -- needs fully testing
-   put "Flexible" into pFindHow
+   -- finds the first occurence in the default or specified script_Hierarchy
+   -- accepts a private key match in the target object
    
    hkey_Deconstruct hKey, hName, hType, hObject, hNum
    put hKeyLine_FromTripple (hName, hType, hObject) into hkeyLine
    if pObject is empty then put hObject into pObject -- in case we use a long hKey
    
+   -- too much hierarchy logic options here
    if exists (pObject) is false then -- hopefully "Missing"
       put env_ScriptHierarchy() into objectIndex
    else
       put the hkey_ScriptHierarchy [pExternalObjects] of pObject into objectIndex
    end if
-   put hkeyLine_FindInObjects (hkeyLine, objectIndex, pFindHow) into foundHkey
+   
+   put line 1 of objectIndex into tObject
+   delete line 1 of objectIndex
+   put the revAvailableHandlers of tObject into hTable
+   put hTable_GetEither (hkeyLine, hTable, tObject) into foundHkey
+   if foundHkey is not empty then
+      return foundHkey
+   end if
+   
+   put hkeyLine_FindInObjects (hkeyLine, objectIndex, "Flexible", false) into foundHkey
    return foundHkey
 end hkey_Find
 
-function hkey_FindHandlerLine hkey, pObject, pExternalObjects
-   hkeyLine_Normalize hkey
+function hkey_FindHandlerLine hkey, pObject, pExternalObjects, pMatchPrivate
+   hkey_Normalize hkey
    
    local startLineNum, endLineNum
    if pObject is empty then
@@ -118,7 +147,7 @@ function hkey_FindHandlerLine hkey, pObject, pExternalObjects
    return empty   
 end hkey_FindHandlerLine
 
-function hkeyLine_FindInObjects hkeyLine, objectIndex, pFindHow
+function hkeyLine_FindInObjects hkeyLine, objectIndex, pFindHow, pMatchPrivate
    -- could speed up a bit by removing case condition
    local foundHkey
    
@@ -126,7 +155,7 @@ function hkeyLine_FindInObjects hkeyLine, objectIndex, pFindHow
       put the revAvailableHandlers of foundObject into hTable
       switch pFindHow
          case "Flexible"
-            put hTable_GetFlexible (hkeyLine, hTable, foundObject) into foundHkey
+            put hTable_GetFlexible (hkeyLine, hTable, foundObject, pMatchPrivate) into foundHkey
             break
          case "Either"
             put hTable_GetEither (hkeyLine, hTable, foundObject) into foundHkey

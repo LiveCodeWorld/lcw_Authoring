@@ -4,7 +4,11 @@
 license: GPLv3
 name: lib_Finder
 type: library
-version: 0.1
+version: 0.2
+
+/*
+This library contains handlers that work with the OSX finder via shell and/or Applescript.
+*/
 
 
 --> Finder | Wrappers

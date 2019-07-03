@@ -9,22 +9,17 @@ version: 0.2
 local LocalArray
 
 
---> Global | IDE | Menu
--
-on menu_BehaviorHack mTarget, ideBname
-   edit the script of stack ideBname
-   -- put hArray_GetNamedObjectType (ideBname, "behavior") into ideBehavior
-   -- edit the script of ideBehavior
-end menu_BehaviorHack
-
-on submenu_InterfaceScripts
-   return "IDE | Interface | Menu"
-end submenu_InterfaceScripts
-
-
---> Global | IDE | Menu | Props
+--> Menu | Props
 -
 getprop ide_BNames
+   return _IdeBnames()
+end ide_BNames
+
+getprop behaviorHack_Params
+   return _IdeBnames()
+end behaviorHack_Params
+   
+private function _IdeBnames
    put env_ListBehaviorPaths() into bPaths
    set the itemdelimiter to slash
    repeat for each line bPath in bPaths
@@ -36,13 +31,22 @@ getprop ide_BNames
    end repeat
    delete char -1 of bNames
    return bNames
-end ide_BNames
+end _IdeBnames
 
-getprop project_BehaviorPaths
-   put the stack_Folder of the target into projectFolder
-   put project_ListPaths ("behavior", projectFolder) into bPaths
-   return bPaths
-end project_BehaviorPaths
+
+--> Global | IDE | Menu
+-
+on menu_BehaviorHack mTarget, ideBname
+   edit the script of stack ideBname
+end menu_BehaviorHack
+
+on menu_EditOverride
+   edit the script of stack "behavior_RigLocalOveride"
+end menu_EditOverride
+
+on submenu_InterfaceScripts
+   return "IDE | Interface | Menu"
+end submenu_InterfaceScripts
 
 
 --> IDE | Interface | Menu

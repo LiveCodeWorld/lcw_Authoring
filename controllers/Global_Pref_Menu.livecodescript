@@ -245,7 +245,7 @@ end disabled_ClearGlobalPrefs
 
 --> Global | Pref | Menu | Props
 -
-getprop project_Name
+-- getprop project_Name
    put env_GetProjectFocus() into activeProjectName
    return activeProjectName
 end project_Name

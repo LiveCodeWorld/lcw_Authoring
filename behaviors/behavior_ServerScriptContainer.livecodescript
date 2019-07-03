@@ -15,21 +15,14 @@ on transportAgain
    -- put script_GetCommentAboveMe() into someJSON
    put $_POST_RAW into someJSON
    
-   /*
-   -- put json_Lint (someJSON) into someJSON
-   put fedwiki_ConstructErrorJSON (someJSON, "JSON") into errorJSON
-   fedwiki_ReturnJSON errorJSON
-   return false
-   */
-   
    put json_ToArray (someJSON) into createArray
    put createArray ["title"] into sectionTitle
    put createArray ["create"]["source"] into sourceArray
    if sourceArray is not an array then
-   put fedwiki_ConstructErrorJSON ("This is not create JSON", "Error") into errorJSON
-   fedwiki_ReturnJSON errorJSON
-   return false
-end if
+      put pageArray_Construct ("Error", "This is not create JSON") into pageArray
+      fedwiki_ReturnPageArray pageArray
+      return false
+   end if
    
    put sourceArray ["transport"] into againTransportURL
    put sourceArray ["url"] into wikipediaURL
@@ -42,45 +35,27 @@ end if
    put sourceArray ["link_Dictionary"] into linkDictionary
    put linkDictionary ["wiki_links"][sectionTitle]["section_number"] into sectionNum
    if sectionNum is not a number then
-   /*
-   put "Can't find section number for" && sectionTitle & CR & CR & sectionNum into errorJSON
-   put fedwiki_ConstructErrorJSON (errorJSON, "Not a defined section link") into errorJSON
-   fedwiki_ReturnJSON errorJSON
-   return false
-   */
-   
-   put fedwiki_FetchWikipediaSummaryPageJson (sectionTitle) into pageJSON
-   fedwiki_ReturnJSON pageJSON
-   return false
-end if
+      put fedwiki_FetchWikipediaSummaryPageJson (sectionTitle) into pageJSON
+      fedwiki_ReturnJSON pageJSON
+      return false
+   end if
    
    put linkDictionary ["default"]["transport"] into linkDefaultTransport
    put linkDictionary ["wiki_links"][sectionTitle]["transport"] into linkSpecificTransport
    
    switch linkDefaultTransport
-   case "https://livecode.world/mediawiki/importSection"
-   /*
-   put linkDictionary ["wiki_links"][sectionTitle] into errorArray
-   put json_FromArray (errorArray) into dictJSON
-   put "Found section number" && sectionNum && "for page" && kwote (pageSlug) & CR & CR & dictJSON into errorJSON
-   
-   put fedwiki_ConstructErrorJSON (errorJSON, "A defined section link") into errorJSON
-   fedwiki_ReturnJSON errorJSON
-   return false
-   */
-   
-   put fedwikipedia_FetchSectionSummaryPageJson (pageSlug, sectionNum) into pageJSON
-   fedwiki_ReturnJSON pageJSON
-   return true
-   default
-   put linkDictionary ["wiki_links"][sectionTitle] into errorArray
-   put json_FromArray (errorArray) into dictJSON
-   put "Not a defined section link for" && pageSlug && sectionNum & CR & CR & dictJSON into errorJSON
-   put fedwiki_ConstructErrorJSON (errorJSON, "Not a defined section link") into errorJSON
-   
-   fedwiki_ReturnJSON errorJSON
-   return false
-end switch
+      case "https://livecode.world/mediawiki/importSection"  
+         put fedwikipedia_FetchSectionSummaryPageJson (pageSlug, sectionNum) into pageJSON
+         fedwiki_ReturnJSON pageJSON
+         return true
+      default
+         put linkDictionary ["wiki_links"][sectionTitle] into errorArray
+         put json_FromArray (errorArray) into dictJSON
+         put "Not a defined section link for" && pageSlug && sectionNum & CR & CR & dictJSON into errorJSON
+         put pageArray_Construct ("Not a defined section link", errorJSON) into pageArray
+         fedwiki_ReturnPageArray pageArray
+         return false
+   end switch
 end transportAgain
    
 on listImages
@@ -90,8 +65,8 @@ on listImages
    put pageTitle && "Images" into imagePageTitle
    
    put imagePageTitle into pageArray ["title"]
-   put fedwiki_ConstructStoryItemArray (pageImages, "markdown") into itemArray
-   fedwiki_AddItemArrayToStoryEnd itemArray, pageArray
+   put pageArray_ConstructItemArray (pageImages, "markdown") into itemArray
+   pageArray_AddItemArray itemArray, pageArray
    put json_FromArray (pageArray) into pageJSON
    
    fedwiki_ReturnJSON pageJSON
@@ -114,15 +89,15 @@ on importSection
    put fedwiki_GetDroppedUrl ($_POST_RAW) into droppedURL
    put "^https:\/\/(..)\.wikipedia.org\/w\/index.php\?title=(.+)&action=edit&section=(.+)$" into someReg
    if matchText (droppedURL, someReg, someLang, pageTitle, sectionNum) is true then
-   set the itemdelimiter to "&"
-   put item 1 of sectionNum into sectionNum
-   
-   put fedwikipedia_FetchSectionSummaryPageJson (pageTitle, sectionNum) into pageJSON
-   fedwiki_ReturnJSON pageJSON
+      set the itemdelimiter to "&"
+      put item 1 of sectionNum into sectionNum
+      
+      put fedwikipedia_FetchSectionSummaryPageJson (pageTitle, sectionNum) into pageJSON
+      fedwiki_ReturnJSON pageJSON
    else
-   put fedwiki_ConstructErrorJSON ("Not a Wikipedia edit link!") into pageJSON
-   fedwiki_ReturnJSON pageJSON
-end if
+      put pageArray_Construct ("Error", "Not a Wikipedia edit link!") into pageArray
+      fedwiki_ReturnPageArray pageArray
+   end if
 end importSection
    
 on importImage
@@ -168,8 +143,8 @@ command fedwiki_ParseDropUrl dropJSON
          break
       default
          put "Not a link that I can parse." & CR & CR & dropJSON into someInfo
-         put fedwiki_ConstructErrorJSON (someInfo) into someJSON -- "maybe a standalone fedwiki link"
-         fedwiki_ReturnJSON someJSON
+         put pageArray_Construct ("Error", someInfo) into pageArray
+         fedwiki_ReturnPageArray pageArray
    end switch
 end fedwiki_ParseDropUrl
    
@@ -193,66 +168,56 @@ end fedwiki_ParseWikipediaThumbNail
 command fedwiki_ParseFlag droppedHtml
    put "This is Fedwiki flag, or Twins, or a Neighbour." into someText
    put CR & CR & droppedHtml after someText
-   put fedwiki_ConstructErrorJSON (someText) into errorJSON
-   fedwiki_ReturnJSON errorJSON
+   put pageArray_Construct ("Error", someText) into pageArray
+   fedwiki_ReturnPageArray pageArray
 end fedwiki_ParseFlag
-   
+
 command fedwiki_ParseExternalUrl someUrl
    -- see also mediwiki_ExtractPageSlugFromUrl
    url_Deconstruct someUrl, someProtocol, urlDomain, urlPath, shortName, fileExtension, uName, pWord
    switch
-   case urlDomain ends with ".wikipedia.org"
-   set the itemdelimiter to "/"
-   if item 1 of urlPath is not "wiki" then return empty
-   
-   -- put fedwikipedia_FetchPageJson (someUrl) into pageJSON
-   put mediwiki_ExtractPageSlugFromUrl (someUrl) into pageSlug
-   put fedwiki_FetchWikipediaSummaryPageJson (pageSlug) into pageJSON
-   
-   fedwiki_ReturnJSON pageJSON
-   break
-   default
-   html_FetchScraped someURL, tidyXML, xmlArray, treeID
-   put xmlArray ["html"]["head"]["title"] into htmlTitle
-   revDeleteXMLTree treeID
-   
-   put "Here is a wiki link for this external url that you can drag onto you page:" into someText
-   put "- [ ] [" & someURL && htmlTitle & "]" after someText
-   
-   put fedwiki_ConstructErrorJSON (someText) into errorJSON
-   fedwiki_ReturnJSON errorJSON
-end switch
+      case urlDomain ends with ".wikipedia.org"
+         set the itemdelimiter to "/"
+         if item 1 of urlPath is not "wiki" then return empty
+         
+         -- put fedwikipedia_FetchPageJson (someUrl) into pageJSON
+         put mediwiki_ExtractPageSlugFromUrl (someUrl) into pageSlug
+         put fedwiki_FetchWikipediaSummaryPageJson (pageSlug) into pageJSON
+         
+         fedwiki_ReturnJSON pageJSON
+         break
+      default
+         html_FetchScraped someURL, tidyXML, xmlArray, treeID
+         put xmlArray ["html"]["head"]["title"] into htmlTitle
+         revDeleteXMLTree treeID
+         
+         put "Here is a wiki link for this external url that you can drag onto you page:" into someText
+         put "- [ ] [" & someURL && htmlTitle & "]" after someText
+         
+         put pageArray_Construct ("Error", someText) into pageArray
+         fedwiki_ReturnPageArray pageArray
+   end switch
 end fedwiki_ParseExternalUrl
    
 command fedwiki_ParseFedwikiLink droppedURL, dropJSON
-   -- http://plugin.fedwiki.org/test-transport.html
-   -- put fedwiki_FetchTitle (droppedURL) into pageTitle -- does not work for ghost pages
    put fedwiki_FetchSitemapArray (droppedURL) into someArray
    if someArray is an array then -- let's test it
-   set the itemDelimiter to "/"
-   put item -1 of droppedURL into pageSlug
-   replace ".html" with empty in pageSlug
-   
-   -- put pageSlug into pageTitle
-   -- replace "-" with space in pageTitle
-   -- put text_InitialCaps (pageTitle) into pageTitle
-   -- put fedwikipedia_FetchPageArray (pageTitle) into fedwikiPageArray
-   
-   put fedwiki_FetchWikipediaSummaryPageArray (pageSlug) into fedwikiPageArray
-   if fedwikiPageArray is an array then
-   put json_FromArray (fedwikiPageArray) into pageJSON
+      set the itemDelimiter to "/"
+      put item -1 of droppedURL into pageSlug
+      replace ".html" with empty in pageSlug
+      
+      put fedwiki_FetchWikipediaSummaryPageArray (pageSlug) into pageArray
+      if pageArray is not an array then
+         put "The Wikipidia page for" && pageSlug && "is not one that I can parse." & CR & CR & dropJSON into someInfo
+         put pageArray_Construct ("Error", someInfo) into pageArray
+      end if
    else
-   put "The Wikipidia page for" && pageSlug && "is not one that I can parse." & CR & CR & dropJSON into someInfo
-   put fedwiki_ConstructErrorJSON (someInfo) into someJSON
-end if
-   fedwiki_ReturnJSON pageJSON
-   else
-   put "The web page for url" && droppedURL && "is not one that I can parse." & CR & CR & dropJSON into someInfo
-   put fedwiki_ConstructErrorJSON (someInfo) into someJSON
-   fedwiki_ReturnJSON someJSON
-end if
+      put "The web page for url" && droppedURL && "is not one that I can parse." & CR & CR & dropJSON into someInfo
+      put pageArray_Construct ("Error", someInfo) into pageArray
+   end if
+   fedwiki_ReturnPageArray pageArray
 end fedwiki_ParseFedwikiLink
-   
+
 command fedwiki_ParseWikipediaEditLink pageSlug, sectionNum, wikipediaUrl, someLang
    put fedwiki_FetchWikipediaSectionArray (pageSlug, sectionNum, wikipediaUrl) into fedwikiPageArray
    put json_FromArray (fedwikiPageArray) into pageJSON

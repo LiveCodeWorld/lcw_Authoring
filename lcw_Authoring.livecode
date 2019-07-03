@@ -3,61 +3,43 @@
 -
 license: GPLv3
 name: lcw_Authoring
-type: home
-version: 0.5
+type: project
+version: 0.6
 
 /*
+Modified to include lcw_Script dependency.
+
+lcw_Authoring introduces a custom initialisation routine, handeld by "_Custom"
+We display the project list with "display_LcwProjectList" 
+Add hacks to the script editor rev_AddBehaviorHacks
+And add menus with ide_SetMenuTitle.
 */
 
 
---> Project Deps
+--> Deps
 -
 getprop project_Deps
-   return "lcw,lcw_Menus,lcw_Tools"
+   return "lcw,lcw_Menus,lcw_Script,lcw_Tools"
 end project_Deps
 
 
---> Start Project
+--> Custom
 -
-on project_Init
+command project_CustomInit
    set the cursor to watch
-   set the loc of me to the screenloc
-   
-   put the filename of me into projectHomeStackFile
-   lcw_Start projectHomeStackFile
-   
-   -- these need LCW loaded above
-   put the project_Deps of of me into projectDeps   
-   project_LoadDeps projectDeps, projectHomeStackFile
-   
-   -- set the project_Start of me to true
-   project_InitialiseFolder projectHomeStackFile
-   project_LoadModules projectHomeStackFile
-   
-   -- custom
    send "display_LcwProjectList" to me in 2 ticks
-   _setAuthoringMenus
-end project_Init
-
-command lcw_Start projectHomeStackFile
-   put projectHomeStackFile into lcwHomeStackPath
-   set the itemdelimiter to slash
-   put "lcw/lcw.livecode" into item -2 to -1 of lcwHomeStackPath
-   dispatch "project_Init" to stack lcwHomeStackPath
-   -- go to stack lcwHomeStackPath
-end lcw_Start
-
-private command _setAuthoringMenus
-   set the cursor to watch
-   set the loc of me to the screenloc    
-   
+   -- 
    rev_AddBehaviorHacks true
+   
+   -- add menu options
    ide_SetMenuTitle "Recent", "Watch"
-   repeat for each item shortTitle in "Script,List"
-      ide_SetMenuTitle shortTitle, "Authoring"
-   end repeat
+   ide_SetMenuTitle "Script", "Authoring"
+   ide_SetMenuTitle "List", "Authoring"
+   
+   -- load dictionary
    ide_LoadDictionaryTerms
-end _setAuthoringMenus
+   -- set the loc of me to the screenloc
+end project_CustomInit
 
 
 --> Events
@@ -66,6 +48,20 @@ on preOpenStack
    if the short name of the defaultstack is not the short name of me then
       pass preOpenStack
    else
-      project_Init
+      lcw_Init
+      env_RecursivelyLoadProjects
    end if
 end preOpenStack
+
+
+--> Deps
+-
+command lcw_Init
+   -- make sure LCW is loaded so we can open from finder
+   set the itemdelimiter to slash
+   put the effective filename of the defaultstack into lcwHomePath
+   put "lcw/lcw.livecode" into item -2 to -1 of lcwHomePath
+   if there is a stack lcwHomePath then
+      dispatch "lcw_Init" to stack lcwHomePath
+   end if
+end lcw_Init 

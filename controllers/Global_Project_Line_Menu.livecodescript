@@ -25,26 +25,6 @@ end refreshDisplay
 
 --> Global | Project | Line | Menu
 -
-on menu_GoToWiki stackObject
-   put the short name of stackObject into scriptName
-   put "https://github.com/Himalayan-Academy/Siva-Siva-App/wiki/" & scriptName into someURL
-   launch url someURL
-end menu_GoToWiki
-
-on menu_CreateWikiPage stackObject
-   put the project_Name of stackObject & ".wiki" into wikiProjectName
-   put library_FetchProjectFolder (wikiProjectName) into wikiFolder
-   put the stack_Name of stackObject into stackName
-   put wikiFolder & stackName & ".md" into wikiPageFile
-   
-   put the github_WikiPage of stackObject into wikiMarkDown
-   put "file:" & wikiPageFile into someURL
-   put wikiMarkdown into url someURL
-end menu_CreateWikiPage
-
-on _
-end _
-
 on submenu_ProjectStack
    return "Global | Project | Stack | Menu"
 end submenu_ProjectStack

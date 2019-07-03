@@ -7,85 +7,6 @@ type: library
 version: 0.9
 
 /*
-menu_Title should probably only be hand scripted as a local getprop ???
-
-getprop menu_DefaultTitle
-   -- see also "view_MenuTitle"
-   put the long id of the target into targetObject
-   put the view_Object of targetObject into viewObject
-   if exists(viewObject) is false then put targetObject into viewObject
-   
-   put the view_Name of viewObject into viewName
-   if viewName is empty then return empty
-   
-   set the itemdelimiter to "|"
-   if the number of items of viewName > 2 then delete item -1 of viewName -- experimental (default to class of more general owner)
-   put menu_TitleFromViewName (viewName) into mTitle
-   return mTitle
-end menu_DefaultTitle
-
-getprop menu_BurntTitle
-   put the long id of the target into targetObject
-   put the view_Object of targetObject into someView
-   if exists(someView) is false then put targetObject into someView
-   
-   lock messages
-   put the menu_Title of someView into mTitle
-   unlock messages
-   return mTitle
-end menu_BurntTitle
-
-setprop menu_BurntTitle mTitle
-   put the long id of the target into targetObject
-   put the view_Object of targetObject into someView
-   if exists(someView) is false then put targetObject into someView
-   
-   get the name of someView
-   lock messages
-   set the menu_Title of someView to mTitle
-   unlock messages
-   return the result
-end menu_BurntTitle
-
-getprop menu_Title
-   -- simple version that does not refer to menu_Controller, local burn then default if empty
-   -- can be over-ridden by a menu_Title handler in the card script
-   -- so try to avoid putting these handers in a views script
-   
-   put the long id of the target into targetObject
-   put the menu_BurntTitle of targetObject into mTitle
-   if mTitle is not empty then return mTitle
-   put the menu_DefaultTitle of targetObject into mTitle
-   
-   if mTitle is empty then
-      -- quick hack
-      -- this version does not getch the first mTitle in the script as arrays are not numerically indexed
-      put the menu_DataArray of targetObject into menuDataArray
-      put keys (menuDataArray) into mTitles
-      -- sort mTitles
-      return line 1 of mTitles
-   end if
-   return mTitle
-end menu_Title
-
-getprop menu_Title
-   -- simple version that does not refer to menu_Controller, local burn then default if empty
-   -- can be over-ridden by a menu_Title handler in the card script
-   -- so try to avoid putting these handers in a views script
-   
-   put the long id of the target into targetObject
-   get the name of targetObject
-   put the menu_BurntTitle of targetObject into mTitle
-   if mTitle is not empty then return mTitle
-   put the menu_DefaultTitle of targetObject into mTitle
-   -- if mTitle is empty then put "Menu" into mTitle
-   return mTitle
-end menu_Title
-
-setprop menu_Title mTitle
-   set the menu_BurntTitle of the target to mTitle
-   return the result
-end menu_Title
 */
 
 
@@ -119,7 +40,7 @@ command menu_Edit pMenuTitle
    -- Find the place and scroll to the mTitle
    put "-->" && pMenuTitle into suiteTitle
    script_ScrollToLine suiteTitle, someScript
- end menu_Edit
+end menu_Edit
 
 command script_ScrollToLine suiteTitle, someScript
    set the wholematches to true
@@ -157,34 +78,6 @@ function menu_Exists mTitle
    put menu_GetGlobalController (mTitle) into mController
    return exists (mController)
 end menu_Exists
-
-command menu_Do mCommand, pMenuTitle, pMenuTarget, pSubMenuPath
-   -- if pMenuTitle is empty we search all loaded menus and return the first instance
-   if pMenuTarget is empty then put the long id of the target into pMenuTarget -- this is often the wrong target so set the right one with this parameter
-   
-   put menu_FindGlobalController (mCommand, pMenuTitle) into mController
-   if exists (mController) is false then
-      breakpoint
-      put menu_FindGlobalController (mCommand, pMenuTitle)
-      put menu_GetGlobalController (pMenuTitle) into mController
-      if exists (mController) then
-         edit the script of mController
-      end if
-      return empty
-   end if
-   
-   dispatch mCommand to mController with pMenuTarget,pSubMenuPath
-   switch it
-      case "handled"
-         return it
-      case "passed"
-         return it
-      case "not handled"
-         breakpoint
-         -- menu_SendMessageError tError
-         return it
-   end switch
-end menu_Do
 
 function menu_FindGlobalController mCommand, pMenuTitle
    global gLCW
@@ -268,36 +161,6 @@ setprop menu_Controller [pMenuTitle] mController
    end if
    return the result
 end menu_Controller
-
-getprop menu_Text [mTopTitle]
-   put the long id of the target into tObject
-   
-   if mTopTitle is empty then
-      if the controlkey is "Down" then
-         -- put the menu_ToolTitle of tObject into mTopTitle
-         put the menu_Title of tObject into mTopTitle
-      else
-         put the menu_Title of tObject into mTopTitle
-      end if
-   end if
-   put the menu_Controller [mTopTitle] of tObject into mTopController
-   
-   menu_DeleteActiveArray
-   menu_SetTargetObject tObject
-   menu_SetTopTitle mTopTitle
-   menu_SetTopController mTopController
-   
-   put menu_GetTextFromTitleTable (mTopTitle, tObject) into mText
-   return mText
-end menu_Text
-
-getprop menu_Array
-   put the long id of the target into mController
-   lock messages
-   put the menu_Array of mController into mArray
-   unlock messages
-   return mArray
-end menu_Array
 
 
 --> Deps | Menu | Controller
@@ -404,3 +267,4 @@ command menu_DeleteTables mController
    line_Delete "uOPN_MenuTable", setNames
    set the custompropertysets of mController to setNames
 end menu_DeleteTables
+

@@ -847,7 +847,7 @@ getprop view_ChildToolMenus
       put the mobile_Name of viewChild into viewChild
       put the menu_ToolTitle of viewChild into mTitle
       
-      put menu_MenuTextFromTitle (mTitle) into subPathBit
+      put mTitle_ConstructText (mTitle) into subPathBit
       put oTextPath & "/" & subPathBit into mTextPath
       put oTitlePath into mTitlePath
       

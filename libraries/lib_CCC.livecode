@@ -159,30 +159,30 @@ function ccc_ConvertArray cccArray, pSourceArray
    put cccArray ["pageSubTitle"] into pageSubTitle
    put cccArray ["description"] into pageDescription
    
-   put fedwiki_ConstructPageArray (pageTitle, pageSubTitle) into pageArray
+   put pageArray_Construct (pageTitle, pageSubTitle) into pageArray
    
    put ccc_ConstructVideoHtml (cccArray) into videoHTML
-   fedwiki_AddHtmlToPageArray pageArray, videoHTML
+   pageArray_AddHtml pageArray, videoHTML
    
-   fedwiki_AddMarkdownToPageArray pageArray, "# About"
+   pageArray_AddMarkdown pageArray, "# About"
    put text_StripAllTags (pageDescription) into pageDescription
-   fedwiki_AddParagraphToPageArray pageArray, pageDescription
+   pageArray_AddText pageArray, pageDescription
    
-   fedwiki_AddMarkdownToPageArray pageArray, "# Date"
+   pageArray_AddMarkdown pageArray, "# Date"
    put cccArray ["date"] into someDate
    put ccc_ConstructDateHtml (someDate, someDate) into dateDisplay
-   fedwiki_AddHtmlToPageArray pageArray, dateDisplay
+   pageArray_AddHtml pageArray, dateDisplay
    
-   fedwiki_AddMarkdownToPageArray pageArray, "# People"
+   pageArray_AddMarkdown pageArray, "# People"
    put ccc_ConstructAuthorHTML (cccArray) into pageAuthorLinks
-   fedwiki_AddHtmlToPageArray pageArray, pageAuthorLinks
+   pageArray_AddHtml pageArray, pageAuthorLinks
    
-   fedwiki_AddMarkdownToPageArray pageArray, "# Tags"
+   pageArray_AddMarkdown pageArray, "# Tags"
    put ccc_ConstructTagHTML (cccArray) into pageTagLinks
-   fedwiki_AddHtmlToPageArray pageArray, pageTagLinks
+   pageArray_AddHtml pageArray, pageTagLinks
    
    put "CCC Transporter" into pageArray ["metadata"]["author"] -- add some metadata so transported pages can be found
-   put fedwiki_ConstructJournalArray (pageTitle, pSourceArray) into pageArray ["journal"]  -- strip journal to minimum
+   put pageArray_ConstructJournal (pageTitle, pSourceArray) into pageArray ["journal"]  -- strip journal to minimum
    return pageArray
 end ccc_ConvertArray
 

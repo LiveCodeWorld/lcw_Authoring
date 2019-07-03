@@ -26,7 +26,7 @@ not nested, but in a flat namespace, derived from the rugged_ID
 function object_FetchScript objectScriptFolder
    folder_Format objectScriptFolder
    put objectScriptFolder & "script.txt" into someFile
-   put script_FetchRaw (someFile) into someScript
+   put text_Get (someFile) into someScript
    return someScript
 end object_FetchScript
 

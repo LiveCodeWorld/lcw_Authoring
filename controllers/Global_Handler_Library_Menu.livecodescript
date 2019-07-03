@@ -9,11 +9,27 @@ version: 0.1
 
 --> Global | Handler | Library | Menu
 -
-on menu_StoredDepArray hKey
-   -- fetch stored hKeyArray for hkey
-   -- turn it into a depObjectArray
+on menu_HkeyLinkArray hKey
+   put hkey_GetLinkArray (hKey) into hkeyLinkArray
+   display_Array hkeyLinkArray, "hkey_GetLinkArray (hKey)"
+end menu_HkeyLinkArray
+
+on menu_HkeyOverlayData hKey
+   put hkey_FetchOverlayData (hKey) into overlayData
+   display_Array overlayData, "hkey_FetchOverlayData (hKey)"
+   
+   /*
+   -- not working
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   put the overlay_Folder of hObject into overlayFolder
+   display_OverlayData overlayFolder
+   */
+end menu_HkeyOverlayData
+
+on menu_HkeyDepArray hKey
+   -- reads "hkey_FetchOverlayData" and displays stuff from there
    display_HkeyDepArray hKey
-end menu_StoredDepArray
+end menu_HkeyDepArray
 
 on menu_DisplayProjectDeps hKey
    hkey_Deconstruct hKey, hName, hType, hObject, hNum

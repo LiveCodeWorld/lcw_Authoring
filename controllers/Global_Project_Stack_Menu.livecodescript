@@ -52,19 +52,23 @@ on menu_TrashStack stackObject
    answer someQuestion with "OK" or "Cancel"
    if it is "Cancel" then exit to top
    
-   breakpoint
    put the filename of stackObject into longStackFile
+   
+   breakpoint
+   /*
+   -- lets not bother doing this automatically
    library_RemoveStackFromAllProjects stackObject
+   */
    
    stop using stackObject
-   set the stack_IsKnow of stack longStackFile to false -- do this for all projects ?
-   
+   set the stack_IsKnow of stackObject to false -- do this for all projects ?
+   --
    delete stackObject
    delete file longStackFile
-   
+   --
    breakpoint
    put menu_GetTargetObject() into tObject
-   put the index_View of stackObject into indexView
+   put the index_View of tObject into indexView
    if exists (indexView) then
       dispatch "refresh" to _indexView()
    end if

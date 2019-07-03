@@ -109,21 +109,21 @@ command project_Create projectFolder
    project_CreateStandardFolders projectFolder
    put project_ConstructHomeStackPath (projectFolder) into homeStackPath
    
-   put project_GetShortFolder (projectFolder) into homeStackName -- a clean default
-   create script only stack homeStackName
-   set the filename of stack homeStackName to homeStackPath
+   put project_GetShortFolder (projectFolder) into projectName -- a clean default
+   create script only stack projectName
+   set the filename of stack projectName to homeStackPath
    
-   put metadata_ConstructUripArray (homeStackName, "home") into uRipArray
-   set the script_MetaData of stack homeStackName to uRipArray
+   put metadata_ConstructUripArray (projectName, "project") into uRipArray
+   set the script_MetaData of stack projectName to uRipArray
    
    put scaffold_GetTemplate ("lcw_HomeStackScript") into templateScript
    put merge (templateScript) into lcwHomeStackScript
-   set the script of stack homeStackName to lcwHomeStackScript
+   set the script of stack projectName to lcwHomeStackScript
    
-   save stack homeStackName
+   save stack projectName
    
-   library_StoreProjectFolder homeStackName, projectFolder
-   env_SetProjectFolder homeStackName, projectFolder
+   library_StoreProjectFolder projectName, projectFolder
+   env_SetProjectFolder projectName, projectFolder
    return homeStackPath
 end project_Create
 
@@ -264,37 +264,6 @@ command project_FixStackFiles projectName
    put the result into resultArray
    return resultArray
 end project_FixStackFiles
-
-
---> Project | Names
--
-/*
-These should work with modules as well as they are considered to be subprojects with the same structure.
-
-A project or modules name is named after the home stacks name.
-So projectName of moduleName = homeStackname
-We look to naming folders the same, but allow (for now) stacks to use the pipe convention,
-which maps a stack name such as "View | Group | Test" or "View|Group|Test" <=> View_Group_Test
-The reasons for this are partly legacy and partly readability.
-*/
-
-function project_ConstructSingularType shortFolder
-   switch shortFolder
-      case "libraries"
-         return "library"
-      default
-         if char -1 of shortFolder = "s" then
-            delete char -1 of shortFolder
-         end if
-         return shortFolder
-   end switch
-end project_ConstructSingularType
-
-function project_NameToShortFile moduleName
-   put project_NameToShortFolder (moduleName) into shortFolder
-   put shortFolder & ".livecodescript" into shortFile
-   return shortFile
-end project_NameToShortFile
 
 
 --> Project | Stackfiles

@@ -13,15 +13,6 @@ See also behavior_RigLocalOveride
 
 --> Fedwiki | Overrides
 -
--- command fedwiki_ReturnError someValue, errorText
--- but here we override it (as it needs to then call fedwiki_ReturnJSON below)
-if someValue is empty then
-   put fedwiki_ConstructErrorJSON (errorText) into errorJSON
-   fedwiki_ReturnJSON errorJSON
-   exit to top
-end if
-end fedwiki_ReturnError
-
 before fedwiki_ReturnJSON pageJSON
    -- this would normally return pageJSON back to the Fedwiki client
    -- but here we override it

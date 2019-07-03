@@ -30,6 +30,15 @@ getprop menu_Version
 end menu_Version
 
 
+--> Working on
+-
+function hkey_LibraryImagetFile hKey, pOverlayName
+   put library_HandlerMetadataFolder (hKey, true) into overlayFolder
+   put overlay_GetImageFile (overlayFolder, pOverlayName) into imageFile
+   return imageFile
+end hkey_LibraryImagetFile
+
+
 --> Events
 -
 on closeField   

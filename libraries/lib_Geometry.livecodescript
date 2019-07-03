@@ -195,7 +195,6 @@ end angle_RadiansToDegrees
 --> Margins
 -
 command margin_Normalize @someMargin, @leftM, @topM, @rightM, @bottomM
-   -- fixed bug in setting bottomM when 4th item is empty
    if the number of items of someMargin < 4 then
       put item 1 of someMargin into defaultMargin
       put defaultMargin into leftM

@@ -319,7 +319,7 @@ command object_ExportScript someObject, pSomeScript, pExportHandlersAndCalls, pD
          delete file scriptFile
          return empty
       else
-         script_SaveRaw scriptFile, pSomeScript
+         text_Set scriptFile, pSomeScript
          return scriptFile
       end if
    end if
