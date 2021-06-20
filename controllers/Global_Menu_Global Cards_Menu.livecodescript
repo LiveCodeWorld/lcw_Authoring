@@ -47,7 +47,7 @@ on menu_CreateGlobalCard originalMenuController, newGlobalTitle
       set the defaultstack to "libOPN_Menus"
       create card newGlobalTitle
       put the long id of cd newGlobalTitle of stack "libOPN_Menus" into newGlobalMenuController
-      display_Menus
+      display_EnvironmentMenus
       
       if globalMenuSuites is empty then
          -- put script_ConstructSuite ("Object", newScripts) into newSuite
@@ -75,14 +75,14 @@ end menu_CreateGlobalCard
 on menu_DeleteGlobalCard scriptObject, cardName
    lcw_Answer "Are you sure you want to delete this Global Menu card?"
    delete card cardName of stack "libOPN_Menus"
-   display_Menus
+   display_EnvironmentMenus
 end menu_DeleteGlobalCard
 
 on _
 end _
 
 on menu_ReindexCards
-   display_Menus
+   display_EnvironmentMenus
 end menu_ReindexCards
 
 on menu_ReExportGlobalMenus

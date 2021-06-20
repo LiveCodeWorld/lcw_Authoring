@@ -1,10 +1,19 @@
-﻿script "Global_DepObjects_Tree_Menu"
+﻿script "Global | DepObjects | Tree | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_DepObjects_Tree_Menu
+name: Global | DepObjects | Tree | Menu
 type: controller
-version: 0.1
+version: 0.2
+
+
+--> Menu | Init
+-
+command display_HkeySvg hKey
+   put hkey_SvgFile (hKey) into svgFile
+   put hkey into stackLabel
+   display_SVG svgFile, stackLabel
+end display_HkeySvg
 
 
 --> Global | DepObjects | Tree | Menu
@@ -51,16 +60,3 @@ on menu_CreateHandlerObjectGraph indexView
    
    -- set the behavior of stack "Temp Revigniter Controllers" to the long id of stack "behavior_RigLocalOveride"
 end menu_CreateHandlerObjectGraph
-
-command display_HkeySvg hKey
-   put hkey_SvgFile (hKey) into svgFile
-   put hkey into stackLabel
-   display_SVG svgFile, stackLabel
-end display_HkeySvg
-
-
---> Global | DepObjects | Tree | Menu | Props
--
-
---> Global | DepObjects | Tree | Menu | Disabled
--

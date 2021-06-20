@@ -9,6 +9,27 @@ version: 0.2
 
 --> Old | Behavior | hArray
 -
+getprop behavior_Name
+   put the behavior of the target into behaviorObject
+   if behaviorObject is empty then return empty
+   -- put behavior_GetName (behaviorObject) into bName
+   put hArray_GetName (behaviorObject, "behavior") into bName
+   return bName
+end behavior_Name
+
+setprop behavior_Name bName
+   if bName is empty then
+      set the behavior of the target to empty
+      return empty
+   end if
+   
+   -- put behavior_GetObject (bName) into bObject - this would get either view behavior or plain behavior oject
+   put hArray_GetNamedObjectType (bName, "behavior") into bObject
+   if exists (bObject) is false then return empty
+   set the behavior of the target to bObject
+   return bObject
+end behavior_Name
+ 
 getprop behavior_Names
    put the long id of the target into targetObject
    put behavior_GetNameHierarchy (targetObject) into bNames

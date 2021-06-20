@@ -7,88 +7,14 @@ type: controller
 version: 0.1
 
 
---> Global | Handler | Library | Menu
+--> Deps
 -
-on menu_HkeyLinkArray hKey
-   put hkey_GetLinkArray (hKey) into hkeyLinkArray
-   display_Array hkeyLinkArray, "hkey_GetLinkArray (hKey)"
-end menu_HkeyLinkArray
+/*
+Sort these and see if there a newer versions.
+Most of these handlers should be deprecated.
+*/
 
-on menu_HkeyOverlayData hKey
-   put hkey_FetchOverlayData (hKey) into overlayData
-   display_Array overlayData, "hkey_FetchOverlayData (hKey)"
-   
-   /*
-   -- not working
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   put the overlay_Folder of hObject into overlayFolder
-   display_OverlayData overlayFolder
-   */
-end menu_HkeyOverlayData
-
-on menu_HkeyDepArray hKey
-   -- reads "hkey_FetchOverlayData" and displays stuff from there
-   display_HkeyDepArray hKey
-end menu_HkeyDepArray
-
-on menu_DisplayProjectDeps hKey
-   hkey_Deconstruct hKey, hName, hType, hObject, hNum
-   put the project_Name of hObject into projectName
-   put project_ListProjectDepNames (projectName)
-end menu_DisplayProjectDeps
-
-on _
-end _
-
-on menu_RevealHandlerFile hkey
-   put hkey_HandlerFile (hkey) into handlerFile
-   finder_Reveal handlerFile
-end menu_RevealHandlerFile
-
-on menu_RevealHkeyFolder hkey
-   put hkey_Folder (hkey) into hkeyFolder
-   finder_Reveal hkeyFolder
-end menu_RevealHkeyFolder
-
-on menu_RevealHandlerDataFolder hkeyLine
-   put hkey_DataFolder (hKeyLine) into hkeyDataFolder
-   finder_Reveal hkeyDataFolder
-end menu_RevealHandlerDataFolder
-
-on _
-end _
-
-on menu_SpotlightHandler hkeyLine
-   hkey_Deconstruct hkeyLine, hName, hType, hObject, hNum
-   
-   put spotlight_FindHandlerFile (hkeyLine) into handlerFile
-   if there is a file asfd then
-      atom_Edit handlerFile
-   end if
-end menu_SpotlightHandler
-
-on menu_DisplaySpotlight hkeyLine
-   display_SpotlightHandler hkeyLine
-end menu_DisplaySpotlight
-
-on menu_RevealHandlerMetadataFolder hkeyLine
-   put hkey_MetadataFolder (hKeyLine) into hkeyMetadataFolder
-   finder_Reveal hkeyMetadataFolder
-end menu_RevealHandlerMetadataFolder
-
-on _
-end _
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-
-
---> Global | Handler | Library | Menu | Props
--
-
---> Global | Handler | Library | Menu | Disabled
+--> Menu | Init
 -
 getprop disabled_DisplayProjectDeps [hKey]
    hkey_Deconstruct hKey, hName, hType, hObject, hNum
@@ -105,81 +31,9 @@ getprop disabled_RevealHandlerFile [hkey]
    if there is a file handlerFile then
       return false
    else
-      put handlerFile
       return true
    end if
 end disabled_RevealHandlerFile
-
-
---> Dev | Menu
--
-on menu_AddHandlerToLibrary hKey
-   library_AddHkey hKey
-   display_Hkey hKey, "project"
-   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
-   lcw_Notify someComment
-end menu_AddHandlerToLibrary
-
-on menu_ReplaceHandlerInLibrary hKey
-   library_AddHkey hKey
-   display_Hkey hKey, "project"
-   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
-   lcw_Notify someComment
-end menu_ReplaceHandlerInLibrary
-
-on menu_FetchProjectHandler hKey
-   put project_FetchHandler (hKey) into someHandler
-   script_CreateAndEditHashCard someHandler
-end menu_FetchProjectHandler
-
-on _
-end _
-
-on menu_AddHandlerToLibrary hKey
-   library_AddHkey hKey
-   
-   display_Hkey hKey, "project"
-   put merge ("Added handler 'hKey' to the handler library!") into someComment
-   lcw_Notify someComment
-end menu_AddHandlerToLibrary
-
-on menu_EditHandler hKey
-   hkey_Edit hKey
-end menu_EditHandler
-
-on menu_EditHandlerHelp hKey
-   put hkey_FetchHelp (hKey) into helpText
-   put lcw_Ask ("Edit the help text...", helpText) into helpText
-   hkey_StoreHelp hKey, helpText
-end menu_EditHandlerHelp
-
-on menu_RevealHandlerHelpFile hKey
-   put hkey_HelpFile (hKey) into someFile
-   finder_Reveal someFile
-end menu_RevealHandlerHelpFile
-
-on _
-end _
-
-on menu_FetchDeps hKey, fetchHow
-   set the cursor to watch
-   put hkey_FetchDeps (hKey, fetchHow) into hKeyDeps
-   put hKeyDeps
-end menu_FetchDeps
-
-on menu_FilteredLibraryDeps hKey
-   local hKeyArray
-   hkey_RecurseCallArray hKey, hkeyArray
-   display_HKeyArray hKeyArray, hkey
-end menu_FilteredLibraryDeps
-
-
---> Deps
--
-/*
-Sort these and see if there a newer versions.
-Most of these handlers should be deprecated.
-*/
 
 command library_AddHkey hKey, pHandler, pForceAdd
    -- these library handlers seem old. Exported the tmporarily to handler formlder in documents.
@@ -297,3 +151,142 @@ function hkey_ExportStatus hKey, pHandlerScript
    end switch
 end hkey_ExportStatus
 
+
+--> Global | Handler | Library | Menu
+-
+on menu_HkeyLinkArray hKey
+   put hkey_GetLinkArray (hKey) into hkeyLinkArray
+   display_Array hkeyLinkArray, "hkey_GetLinkArray (hKey)"
+end menu_HkeyLinkArray
+
+on menu_HkeyOverlayData hKey
+   put hkey_FetchOverlayData (hKey) into overlayData
+   display_Array overlayData, "hkey_FetchOverlayData (hKey)"
+   
+   /*
+   -- not working
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   put the overlay_Folder of hObject into overlayFolder
+   display_OverlayData overlayFolder
+   */
+end menu_HkeyOverlayData
+
+on menu_HkeyDepArray hKey
+   -- reads "hkey_FetchOverlayData" and displays stuff from there
+   display_HkeyDepArray hKey
+end menu_HkeyDepArray
+
+on menu_DisplayProjectDeps hKey
+   hkey_Deconstruct hKey, hName, hType, hObject, hNum
+   put the project_Name of hObject into projectName
+   put project_ListProjectDepNames (projectName)
+end menu_DisplayProjectDeps
+
+on _
+end _
+
+on menu_RevealHandlerFile hkey
+   put hkey_HandlerFile (hkey) into handlerFile
+   finder_Reveal handlerFile
+end menu_RevealHandlerFile
+
+on menu_RevealHkeyFolder hkey
+   put hkey_Folder (hkey) into hkeyFolder
+   finder_Reveal hkeyFolder
+end menu_RevealHkeyFolder
+
+on menu_RevealHandlerDataFolder hkeyLine
+   put hkey_DataFolder (hKeyLine) into hkeyDataFolder
+   finder_Reveal hkeyDataFolder
+end menu_RevealHandlerDataFolder
+
+on _
+end _
+
+on menu_SpotlightHandler hkeyLine
+   hkey_Deconstruct hkeyLine, hName, hType, hObject, hNum
+   
+   put spotlight_FindHandlerFile (hkeyLine) into handlerFile
+   if there is a file asfd then
+      atom_Edit handlerFile
+   end if
+end menu_SpotlightHandler
+
+on menu_DisplaySpotlight hkeyLine
+   display_SpotlightHandler hkeyLine
+end menu_DisplaySpotlight
+
+on menu_RevealHandlerMetadataFolder hkeyLine
+   put hkey_MetadataFolder (hKeyLine) into hkeyMetadataFolder
+   finder_Reveal hkeyMetadataFolder
+end menu_RevealHandlerMetadataFolder
+
+on _
+end _
+
+on submenu_Dev
+   return "Dev | Menu"
+end submenu_Dev
+
+
+--> Dev | Menu
+-
+on menu_AddHandlerToLibrary hKey
+   library_AddHkey hKey
+   display_Hkey hKey, "project"
+   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
+   lcw_Notify someComment
+end menu_AddHandlerToLibrary
+
+on menu_ReplaceHandlerInLibrary hKey
+   library_AddHkey hKey
+   display_Hkey hKey, "project"
+   put merge ("Added handler '[[item 1 to 2 of hKey]]' to the handler library!") into someComment
+   lcw_Notify someComment
+end menu_ReplaceHandlerInLibrary
+
+on menu_FetchProjectHandler hKey
+   put project_FetchHandler (hKey) into someHandler
+   script_CreateAndEditHashCard someHandler
+end menu_FetchProjectHandler
+
+on _
+end _
+
+on menu_AddHandlerToLibrary hKey
+   library_AddHkey hKey
+   
+   display_Hkey hKey, "project"
+   put merge ("Added handler 'hKey' to the handler library!") into someComment
+   lcw_Notify someComment
+end menu_AddHandlerToLibrary
+
+on menu_EditHandler hKey
+   hkey_Edit hKey
+end menu_EditHandler
+
+on menu_EditHandlerHelp hKey
+   put hkey_FetchHelp (hKey) into helpText
+   put lcw_Ask ("Edit the help text...", helpText) into helpText
+   hkey_StoreHelp hKey, helpText
+end menu_EditHandlerHelp
+
+on menu_RevealHandlerHelpFile hKey
+   put hkey_HelpFile (hKey) into someFile
+   finder_Reveal someFile
+end menu_RevealHandlerHelpFile
+
+on _
+end _
+
+on menu_FetchDeps hKey, fetchHow
+   set the cursor to watch
+   put hkey_FetchDeps (hKey, fetchHow) into hKeyDeps
+   put hKeyDeps
+end menu_FetchDeps
+
+on menu_FilteredLibraryDeps hKey
+   local hKeyArray
+   hkey_RecurseCallArray hKey, hkeyArray
+   display_HKeyArray hkey, hKeyArray
+end menu_FilteredLibraryDeps

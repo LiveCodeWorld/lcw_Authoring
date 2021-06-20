@@ -33,7 +33,7 @@ command shell_TextFile someFile
       put "edit" && kwote(someFile) into someShell
    end if
    put shell (SomeShell) into shellResult
-   opn_Notify shellResult
+   lcw_Notify shellResult
 end shell_TextFile
 
 
@@ -43,7 +43,7 @@ command atom_Edit someFile
    if there is a file someFile then
       atom_DisplayFile someFile
    else
-      atom_DisplayText someText
+      atom_DisplayText someFile
    end if
 end atom_Edit
 

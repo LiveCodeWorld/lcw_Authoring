@@ -1,27 +1,37 @@
-﻿script "Global_View_Property_Menu"
+﻿script "Global | View | Style | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global | View | Property | Menu
+name: Global | View | Style | Menu
 type: controller
 version: 0.2
 
 
 --> Menu | Props
 -
--- local ViewPropertyMenu
-
-getprop menu_Target
-   put menu_GetTargetObject() into tObject
+getprop menu_Target [tObject]
+   -- put menu_GetTargetObject() into tObject
    put the index_View of tObject into indexView
    put the displayed_Object of indexView into viewObject
    return viewObject
 end menu_Target
 
+getprop some_Props [mTarget]
+   -- put the name of mTarget
+   put the view_PropertyMenu of mTarget into viewPropertyMenu
+   return viewPropertyMenu
+end some_Props
 
---> Global | View | Property | Menu
--
-on menu_ViewProperty someView, someProp
+getprop viewProperty_Props [mTarget]
+   put the view_PropertyMenu of mTarget into viewPropertyMenu
+   return viewPropertyMenu
+end viewProperty_Props
+   
+   
+   
+   --> Global | View | Property | Menu
+   -
+   on menu_ViewProperty someView, someProp
    view_DoPropertyMenu someProp, someView
 end menu_ViewProperty
 
@@ -65,26 +75,6 @@ end _
 on submenu_Dev
    return "Dev | Menu"
 end submenu_Dev
-
-
---> Global | View | Property | Menu | Props
--
-
-
---> Global | View | Property | Menu | Disabled
--
-
---> Global | View | Property | Menu | Helpers
--
-getprop some_Props [mTarget]
-   -- put the name of mTarget
-   put the view_PropertyMenu of mTarget into viewPropertyMenu
-   return viewPropertyMenu
-end some_Props
-
-command deleteTemplateArray
-   put the params
-end deleteTemplateArray
 
 
 --> Global | View | Style | Menu
@@ -212,4 +202,3 @@ command tree_BackspaceKey treeField
    put array_ToOutline (someArray) into someOutline
    set the tree_Outline of treeField to someOutline
 end tree_BackspaceKey
-

@@ -4,110 +4,62 @@
 license: GPLv3
 name: Global | Project | Line | Menu
 type: controller
+target: libraryStack
 version: 0.2
 
---> Variables
+
+--> Menu | Init
 -
 local LocalArray
 
-
---> Display
--
-private command refreshDisplay projectName
-   lock screen
-   put LocalArray ["indexView"] into indexView   
-   put project_ListUsedStackNames (projectName) into usedStackNames
-   set the view_Index of indexView to usedStackNames
-   set the title_Text of indexView to projectName
-   unlock screen
-end refreshDisplay
-
-
---> Global | Project | Line | Menu
--
-on submenu_ProjectStack
-   return "Global | Project | Stack | Menu"
-end submenu_ProjectStack
-
-on _
-end _
-
-on menu_MoveUsed stackObject, newProjectName
-   put the project_Name of stackObject into oProjectName
-   if oProjectName = newProjectName then
-      answer warning merge ("Stack is already in project '[[newProjectName]]'. Choose a new project to move this library to!")
-      exit to top
+on menu_Init tObject
+   put the selected_Line of tObject into libStackName
+   put the title_Text of tObject into oProjectName
+   --
+   put libStackName into LocalArray ["libStackName"]
+   put oProjectName into LocalArray ["oProjectName"]
+   --
+   if exists (stack libStackName) then
+      put the name of stack libStackName into libraryStack
+      put libraryStack into LocalArray ["libraryStack"]
    end if
-   
-   put the short name of stackObject into stackName
-   project_MoveStackRelative stackName, newProjectName
-   
-   lcw_Notify merge ("Moved library to new project '[[newProjectName]]'!")
-   
-   -- refreshDisplay newProjectName
-   display_RefreshProjectLibs oProjectName
-   display_ProjectLibs newProjectName
-end menu_MoveUsed
+end menu_Init
 
-on menu_StackIsUsed stackObject, someBoolean
-   if someBoolean is true then
-      start using stackObject 
-   else
-      stop using stackObject
-   end if
-end menu_StackIsUsed
+getprop menu_Target [tObject]
+   return LocalArray ["libraryStack"]
+end menu_Target
 
-on _
-end _
-
-on menu_DisplayScriptObject stackObject
-   display_ScriptObject stackObject
-end menu_DisplayScriptObject
-   
-on menu_DisplayStackDeps stackObject
-   display_StackDeps stackObject
-end menu_DisplayStackDeps
-
-on _
-end _
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-
---> Global | Project | Line | Menu | Props
--
-getprop multiple_Hilites [indexView]
-   put the multiple_Hilites of indexView into someBoolean
-   return someBoolean
-end multiple_Hilites
-
-getprop new_ProjectName [stackObject]
-   put the project_Name of stackObject into projectName
+getprop moveUsed_Param [libraryStack]
+   put the project_Name of libraryStack into projectName
    return projectName
-end new_ProjectName
+end moveUsed_Param
 
-getprop new_ProjectNames
-   return library_ListProjectNames()
-end new_ProjectNames
+getprop moveUsed_Params [libraryStack]
+   put LocalArray ["oProjectName"] into oProjectName
+   put library_ListProjectNames() into projectNames
+   
+   -- don't move the library to the project it is already index_ConstructUnique(someIndex)
+   line_Delete oProjectName, projectNames
+   return projectNames
+end moveUsed_Params
 
-getprop stack_IsUsed [stackObject]
-   put the short name of stackObject into stackName
+getprop stackIsUsed_Param [libraryStack]
+   put the short name of libraryStack into stackName
    put stackName is among the lines of the stacksinuse into someBoolean
    return someBoolean
-end stack_IsUsed
+end stackIsUsed_Param
 
-getprop model_ShortFiles [stackObject]
-   put the model_Names of stackObject into shortFiles
+getprop stackIsUsed_Params
+   return "true,false"
+end stackIsUsed_Params
+
+getprop displayModelData_ShortFiles [libraryStack]
+   put the model_Names of libraryStack into shortFiles
    return shortFiles
-end model_ShortFiles
+end displayModelData_ShortFiles
 
-
---> Global | Project | Line | Menu | Disabled
--
-getprop disabled_DisplayModelData [stackObject]
-   put the short name of stackObject into modelName
+getprop disabled_DisplayModelData [libraryStack]
+   put the short name of libraryStack into modelName
    set the itemdelimiter to "_"
    if item 1 of modelName is "model" then
       return false
@@ -117,31 +69,102 @@ getprop disabled_DisplayModelData [stackObject]
 end disabled_DisplayModelData
 
 
+--> Global | Project | Line | Menu
+-
+on menu_DisplayProject libraryStack
+   put the project_Name of libraryStack into projectName
+   --
+   display_ProjectLibs projectName
+end menu_DisplayProject
+
+on submenu_ProjectStack
+   return "Global | Project | Stack | Menu"
+end submenu_ProjectStack
+
+on _
+end _
+
+on menu_MoveUsed libraryStack, newProjectName
+   put the project_Name of libraryStack into oProjectName
+   put the short name of libraryStack into libStackName
+   --
+   put LocalArray ["libStackName"] into libStackName
+   put LocalArray ["oProjectName"] into oProjectName
+   --
+   switch
+      case newProjectName is empty
+         lcw_AnswerWarning "Something went wront with script. This menu item is supposed to list new project names?"
+      case oProjectName = newProjectName
+         lcw_AnswerWarning merge ("Stack is already in project '[[newProjectName]]'. Choose a new project to move this library to!")
+   end switch
+   
+   project_MoveStackRelative libStackName, newProjectName
+   --
+   lcw_Notify merge ("Moved library to new project '[[newProjectName]]'!")
+   --
+   display_ProjectLibs oProjectName
+   display_ProjectLibs newProjectName
+end menu_MoveUsed
+
+on menu_StackIsUsed libraryStack, someBoolean
+   if someBoolean is true then
+      start using libraryStack 
+   else
+      stop using libraryStack
+   end if
+end menu_StackIsUsed
+
+on _
+end _
+
+on menu_TrashStack libraryStack
+   display_AskProjectTrashStack libraryStack
+end menu_TrashStack
+
+on _
+end _
+
+on submenu_Dev
+   return "Dev | Menu"
+end submenu_Dev
+
+
 --> Dev | Menu
 -
-on menu_DisplayModelData stackObject, modelShortFile
-   put the short name of stackObject into modelName
-   put the model_Array [modelShortFile] of stackObject into modelArray
+on menu_DisplayScriptObject libraryStack
+   display_ScriptObject libraryStack
+end menu_DisplayScriptObject
+
+on menu_DisplayStackDeps libraryStack
+   display_StackDeps libraryStack
+end menu_DisplayStackDeps
+
+on _
+end _
+
+on menu_DisplayModelData libraryStack, modelShortFile
+   put the short name of libraryStack into modelName
+   put the model_Array [modelShortFile] of libraryStack into modelArray
    
    put "model_Array" & comma & modelName into someTitle
    display_Array modelArray, someTitle
 end menu_DisplayModelData
 
-on menu_ModelDataFolder stackObject
-   put the model_DataFolder of stackObject into modelDataFolder
+on menu_ModelDataFolder libraryStack
+   put the model_DataFolder of libraryStack into modelDataFolder
    finder_Reveal modelDataFolder
 end menu_ModelDataFolder
 
 on _
 end _
-   
-on menu_ShortCallArray stackObject
-   display_ScriptCallArray stackObject
+
+on menu_ShortCallArray libraryStack
+   display_ScriptCallArray libraryStack
 end menu_ShortCallArray
 
-on menu_ScriptCalls stackObject
-   put the script_Calls of stackObject into scriptCalls
-   put merge ("the script_Calls,[[stackObject]]") into someTitle
+on menu_ScriptCalls libraryStack
+   put the script_Calls of libraryStack into scriptCalls
+   put merge ("the script_Calls,[[libraryStack]]") into someTitle
    display_Index scriptCalls, someTitle, "Global | Handler | Calls | Menu"
    put the result into displayView
    set the multiple_Hilites of displayView to true
@@ -150,28 +173,24 @@ end menu_ScriptCalls
 on _
 end _
 
-on menu_ExportHandlersAndCalls stackObject
-   script_ExportHandlersAndCalls stackObject, true
+on menu_ExportHandlersAndCalls libraryStack
+   script_ExportHandlersAndCalls libraryStack, true
    
-   menu_ShortHkeyArray stackObject
+   menu_ShortHkeyArray libraryStack
 end menu_ExportHandlersAndCalls
-
-on menu_MultipleHilites indexView, someBoolean
-   set the multiple_Hilites of indexView to someBoolean
-end menu_MultipleHilites
 
 
 --> Display | ScriptCall
 -
-private command display_ScriptCallArray stackObject
-   put the script_CallArray [true] of stackObject into scriptCallArray
-   put merge ("the script_CallArray,[[stackObject]]") into someTitle
+private command display_ScriptCallArray libraryStack
+   put the script_CallArray [true] of libraryStack into scriptCallArray
+   put merge ("the script_CallArray,[[libraryStack]]") into someTitle
    
    put "Global | HkeyArray | Tree | Deps | Menu" into mTitle
    put "Global | HkeyArray | Menu" into mLineTitle
    display_Array scriptCallArray, someTitle, mTitle, mLineTitle, "checkCall", "checkCall"
    put the result into treeView
-   set the displayed_Object of treeView to stackObject
+   set the displayed_Object of treeView to libraryStack
    return treeView
 end display_ScriptCallArray
 
@@ -185,17 +204,3 @@ command checkCall treeView, hObject, treePath
    put shortParent & CR & shortCall & comma & parentObject
 end checkCall
 
-
---> Menu | Props
--
-on menu_Init
-   put menu_GetTargetObject() into tObject
-   put the index_View of tObject into LocalArray ["indexView"]
-end menu_Init
-
-getprop menu_Target [mTitle]
-   put menu_GetTargetObject() into tObject
-   put the selected_Index of tObject into stackName
-   put the name of stack stackName into stackObject
-   return stackObject
-end menu_Target

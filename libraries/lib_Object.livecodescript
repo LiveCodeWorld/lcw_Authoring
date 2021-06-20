@@ -18,11 +18,105 @@ non-OOP file for speed optimisation or other reasons.
 */
 
 
+--> Working on
+-
+getprop mobile_Name
+   put the long id of the target into tObject
+   --
+   put the name of tObject into mobileObject
+   put the stack_Object of tObject into stackObject
+   --
+   if the number of cards of stackObject > 1 then
+      put the name of the card_Object of tObject into cardObject
+      put " of" && cardObject after mobileObject
+   end if
+   --
+   put " of" && stackObject after mobileObject
+   --
+   return mobileObject
+end mobile_Name
+
+getprop rugged_ID
+   -- could also be called "rugged_Object"
+   put the long id of the target into pObject
+   put revRuggedId (pObject) into ruggedObject
+   return ruggedObject
+end rugged_ID
+
+getprop stack_Object
+   put the long ID of the target into targetObject
+   get object_ExtractStack (targetObject)
+   return it
+end stack_Object
+
+getprop stack_SubName [subStackStem]
+   if subStackStem is empty then put "OPN SubStack" into subStackStem
+   put the stack_Object of the target into stackObject
+   put the mainstack of stackObject into mainStackName
+   put mainStackName & "|" & subStackStem into subStackName
+   return subStackName
+end stack_SubName
+
+getprop mobile_ID
+   put the long name of the target into targetObject
+   put the short ID of targetObject into someID
+   
+   if word 1 of targetObject is "stack" then
+      put targetObject into longStackObject
+   else
+      put object_ExtractStack(targetObject) into stackObject
+      put word 1 of targetObject && "id" && someID && "of" && stackObject into longStackObject
+   end if
+   object_SetShortStackName longStackObject, mainStackStart, mainStackEnd
+   return longStackObject
+end mobile_ID
+
+getprop object_MobileID
+   put the long ID of the target into mobileObject
+   object_SetShortStackName mobileObject, mainStackStart, mainStackEnd
+   return mobileObject
+end object_MobileID
+
+getprop object_LocalID
+   put the long ID of the target into someObject
+   object_SetShortStackName someObject, mainStackStart, mainStackEnd
+   object_WithinStackReference someObject
+   return someObject
+end object_LocalID
+
+getprop mobile_ControlName
+   put the name of the target into nameObject
+   put the stack_Name of the target into stackName
+   return nameObject && "of stack" && kwote(stackName)
+end mobile_ControlName
+
+
+--> Object | Props
+-
+getprop object_IsView
+   put the uRIP ["type"] of the target into vName
+   return vName is not empty
+end object_IsView
+
+function object_GetGroupControls someGroup, nested
+   -- update to use get the childControlIDs of group
+   put empty into myControls
+   repeat with controlNum = 1 to the number of controls in someGroup
+      put the long ID of control controlNum of someGroup into controlObject
+      if nested is not true and word 1 of controlObject is "group" then
+         add the number of layers in controlObject to controlNum
+      end if
+      put controlObject & CR after myControls
+   end repeat
+   delete last char of myControls
+   return myControls
+end object_GetGroupControls
+
+
 --> Group
 -
 /*
 A lot of the handlers here should be renamed to "group_" as it is more intuitive and the name space is pretty crowded.
-
 */
 
 getprop group_Buttons
@@ -56,40 +150,9 @@ getprop top_Card
    return cardObject
 end top_Card
 
-getprop top_Controls
-   put the long ID of the target into targetObject
-   return object_GetGroupControls (targetObject, false)
-end top_Controls
 
-getprop top_Groups
-   put the childControlIDs of the target into someIDs
-   repeat for each line someID in someIDs
-      put the long id of control id someID into testObject
-      if word 1 of testObject = "group" then
-         put testObject & CR after testObjects
-      end if
-   end repeat
-   delete char -1 of testObjects
-   return testObjects
-end top_Groups
-
-getprop top_GroupNames
-   put the childControlIDs of the target into someIDs
-   repeat for each line someID in someIDs
-      put the long id of control id someID into testObject
-      if word 1 of testObject = "group" then
-         put the short name of testObject & CR after groupNameIndex
-      end if
-   end repeat
-   delete char -1 of groupNameIndex
-   return groupNameIndex
-end top_GroupNames
-
-getprop top_Views
-   put the long ID of the target into groupOrCard
-   return object_GetTopViews (groupOrCard)
-end top_Views
-
+--> Top | Control
+-
 getprop top_Control [pName]
    put the childcontrolids of the target into topControlIDs
    switch
@@ -112,10 +175,117 @@ getprop top_Control [pName]
    end switch
 end top_Control
 
-getprop object_TopControls
-   put the long ID of the target into targetObject
-   return object_GetGroupControls(targetObject, false)
-end object_TopControls
+getprop top_Controls
+   local tObjects
+   put the childcontrolids of the target into topControlIDs
+   repeat for each line cID in topControlIDs
+      put the long id of control id cID into tObject
+      put tObject & CR after tObjects
+   end repeat
+   delete char -1 of tObjects
+   return tObjects
+end top_Controls
+
+
+--> Top | View
+-
+getprop top_View
+   -- this is the default value for a view
+   -- which is the top (highest) someView in the current layout
+   
+   put the long id of the target into testGroup
+   put view_HierarchyObjects (testGroup) into groupHierarchy
+   put line 1 of groupHierarchy into topView
+   return topView
+end top_View
+
+getprop top_Views
+   local topViews
+   put the childcontrolids of the target into topControlIDs
+   repeat for each line cID in topControlIDs
+      put the long id of control id cID into tObject
+      if the object_IsView of tObject is true then
+         put tObject & CR after topViews
+      end if
+   end repeat
+   delete char -1 of topViews
+   return topViews
+end top_Views
+
+getprop top_ViewObjects
+   local viewObjects
+   put the long id of the target into tObject
+   put the childControlIDs of tObject into topCardDs
+   repeat for each line cID in topCardDs
+      put the long id of control id cID into viewObject
+      put viewObject & CR after viewObjects
+   end repeat
+   delete char -1 of viewObjects
+   return viewObjects
+end top_ViewObjects
+
+getprop top_Groups
+   local testObjects
+   put the childControlIDs of the target into someIDs
+   repeat for each line someID in someIDs
+      put the long id of control id someID into testObject
+      if word 1 of testObject = "group" then
+         put testObject & CR after testObjects
+      end if
+   end repeat
+   delete char -1 of testObjects
+   return testObjects
+end top_Groups
+
+getprop top_GroupNames
+   local groupNameIndex
+   put the childControlIDs of the target into someIDs
+   repeat for each line someID in someIDs
+      put the long id of control id someID into testObject
+      if word 1 of testObject = "group" then
+         put the short name of testObject & CR after groupNameIndex
+      end if
+   end repeat
+   delete char -1 of groupNameIndex
+   return groupNameIndex
+end top_GroupNames
+
+
+--> Object | Top
+-
+function object_GetTopViews groupOrCard
+   put the top_Controls of groupOrCard into topControls
+   put empty into topViews
+   repeat for each line someObject in topControls
+      if the object_IsView of someObject is true then
+         put someObject & CR after topViews
+      end if
+   end repeat
+   delete last char of topViews
+   return topViews
+end object_GetTopViews
+
+getprop top_Control [pName]
+   put the childcontrolids of the target into topControlIDs
+   switch
+      case pName is empty
+         put line 1 of topControlIDs into cID
+         if cID is empty then return empty
+         return the long id of control id cID of the target
+      case pName is a number
+         put line pName of topControlIDs into cID
+         if cID is empty then return empty
+         return the long id of control id cID of the target
+      default
+         repeat for each line cID in topControlIDs
+            put the long id of control id cID of the target into topControl
+            if the short name of topControl = pName then
+               return topControl
+            end if
+         end repeat
+         return empty
+   end switch
+end top_Control
 
 getprop object_TopViews
    put the long ID of the target into groupOrCard
@@ -157,7 +327,7 @@ function object_TopLevelGroup someCard, testGroupName
 end object_TopLevelGroup
 
 function object_GetTopViews groupOrCard
-   put the object_TopControls of groupOrCard into topControls
+   put the top_Controls of groupOrCard into topControls
    put empty into topViews
    repeat for each line someObject in topControls
       if the object_IsView of someObject is true then
@@ -739,7 +909,7 @@ end field_Text
 setprop field_Text [charOffsets] someText
    put the long ID of the target into someField
    
-   if charOffsets is eempty then
+   if charOffsets is empty then
       put "set the text of someField to someHtml" into doScript
    else
       put item 1 of charOffsets into startChar
@@ -753,7 +923,7 @@ end field_Text
 getprop field_HtmlText [charOffsets]
    put the long ID of the target into someField
    
-   if charOffsets is eempty then
+   if charOffsets is empty then
       put "get the htmltext of someField" into doScript
    else
       put item 1 of charOffsets into startChar
@@ -1260,24 +1430,6 @@ end object_IsHiddenByAnotherControl
 
 --> Object | Tests
 -
-getprop object_IsView
-   put the long ID of the target into targetObject
-   
-   -- chould use custom property (but easy to have errors can't see?)
-   -- put the uRIP ["type"] of targetObject
-   
-   -- so lets use the fact that the script contains getprop view_Object handler
-   put the script of targetObject into someScript
-   put the parentscript of targetObject into parentScriptObject
-   if exists(parentScriptObject) then
-      put CR & CR & the script of parentScriptObject after someScript
-   end if
-   put script_ExtractGetPropHandlers(someScript) into getPropHandlerIndex
-   
-   set the wholeMatches to true
-   return "view_Object" is among the lines of getPropHandlerIndex
-end object_IsView
-
 getprop object_IsWithinView
    -- a view which is a shared background would intercept view_object
    -- this script then tests if it is actually within the view and not just on message path of "view_Object
@@ -1369,39 +1521,6 @@ function object_ExtractStack someObject
    put word (wordOffset ("stack", someObject)) to -1 of someObject into stackObject
    return stackObject
 end object_ExtractStack
-
-getprop mobile_ID
-   put the long name of the target into targetObject
-   put the short ID of targetObject into someID
-   
-   if word 1 of targetObject is "stack" then
-      put targetObject into longStackObject
-   else
-      put object_ExtractStack(targetObject) into stackObject
-      put word 1 of targetObject && "id" && someID && "of" && stackObject into longStackObject
-   end if
-   object_SetShortStackName longStackObject, mainStackStart, mainStackEnd
-   return longStackObject
-end mobile_ID
-
-getprop object_MobileID
-   put the long ID of the target into mobileObject
-   object_SetShortStackName mobileObject, mainStackStart, mainStackEnd
-   return mobileObject
-end object_MobileID
-
-getprop object_LocalID
-   put the long ID of the target into someObject
-   object_SetShortStackName someObject, mainStackStart, mainStackEnd
-   object_WithinStackReference someObject
-   return someObject
-end object_LocalID
-
-getprop mobile_ControlName
-   put the name of the target into nameObject
-   put the stack_Name of the target into stackName
-   return nameObject && "of stack" && kwote(stackName)
-end mobile_ControlName
 
 command object_WithinStackReference @someObject
    -- was "object_SetIdReference"
@@ -1578,7 +1697,7 @@ function object_FolderOfStack someObject,  localPath
    return someFolder
 end object_FolderOfStack
 
-command object_GoTo someObject, pStackVisible
+command object_GoTo someObject, pMakeVisible
    if exists (someObject) is false then return merge("Error, [[someObject]] does not exist")
    
    put the stack_Name of someObject into stackName
@@ -1589,8 +1708,16 @@ command object_GoTo someObject, pStackVisible
       put the short id of cardObject into cardID
       go to card id cardID of stack stackName
    end if
-   -- stack_SetToMainScreen stackName
-   show stack stackName
+   --
+   put the result into goResult
+   if goResult is not empty then
+      breakpoint
+   end if
+   --
+   if pMakeVisible is true then
+      stack_SetToMainScreen stackName
+      show stack stackName
+   end if
    return the result
 end object_GoTo
 
@@ -1677,21 +1804,6 @@ function object_GetTopControl someGroup, pName
    end repeat
    return empty
 end object_GetTopControl
-
-function object_GetGroupControls someGroup, nested
-   -- update to use get the childControlIDs of group
-   put empty into myControls
-   repeat with controlNum = 1 to the number of controls in someGroup
-      put the long ID of control controlNum of someGroup into controlObject
-      if nested is not true and word 1 of controlObject is "group" then
-         add the number of layers in controlObject to controlNum
-      end if
-      put controlObject & CR after myControls
-   end repeat
-   delete last char of myControls
-   return myControls
-end object_GetGroupControls
-
 
 
 --> Object | Control | Indexes
@@ -2364,93 +2476,6 @@ getprop object_WithinLibraryStack
    put view_FileToPath(someFile, true) into testViewName
    return testViewName = viewName
 end object_WithinLibraryStack
-
-getprop object_Hierarchy [pWhichBehaviors]
-   -- see also "script_Hierarchy" 
-   put the long id of the target into someObject
-   if pWhichBehaviors is empty then put "no library deps" into pWhichBehaviors
-   
-   put revRuggedId (someObject) into objectHierarchy
-   put the behavior of someObject into objectBehavior
-   object_MaybeAddBehavior objectHierarchy, objectBehavior, pWhichBehaviors
-   
-   put someObject into objectOwner
-   put empty into skipThisBackgroundID
-   repeat
-      switch word 1 of objectOwner
-         case "stack"
-            -- previously added a stack, check if it was a substack
-            put objectOwner into stackObject
-            put the owner of stackObject into mainStackObject
-            if exists(mainStackObject) then
-               put mainStackObject & CR before objectHierarchy
-               put the behavior of mainStackObject into objectBehavior
-               object_MaybeAddBehavior objectHierarchy, objectBehavior, pWhichBehaviors
-            end if
-            return objectHierarchy
-            break
-         case "card"
-            -- previously added a card, so check for backgrounds
-            
-            put objectOwner into cardObject
-            put the backgroundIDs of cardObject into bgIDs
-            -- need to add in reverse to mirror message path
-            repeat with bgNum = the number of lines of bgIDs down to 1
-               put line bgNum of bgIDs into someID
-               if someID = skipThisBackgroundID then next repeat
-               put the long ID of bg ID someID of cardObject into backgroundObject
-               put revRuggedId (backgroundObject) & CR before objectHierarchy
-               put the behavior of backgroundObject into objectBehavior
-               object_MaybeAddBehavior objectHierarchy, objectBehavior, pWhichBehaviors
-            end repeat
-            
-            delete word 1 to 4 of objectOwner
-            
-            -- above a card must be a stack
-            put name of objectOwner into stackObject
-            put stackObject & CR before objectHierarchy
-            put the behavior of stackObject into objectBehavior
-            object_MaybeAddBehavior objectHierarchy, objectBehavior, pWhichBehaviors
-            break
-         case "group"
-            -- previously added a group, check to see if was a bg
-            if the backgroundbehavior of objectOwner is true then
-               -- will need to skip it's own "card" background
-               put the short ID of objectOwner into skipThisBackgroundID
-            end if
-            delete word 1 to 4 of objectOwner
-            if exists (objectOwner) is false then return objectHierarchy
-            put revRuggedId (objectOwner) & CR before objectHierarchy
-            put the behavior of objectOwner into objectBehavior
-            object_MaybeAddBehavior objectHierarchy, objectBehavior, pWhichBehaviors
-            break
-         default
-            -- previously added a normal control
-            delete word 1 to 4 of objectOwner
-            if exists (objectOwner) is false then return objectHierarchy
-            put revRuggedId (objectOwner) & CR before objectHierarchy
-            put the behavior of objectOwner into objectBehavior
-            object_MaybeAddBehavior objectHierarchy, objectBehavior, pWhichBehaviors
-      end switch
-   end repeat
-   return "error" -- should never get here!
-end object_Hierarchy
-
-command object_MaybeAddBehavior @objectHierarchy, objectBehavior, pWhichBehaviors
-   if exists (objectBehavior) then
-      switch
-         case pWhichBehaviors is "no deps"
-            -- don't add
-            break
-         case pWhichBehaviors is "no library deps" and the uRIP ["type"] of objectBehavior is not "behavior/library"
-            put revRuggedId (objectBehavior) & CR before objectHierarchy
-            break
-         default -- case "all"
-            put revRuggedId (objectBehavior) & CR before objectHierarchy
-            break
-      end switch
-   end if
-end object_MaybeAddBehavior
 
 
 --> Object | Hierarchies | Behavior

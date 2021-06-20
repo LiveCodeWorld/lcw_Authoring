@@ -1,4 +1,4 @@
-﻿script "Global_HkeyArray_Graph_Create_Menu"
+﻿script "Global | Tree | HkeyArray | Graph | Create | Menu"
 --> MetaData
 -
 license: GPLv3
@@ -19,46 +19,25 @@ it should allow export to the appropriate place on disk, as it can take a long t
 and they may want to be examined before they are saved!
 */
 
+--> Menu | Init
+-
 on menu_Init tObject
    put the tree_View of tObject into treeView
    put treeView into LocalArray ["tree_View"]
-   -- put the displayed_Object of treeView into stackObject
    put the displayed_Array of treeView into displayedArray
-   put displayedArray into LocalArray ["displayedArray"]
-   put displayedArray ["Handlers"] into LocalArray ["hkeyArray"]
+   --
+   -- put displayedArray into LocalArray ["displayedArray"]
+   -- put displayedArray ["Handlers"] into LocalArray ["hkeyArray"]
+   put displayedArray into LocalArray ["hkeyArray"]
+   --
+   put the displayed_Object of treeView into scriptObject
+   put scriptObject into LocalArray ["scriptObject"]
+   put the overlay_Folder of scriptObject into overlayFolder
+   put overlayFolder into LocalArray ["overlayFolder"]
+   --
+   put dot_AllGraphStyles() into LocalArray ["graphStyles"]
+   put overlay_ListNames (overlayFolder) into LocalArray ["overlayNames"]
 end menu_Init
-
--- command menu_Init treeView
-put the displayed_Object of treeView into scriptObject
-if exists (scriptObject) is true then
-   put empty into hKey
-   put the name of scriptObject into LocalArray ["stackLabel"]
-   put the overlay_Folder of scriptObject into overlayFolder 
-else
-   put the displayed_Hkey of treeView into hKey
-   -- put the title_Text of treeView into hKey
-   put hKey into LocalArray ["stackLabel"]
-   put library_HkeyFolder (hKey) into overlayFolder
-end if
-
-put overlayFolder into LocalArray ["overlayFolder"]
-put hKey into LocalArray ["hKey"]
-put scriptObject into LocalArray ["scriptObject"]
-
-return overlayFolder
-end menu_Init
-
--- getprop menu_CheckTarget [mTarget]
-   if exists (mTarget) is false then return false
-   put the tree_View of mTarget into treeView
-   if exists (treeView) is false then return false
-   put the long id of treeView = the long id of mTarget into someBoolean
-   return someBoolean
-end menu_CheckTarget
-
-function _GetOverlayFolder
-   return LocalArray ["overlayFolder"]
-end _GetOverlayFolder
 
 command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
    put LocalArray ["overlayFolder"] into overlayFolder
@@ -68,50 +47,52 @@ command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
 end deconstructLocalArray
 
 
---> Global | Tree | HkeyArray | Graph | Create | Menu
+--> Menu | Props
 -
-on menu_CreateSvgGraph scriptObject, graphStyle
-   -- put the view_Data of treeView into hkeyArray
-   -- put the displayed_Object of treeView into scriptObject
-   
-   local pProjectName
-   put LocalArray ["hkeyArray"] into hkeyArray
-   
-   graph_ObjectHkeyArray hKeyArray, scriptObject, graphStyle
-   put the result into imageFile
-   
-   display_SVG imageFile, scriptObject
-   put the result into displayView
-   set the displayed_Object of displayView to scriptObject
-end menu_CreateSvgGraph
+getprop displaySvg_Params [treeView]
+   deconstructLocalArray overlayFolder, hKey, stackLabel, scriptObject
+   put the script_SvgShortFiles of scriptObject into shortSvgFiles
+   return shortSvgFiles
+end displaySvg_Params
 
-on menu_DisplayObjectGraph scriptObject
-   local pGraphStyle, pProcessObject, projectName
-   --
-   display_ObjectGraph scriptObject, projectName, pGraphStyle, pProcessObject, false
-   --
-   display_ObjectDepArray scriptObject
-end menu_DisplayObjectGraph
+getprop createSvgGraph_Params
+   return LocalArray ["graphStyles"]
+end createSvgGraph_Params
 
-on menu_DisplayProcessedHkeyArray scriptObject
-   display_ObjectDepArray scriptObject
-end menu_DisplayProcessedHkeyArray
+getprop createNewGraphFromTree_Params
+   return LocalArray ["graphStyles"]
+end createNewGraphFromTree_Params
 
-on menu_DisplaySvg treeView
-   put the displayed_Object of treeView into scriptObject
-   put LocalArray ["svgFile"] into svgFile
-   display_SVG svgFile
-end menu_DisplaySvg
+getprop createTemporaryObjectGraphFromTree
+   return LocalArray ["graphStyles"]
+end createTemporaryObjectGraphFromTree
 
-on menu_DisplayProjectOverlayFolder treeView
-   put the displayed_Object of treeView into scriptObject
-   put the project_OverlayFolder of scriptObject into projectMetaDataFolder
-   finder_Reveal projectMetaDataFolder
-end menu_DisplayProjectOverlayFolder
+getprop createTemporaryHkeyGraphFromTree_Params
+   return LocalArray ["graphStyles"]
+end createTemporaryHkeyGraphFromTree_Params
 
-getprop disabled_DisplaySvg [treeView]
+getprop createLibraryHkeyDependencyGraph
+   return LocalArray ["graphStyles"]
+end createLibraryHkeyDependencyGraph
+
+getprop createLibraryObjectHkeyDependencyGraph_Params
+   return LocalArray ["graphStyles"]
+end createLibraryObjectHkeyDependencyGraph_Params
+
+getprop createLibraryObjectHkeyDependencyGraph_Params
+   return LocalArray ["graphStyles"]
+end createLibraryObjectHkeyDependencyGraph_Params
+
+getprop displayHkeyOverlayGraph_Params
+   return LocalArray ["overlayNames"]
+end displayHkeyOverlayGraph_Params
+
+getprop displayOverlayGraph_Params
+   return LocalArray ["overlayNames"]
+end displayOverlayGraph_Params
+
+getprop disabled_DisplaySvg [scriptObject]
    -- should be a simpler way
-   put the displayed_Object of treeView into scriptObject
    put the project_OverlayFolder of scriptObject into projectMetaDataFolder
    put empty into pOverlayName
    put overlay_GetArray (projectMetaDataFolder, pOverlayName) into overlayArray
@@ -124,21 +105,66 @@ getprop disabled_DisplaySvg [treeView]
    end if
 end disabled_DisplaySvg
 
+
+--> Global | Tree | HkeyArray | Graph | Create | Menu
+-
+on menu_DisplaySvg scriptObject, shortSvgFile
+   -- put the projectOverlay_SvgFile of scriptObject into svgFile
+   put the scriptObject_SvgFile [shortSvgFile] of scriptObject into svgFile
+   --
+   if scriptEditor_PaneExists ("Deps") is true then
+      display_ScriptEditorSvg svgFile
+   else
+      display_SVG svgFile
+   end if
+end menu_DisplaySvg
+
+on menu_CreateSvgGraph scriptObject, graphStyle
+   local pProjectName
+   put LocalArray ["hkeyArray"] into hkeyArray
+   
+   graph_CreateScriptObjectHkeyArray hKeyArray, scriptObject, graphStyle
+   put the result into imageFile
+   
+   display_SVG imageFile, scriptObject
+   put the result into displayView
+   set the displayed_Object of displayView to scriptObject
+end menu_CreateSvgGraph
+
 on _
 end _
 
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
+on menu_DisplayProcessedHkeyArray scriptObject
+   display_ObjectDepArray scriptObject
+end menu_DisplayProcessedHkeyArray
+
+on menu_DisplayOverlayFolder scriptObject
+   put the overlay_Folder of scriptObject into overlayFolder
+   finder_Reveal overlayFolder
+end menu_DisplayOverlayFolder
+
+on menu_DisplayProjectOverlayFolder scriptObject
+   put the project_OverlayFolder of scriptObject into projectMetaDataFolder
+   finder_Reveal projectMetaDataFolder
+end menu_DisplayProjectOverlayFolder
 
 
 --> Dev | Menu
 -
 /*
 This section looks like a well structured old menu for manipulating hkeyArray grpah data.
-needs testing.
+needs testing. It is designed for treeView not scriptObject
 */
 
+on menu_DisplayObjectGraph scriptObject
+   local pGraphStyle, pProcessObject, projectName
+   --
+   display_CreateScriptObjectGraph scriptObject, projectName, pGraphStyle, pProcessObject, false
+   --
+   display_ObjectDepArray scriptObject
+end menu_DisplayObjectGraph
+
+/*
 on menu_CreateNewGraphFromTree treeView, graphStyle
    put lcw_Ask ("What name would you like to give this overlay?", graphStyle) into overlayName
    -- put the displayed_OverlayName of treeView into overlayName
@@ -225,7 +251,7 @@ on menu_CreateLibraryHkeyDependencyGraph treeView, graphStyle
    put the displayed_Array of treeView into hKeyArray
    put item 3 of hKey into hObject
    put the overlay_Folder of hObject into overlayFolder
-
+   
    library_CreateHkeyGraph hKey, hKeyArray, graphStyle, pOverlayName, pDotCluster, pOverlayHash
 end menu_CreateLibraryHkeyDependencyGraph
 
@@ -296,23 +322,8 @@ on menu_DisplayOverlayGraph treeView, overlayName
    local pImageView, pResizeStyle
    display_Overlay overlayFolder, overlayName, pImageView, pResizeStyle, stackLabel
 end menu_DisplayOverlayGraph
+*/
 
-
---> HkeyArray | Graph | Create | Menu | Props
--
-getprop graph_Styles
-   return dot_AllGraphStyles()
-end graph_Styles
-
-getprop overlay_Names [treeView]
-   put _GetOverlayFolder (treeView) into overlayFolder
-   put overlay_ListNames (overlayFolder) into overlayNames
-   return overlayNames
-end overlay_Names
-
-
---> HkeyArray | Graph | Create | Menu | Disabled
--
 
 --> Deps
 -

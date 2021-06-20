@@ -13,6 +13,48 @@ Shiny new library for processing all things dot.
 See also older library libOPN_GraphViz
 */
 
+--> Working on
+-
+command dot_CreateFromLinkArray linkArray, someFile, pGraphName, pDefSection, pDotPropertyArray
+   put empty into graphSize
+   dot_ConstructPropertyArray pDotPropertyArray, false, true, true, false, "BT"
+   put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, "hierarchy") into graphHeader
+   put linkArray_DotNodeLinks (linkArray) into linkSection
+   put linkArray_ConstructLinkSection (linkArray) into nodeSection
+   if pDefSection is empty then
+      put linkSection into nodeSection
+   else
+      put pDefSection & CR & CR & linkSection into nodeSection
+   end if
+   put dot_Construct (pGraphName, nodeSection, graphHeader) into dotText
+   
+   file_CreateText dotText, someFile
+   put the result into dotFile
+   put dotFile & ".svg" into imageFile
+   dot_Render dotFile, imageFile
+   --
+   return imageFile
+end dot_CreateFromLinkArray
+
+command dot_Render dotFile, imageFile, dotCommand, pImageFormat
+   -- dot_NormalizeDotCommand dotCommand
+   
+   put "dot" into dotCommand
+   put dotCommand into someShell
+   
+   if pImageFormat is empty then put "svg" into pImageFormat
+   shell_BashParamEscape dotFile
+   shell_BashParamEscape imageFile
+   
+   put space & dotFile after someShell
+   put space & "-T" & pImageFormat after someShell
+   put space & "-o" && imageFile after someShell
+   
+   put shell (someShell) into gvResult
+   return gvResult
+end dot_Render
+
+
 --> Dot | Label
 -
 function dot_ConstructDefaultDefLine nodeID, idArray
@@ -274,31 +316,6 @@ function dot_DefSectionFromArray overlayArray, pOverlayName
    
    put dot_ConstructDefSection (dotGroupStyleArray, idArray) into defSection
    return defSection
-   
-   
-   repeat for each key numOrName in dotGroupStyleArray
-      put dotGroupStyleArray [numOrName] into groupStyleArray
-      overlayArray_DeconstructGroupStyleArray nodeIds, nodeStyleArray, groupStyleArray
-      put dot_StyleArrayToParams (nodeStyleArray) into styleParams
-      
-      if numOrName is not a number then
-         put "subgraph" && kwote(numOrName) & space after defSection
-      end if
-      put "{" & CR after defSection
-      put tab & "node [" & styleParams & "];" & CR after defSection
-      put CR after defSection
-      
-      -- put tab & nodeIds & CR after defSection  -- simple non-labeled version
-      repeat for each item nodeID in nodeIDs
-         put dot_ConstructDefaultDefLine (nodeID, idArray) into nodeDefLine
-         put tab & nodeDefLine & CR after defSection
-      end repeat
-      
-      put "}"  & CR after defSection
-      put CR after defSection
-   end repeat
-   delete char -2 to -1 of defSection
-   return defSection
 end dot_DefSectionFromArray
 
 function dot_ConstructDefSection dotGroupStyleArray, nodeIdArray
@@ -360,7 +377,7 @@ end dot_SetHeader
 -
 function dot_HeaderFromArray overlayArray, pOverlayName
    overlayArray_DeconstructMetadata overlayArray, graphPropertyArray, dotHeaderArray, nodePropertyArray, edgePropertyArray, dotNodeStyleArray, pOverlayName
-   _AddGraphSize dotHeaderArray, graphPropertyArray
+   -- _AddGraphSize dotHeaderArray, graphPropertyArray -- not needed with svg's
    _AddHeaderStuff dotHeaderArray, graphPropertyArray
    put dot_HeaderFromArrays (dotHeaderArray, nodePropertyArray, edgePropertyArray) into dotHeader
    return dotHeader
@@ -435,88 +452,9 @@ function dot_GraphSectionToArray dotHeader
    return headerArray
 end dot_GraphSectionToArray
 
--- function dot_HeaderFromArrays pGraphPropertyArray, pDotPropertyArray
--- old way of doing things
-put pGraphPropertyArray ["overlay_Style"] into graphStyle
-put pGraphPropertyArray ["overlay_Size"] into graphSize
--- put pGraphPropertyArray ["overlay_FlattenNum"]
-put pGraphPropertyArray ["overlay_UseInches"] into pUseInches
-
-put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
-
-put "graph [" & CR after dotHeader
-put outline_IncreaseIndent (graphHeaderBase) & CR after dotHeader
-put "];" & CR after dotHeader
-
--- default node section
-dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-
-if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
-if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
-if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after dotHeader
-
-repeat for each key someKey in dotPropertyArray
-   put dotPropertyArray [someKey] into someValue
-   put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-end repeat
-
-delete last char of dotHeader
-return dotHeader
-end dot_HeaderFromArrays
-
 
 --> Dot | Header | Construct | Old
 -
-function dot_ConstructHeaderBase graphSize, dotPropertyArray, graphStyle, pUseInches  
-   dot_DeconstructPropertyArray dotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-   put the result into dotPropertyArray
-   
-   put CR into endChar
-   
-   -- put true into pUseInches
-   if pUseInches is not false then
-      -- think there is a bug here (graphs too large)
-      put dot_RectFromSize (graphSize) into bbRect
-      put dot_GraphInchSize (bbRect, true) into inchSize
-      if inchSize is not empty then
-         put "size=" & kwote(inchSize) & endChar after graphHeaderBase
-      end if
-   else
-      put dot_RectFromSize (graphSize) into bbRect
-      if bbRect is not empty then
-         put "bb=" & kwote(bbRect) & endChar after graphHeaderBase
-         -- put "bb=" & bbRect & endChar after graphHeaderBase
-      end if
-   end if
-   
-   -- if overlap is empty then put false into overlap
-   if graphStyle is not "hierarchical"  then
-      if overlap is not empty then put "overlap=" & overlap & endChar after graphHeaderBase
-      
-      if dotOrder is not empty then put  "ordering=" & dotOrder & endChar after graphHeaderBase
-      
-      if concentrate is not empty then
-         put "concentrate=" & concentrate & endChar after graphHeaderBase
-      end if
-   end if
-   
-   -- if cluster is "none" then
-   if cluster is "none" and graphStyle = "hierarchical" then
-      put "clusterrank=" & cluster & endChar after graphHeaderBase
-   end if
-   
-   if splines is not empty then put "splines=" & splines & endChar after graphHeaderBase
-   if direction is not empty then put "rankdir=" & direction & endChar after graphHeaderBase
-   
-   repeat for each key someKey in dotPropertyArray
-      put dotPropertyArray [someKey] into someValue
-      put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-   end repeat
-   
-   delete char -1 of graphHeaderBase
-   return graphHeaderBase
-end dot_ConstructHeaderBase
-
 function dot_ConstructHeader graphSize, pDotPropertyArray, graphStyle, pUseInches
    put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
    
@@ -537,10 +475,8 @@ end dot_ConstructHeader
 function dot_ConstructHeaderBase graphSize, dotPropertyArray, graphStyle, pUseInches  
    dot_DeconstructPropertyArray dotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
    put the result into dotPropertyArray
-   
    put CR into endChar
    
-   -- put true into pUseInches
    if pUseInches is not false then
       -- think there is a bug here (graphs too large)
       put dot_RectFromSize (graphSize) into bbRect
@@ -552,7 +488,6 @@ function dot_ConstructHeaderBase graphSize, dotPropertyArray, graphStyle, pUseIn
       put dot_RectFromSize (graphSize) into bbRect
       if bbRect is not empty then
          put "bb=" & kwote(bbRect) & endChar after graphHeaderBase
-         -- put "bb=" & bbRect & endChar after graphHeaderBase
       end if
    end if
    
@@ -567,13 +502,13 @@ function dot_ConstructHeaderBase graphSize, dotPropertyArray, graphStyle, pUseIn
       end if
    end if
    
-   if splines is not empty then put "splines=" & splines & endChar after graphHeaderBase
-   if direction is not empty then put "rankdir=" & direction & endChar after graphHeaderBase
-   
    -- if cluster is "none" then
    if cluster is "none" and graphStyle = "hierarchical" then
       put "clusterrank=" & cluster & endChar after graphHeaderBase
    end if
+   
+   if splines is not empty then put "splines=" & splines & endChar after graphHeaderBase
+   if direction is not empty then put "rankdir=" & direction & endChar after graphHeaderBase
    
    repeat for each key someKey in dotPropertyArray
       put dotPropertyArray [someKey] into someValue
@@ -906,39 +841,6 @@ function dot_DefSectionFromArray overlayArray, pOverlayName
    return defSection
 end dot_DefSectionFromArray
 
--- getprop dot_Header [headerType]
-local dotPropertyArray
-put the long id of the target into targetObject
-
-switch headerType
-   case "base"
-      put empty into dotPropertyArray
-      break
-   default
-      put the dot_HeaderArray of targetObject into dotPropertyArray
-end switch
-put the overlay_Size of targetObject into graphSize
-put the overlay_Style of targetObject into graphStyle
--- put the overlay_UseInches of targetObject into useInches
-put true into useInches
-put dot_ConstructHeader (graphSize, dotPropertyArray, graphStyle, useInches) into dotHeader
-return dotHeader
-end dot_Header
-
--- getprop dot_LinkSection
-put the long id of the target into pTargetObject
-
-put the model_IdArray [pModelName] of modelObject into idArray
-put the model_IdLinkArray [pModelName] of modelObject into idLinkArray
--- put the model_LinkArray [pModelName] of modelObject into linkArray
--- linkArray_IdConstruct linkArray, idLinkArray, idArray
-
--- construct dot section
-put _LinkTypeArray (idArray) into nodeTypeArray
-put hKeyArray_ConstructNodeSection (idArray, idLinkArray, pTargetObject, nodeTypeArray) into nodeSection
-return nodeSection
-end dot_LinkSection
-
 
 --> Dot | Header
 -
@@ -1045,155 +947,6 @@ function dot_GraphSectionToArray dotHeader
    end repeat
    return headerArray
 end dot_GraphSectionToArray
-
--- function dot_HeaderFromArrays pGraphPropertyArray, pDotPropertyArray
--- old way of doing things
-put pGraphPropertyArray ["overlay_Style"] into graphStyle
-put pGraphPropertyArray ["overlay_Size"] into graphSize
--- put pGraphPropertyArray ["overlay_FlattenNum"]
-put pGraphPropertyArray ["overlay_UseInches"] into pUseInches
-
-put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
-
-put "graph [" & CR after dotHeader
-put outline_IncreaseIndent (graphHeaderBase) & CR after dotHeader
-put "];" & CR after dotHeader
-
--- default node section
-dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-
-if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
-if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
-if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after dotHeader
-
-repeat for each key someKey in dotPropertyArray
-   put dotPropertyArray [someKey] into someValue
-   put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-end repeat
-
-delete last char of dotHeader
-return dotHeader
-end dot_HeaderFromArrays
-
-
---> Dot | Header | Construct | Old
--
-function dot_ConstructHeaderBase graphSize, dotPropertyArray, graphStyle, pUseInches  
-   dot_DeconstructPropertyArray dotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-   put the result into dotPropertyArray
-   
-   put CR into endChar
-   
-   -- put true into pUseInches
-   if pUseInches is not false then
-      -- think there is a bug here (graphs too large)
-      put dot_RectFromSize (graphSize) into bbRect
-      put dot_GraphInchSize (bbRect, true) into inchSize
-      if inchSize is not empty then
-         put "size=" & kwote(inchSize) & endChar after graphHeaderBase
-      end if
-   else
-      put dot_RectFromSize (graphSize) into bbRect
-      if bbRect is not empty then
-         put "bb=" & kwote(bbRect) & endChar after graphHeaderBase
-         -- put "bb=" & bbRect & endChar after graphHeaderBase
-      end if
-   end if
-   
-   -- if overlap is empty then put false into overlap
-   if graphStyle is not "hierarchical"  then
-      if overlap is not empty then put "overlap=" & overlap & endChar after graphHeaderBase
-      
-      if dotOrder is not empty then put  "ordering=" & dotOrder & endChar after graphHeaderBase
-      
-      if concentrate is not empty then
-         put "concentrate=" & concentrate & endChar after graphHeaderBase
-      end if
-   end if
-   
-   -- if cluster is "none" then
-   if cluster is "none" and graphStyle = "hierarchical" then
-      put "clusterrank=" & cluster & endChar after graphHeaderBase
-   end if
-   
-   if splines is not empty then put "splines=" & splines & endChar after graphHeaderBase
-   if direction is not empty then put "rankdir=" & direction & endChar after graphHeaderBase
-   
-   repeat for each key someKey in dotPropertyArray
-      put dotPropertyArray [someKey] into someValue
-      put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-   end repeat
-   
-   delete char -1 of graphHeaderBase
-   return graphHeaderBase
-end dot_ConstructHeaderBase
-
-function dot_ConstructHeader graphSize, pDotPropertyArray, graphStyle, pUseInches
-   put dot_ConstructHeaderBase (graphSize, pDotPropertyArray, graphStyle, pUseInches) into graphHeaderBase
-   
-   put "graph [" & CR after graphHeader
-   put outline_IncreaseIndent(graphHeaderBase) & CR after graphHeader
-   put "];" & CR after graphHeader
-   
-   -- default node section
-   dot_DeconstructPropertyArray pDotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-   if defaultUrl is not empty then put "node [URL=" & kwote(defaultUrl) & "];" & CR after defaultNodeSection
-   if defaultShape is not empty then put "node [shape=" & defaultShape & "];" & CR after defaultNodeSection
-   if defaultNodeSection is not empty then put CR & defaultNodeSection & CR after graphHeader
-   
-   delete last char of graphHeader
-   return graphHeader
-end dot_ConstructHeader
-
-function dot_ConstructHeaderBase graphSize, dotPropertyArray, graphStyle, pUseInches  
-   dot_DeconstructPropertyArray dotPropertyArray, overlap, concentrate, splines, cluster, direction, dotOrder, defaultShape, defaultUrl
-   put the result into dotPropertyArray
-   
-   put CR into endChar
-   
-   -- put true into pUseInches
-   if pUseInches is not false then
-      -- think there is a bug here (graphs too large)
-      put dot_RectFromSize (graphSize) into bbRect
-      put dot_GraphInchSize (bbRect, true) into inchSize
-      if inchSize is not empty then
-         put "size=" & kwote(inchSize) & endChar after graphHeaderBase
-      end if
-   else
-      put dot_RectFromSize (graphSize) into bbRect
-      if bbRect is not empty then
-         put "bb=" & kwote(bbRect) & endChar after graphHeaderBase
-         -- put "bb=" & bbRect & endChar after graphHeaderBase
-      end if
-   end if
-   
-   -- if overlap is empty then put false into overlap
-   if graphStyle is not "hierarchical"  then
-      if overlap is not empty then put "overlap=" & overlap & endChar after graphHeaderBase
-      
-      if dotOrder is not empty then put  "ordering=" & dotOrder & endChar after graphHeaderBase
-      
-      if concentrate is not empty then
-         put "concentrate=" & concentrate & endChar after graphHeaderBase
-      end if
-   end if
-   
-   if splines is not empty then put "splines=" & splines & endChar after graphHeaderBase
-   if direction is not empty then put "rankdir=" & direction & endChar after graphHeaderBase
-   
-   -- if cluster is "none" then
-   if cluster is "none" and graphStyle = "hierarchical" then
-      put "clusterrank=" & cluster & endChar after graphHeaderBase
-   end if
-   
-   repeat for each key someKey in dotPropertyArray
-      put dotPropertyArray [someKey] into someValue
-      put someKey & "=" & kwote(someValue) & CR after graphHeaderBase
-   end repeat
-   
-   delete char -1 of graphHeaderBase
-   return graphHeaderBase
-end dot_ConstructHeaderBase
 
 
 --> Dot | Header | Props

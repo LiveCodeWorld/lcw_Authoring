@@ -73,6 +73,27 @@ end project_LoadAfterUsing
 
 --> Project | Array | Model | Files | Names
 -
+command project_AddArrayToGlobal projectArray, pRecursively
+   /*
+   By default (if pRecursively is false or empty), this command merges the all keys recursively, adding new items to gLCW from projectArray
+   but keeping any old items that are not in projectArray.
+   Consequenlty this "adds" the contents of the projectArray to gLCW with the exception of leaf contents which are updated or replaced.
+   So if you want a merge - store your data as an array not an index.
+   
+   if pRecursively is false then this command replaces items that are already there with the contents of projectArray
+   Consequenlty this adds or "sets" the contents of the variable
+   */
+   global gLCW
+   
+   if pRecursively is not false then
+      union projectArray with gLCW recursively
+   else
+      union projectArray with gLCW
+   end if
+   put projectArray into gLCW
+   return gLCW
+end project_AddArrayToGlobal
+
 command project_RestoreGlobals projectName, pDeleteAllGlobals
    global gLCW
    

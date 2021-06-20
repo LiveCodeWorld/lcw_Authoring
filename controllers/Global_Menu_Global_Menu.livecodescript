@@ -1,4 +1,4 @@
-﻿script "Global_Menu_Global_Menu"
+﻿script "Global | Menu | Global | Menu"
 --> MetaData
 -
 license: GPLv3
@@ -7,8 +7,154 @@ type: controller
 version: 0.6
 
 
+--> Menu | Props
+-
+getprop menu_Target [tObject]
+   pass menu_Target
+end menu_Target
+
+getprop menu_CheckTarget [mTarget]
+   return true
+end menu_CheckTarget
+
+on menu_Init tObject
+   -- not needed any more
+   -- use "menu_CheckTarget" to any initialisation
+end menu_Init
+
+command lcw_LoadCustomUserProject
+   -- initialises non-version controlled private project
+   put lcw_UserProjectFolder() into lcwUserProjectFolder
+   project_InitialiseFolder lcwUserProjectFolder
+   
+   put lcw_UserHomeStackName() into userHomeStackName
+   put lcw_UserProjectFolder() into lcwUserProjectFolder
+   library_StoreProjectFolder userHomeStackName, lcwUserProjectFolder 
+   if there is a stack userHomeStackName then
+      -- should be
+      dispatch "env_RecursivelyLoadProjects" to stack userHomeStackName
+   end if
+end lcw_LoadCustomUserProject
+
+command env_LoadMenus pListAll
+   put env_ListProjects (pListAll) into projectNames
+   repeat for each line projectName in projectNames
+      put project_GetFolder (projectName) into projectFolder
+      project_LoadMenus projectFolder, true
+   end repeat
+end env_LoadMenus
+
+getprop project_Names
+   return library_ListProjectNames ()
+end project_Names
+
+getprop global_Names
+   put global_ListNames (false) into gNames
+   return gNames
+end global_Names
+
+getprop disabled_DisplayDumpedGlobals
+   return library_GlobalDumpFileMissing()
+end disabled_DisplayDumpedGlobals
+
+getprop disabled_RestoreDumpedGlobals
+   return library_GlobalDumpFileMissing()
+end disabled_RestoreDumpedGlobals
+
+getprop disabled_DeleteDumpFile
+   return library_GlobalDumpFileMissing()
+end disabled_DeleteDumpFile
+
+
 --> Global | Menu | Global | Menu
 -
+on menu_Filter displayView
+   put lcw_Ask ("Display filtered list of global menus?", "Atopia", displayView) into someFilter
+   display_EnvironmentMenus someFilter
+end menu_Filter
+
+on menu_Refresh
+   display_EnvironmentMenus
+end menu_Refresh
+
+on _
+end _
+
+on menu_EditMe
+   edit the script of me
+end menu_EditMe
+
+on menu_CheckGlobalMenus displayView
+   put menu_GetGlobalArray() into globalMenuArray
+   repeat for each key gMenuTitle in globalMenuArray
+      get globalMenuArray [gMenuTitle] 
+      put it ["mController"] into mController
+      if exists (mController) is false then
+         put it into badMenuArray [gMenuTitle]
+      end if
+   end repeat
+   --
+   display_BadMenuArray badMenuArray
+end menu_CheckGlobalMenus
+
+on menu_FixGlobalMenuArray displayView
+   put menu_GetGlobalArray() into globalMenuArray
+   --
+   repeat for each key gMenuTitle in globalMenuArray
+      get globalMenuArray [gMenuTitle] 
+      put it ["mController"] into mController
+      if exists (mController) is false then
+         put it into badMenuArray [gMenuTitle]
+      else
+         put revRuggedID (mController) into globalMenuArray [gMenuTitle] ["mController"]
+      end if
+   end repeat
+   --
+   set the displayed_Array ["Fixed Menus"] of displayView to globalMenuArray
+   --
+   if badMenuArray is an array then
+      display_BadMenuArray badMenuArray
+   end if
+end menu_FixGlobalMenuArray
+
+on _
+end _
+
+on submenu_Project
+   return "Global | Project | Menu"
+end submenu_Project
+
+on submenu_Prefs
+   return "Global | Pref | Menu"
+end submenu_Prefs
+
+on _
+end _
+
+on submenu_Dev
+   return "Dev | Menu"
+end submenu_Dev
+
+
+--> Dev | Menu
+-
+on menu_ExportMenusAndStackFiles projectName
+   put project_GetFolder (projectName) into projectFolder
+   project_ExportMenusAndStackFiles projectFolder
+   --
+   display_ProjectLibs projectName
+end menu_ExportMenusAndStackFiles
+
+on menu_LoadProjectMenus projectName
+   breakpoint
+   put project_GetFolder (projectName) into projectFolder
+   put project_ListAllContollers (projectFolder) into stackPaths
+   project_IndexGlobalMenus stackPaths
+end menu_LoadProjectMenus
+
+on _
+end _
+
 on menu_DisplayProjectArray mTarget, projectName
    put project_FetchArray (projectName) into projectArray
    
@@ -62,20 +208,6 @@ end menu_StoreDefaultProjectGlobals
 on _
 end _
 
--- on menu_FixOpenStacks mTarget, projectName
-   put project_FetchArray (projectName) into projectArray
-   
-   put projectArray ["openStacks"] into projectOpenStacks
-   delete variable projectArray ["openStacks"]
-   put projectOpenStacks into projectArray ["projectGlobalArray"]["gLCW"]["openStacks"]
-   
-   put projectArray ["Global Menus"] into gMenuTitleArray
-   delete variable projectArray ["Global Menus"]
-   put gMenuTitleArray into projectArray ["projectGlobalArray"]["gLCW"]["Global Menus"]
-   
-   project_StoreArray projectName, projectArray
-end menu_FixOpenStacks
-
 on menu_StoreGatheredProjectGlobals mTarget, projectName
    put global_Gather() into projectGlobalArray
    project_SaveValue "projectGlobalArray", projectGlobalArray, projectName
@@ -94,7 +226,7 @@ on menu_DisplayGatherGlobals
    put global_Gather() into globalArray
    display_Array globalArray, "global_Gather()", "Global | Menu | Global | Menu"
 end menu_DisplayGatherGlobals
-   
+
 on menu_DisplayGlobal mTarget, globalName
    display_GlobalValue globalName
 end menu_DisplayGlobal
@@ -102,10 +234,6 @@ end menu_DisplayGlobal
 on menu_DeleteGlobal mTarget, globalName
    global_Delete globalName
 end menu_DeleteGlobal
-
--- on menu_DeleteAllGlobals
-   global_DeleteAll
-end menu_DeleteAllGlobals
 
 on _
 end _
@@ -136,57 +264,11 @@ on menu_DeleteDumpFile
    library_DeleteGlobalDump
 end menu_DeleteDumpFile
 
-on _
-end _
-
-on submenu_Project
-   return "Global | Project | Menu"
-end submenu_Project
-
-on submenu_Prefs
-   return "Global | Pref | Menu"
-end submenu_Prefs
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-
---> Global | Menu | Global | Menu | Props
--
-getprop project_Names
-   return library_ListProjectNames ()
-end project_Names
-
-getprop global_Names
-   put global_ListNames (false) into gNames
-   return gNames
-end global_Names
-
-
---> Global | Menu | Global | Menu | Disabled
--
-getprop disabled_DisplayDumpedGlobals
-   return library_GlobalDumpFileMissing()
-end disabled_DisplayDumpedGlobals
-
-getprop disabled_RestoreDumpedGlobals
-   return library_GlobalDumpFileMissing()
-end disabled_RestoreDumpedGlobals
-
-getprop disabled_DeleteDumpFile
-   return library_GlobalDumpFileMissing()
-end disabled_DeleteDumpFile
-
-
---> Dev | Menu
--
 on menu_ConstructDefaultGlobals mTarget, projectName
    global gLCW
    
    lcw_LoadProjectMenus projectName
    put the result into gMenuArray
-   -- put gMenuArray into gLCW ["Global Menus"]
    
    display_Array gMenuArray, "project_LoadMenus", "Global | Menu | Global | Menu"
    display_Array gLCW, "gLCW", "Global | Menu | Global | Menu"
@@ -250,7 +332,7 @@ on menu_IndexAllMenus
    
    -- put lcw_GetRootFolder() into projectFolder
    put library_FetchProjectFolder ("lcw_Authoring") into projectFolder
-   put project_ListPaths ("controller", projectFolder) into stackPaths
+   put project_ListAllContollers (projectFolder) into stackPaths
    
    repeat for each line stackPath in stackPaths
       put the name of stack stackPath into mController

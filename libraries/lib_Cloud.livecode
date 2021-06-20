@@ -4,7 +4,7 @@
 copyright: David Bovill
 license: GPLv3
 name: lib_Cloud
-type: script library
+type: library
 version: 0.1
 
 

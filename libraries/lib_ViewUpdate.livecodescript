@@ -347,6 +347,9 @@ setprop top_ControlNames topNames
 end top_ControlNames
 
 getprop top_Controls
+   get word  1 of the name of the target
+   if it is not among the items of "group,card" then return empty
+   --
    put the childControlIDs of the target into topIDs
    repeat for each line someID in topIDs
       put the long id of control id someID & CR after topControls

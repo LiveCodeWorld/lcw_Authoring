@@ -38,6 +38,10 @@ put revListScriptEditors()
 */
 
 
+--> Working on
+-
+
+
 --> Rev | Script Editor | Search Results
 -
 function rev_FormatHkeySearchResult shortHKeys, scriptObject, searchText
@@ -475,42 +479,6 @@ function rev_ScriptEditorDocFieldRect pEditorNum
 end rev_ScriptEditorDocFieldRect
 
 
---> Script Editor | Documentation | Auto Save
--
-private command _autoSave hKey, someHtml
-   -- in development, not tested or working
-   breakpoint
-   
-   _setMyLastHkey hKey
-   
-   if someHtml = "<p></p>" then
-      put empty into someHtml
-      hkey_StoreHelp hKey, someHtml
-   end if
-   put _getMyLastHkey() into lastHkey
-   if lastHkey is not empty then
-      put rev_GetScriptEditorDocumentation() into lastHtmlText
-      put "Save" && lastHkey & CR & lastHtmlText into someComment
-      -- lcw_Notify someComment, true
-   end if
-end _autoSave
-
-private function _getMyLastHkey
-   put the behavior of me into reallyMe
-   set lockmessages to true
-   put the displayed_Hkey of reallyMe into hKey
-   set lockmessages to false
-   return hKey
-end _getMyLastHkey
-
-private command _setMyLastHkey hKey
-   put the behavior of me into reallyMe
-   set lockmessages to true
-   set the displayed_Hkey of reallyMe to hKey
-   set lockmessages to false
-end _setMyLastHkey
-
-
 --> Rev
 -
 function rev_GetIcon hType
@@ -668,27 +636,27 @@ command rev_SelectTopScriptEditorTreeLineNum hHkeyOrLineNum
 end rev_SelectTopScriptEditorTreeLineNum
 
 function rev_GetSelectedHandlerType
-   put rev_GetHandlerTreeSelectedInfo() into hInfo
+   put scriptEditor_GetHkeyLine() into hInfo
    return word 1 of hInfo
 end rev_GetSelectedHandlerType
 
 function rev_GetSelectedHandlerName
-   put rev_GetHandlerTreeSelectedInfo() into hInfo
+   put scriptEditor_GetHkeyLine() into hInfo
    return word 2 of hInfo
 end rev_GetSelectedHandlerName
 
 function rev_GetSelectedHandlerScriptStartLineNum
-   put rev_GetHandlerTreeSelectedInfo() into hInfo
+   put scriptEditor_GetHkeyLine() into hInfo
    return word 3 of hInfo
 end rev_GetSelectedHandlerScriptStartLineNum
 
 function rev_GetSelectedHandlerScriptEndLineNum
-   put rev_GetHandlerTreeSelectedInfo() into hInfo
+   put scriptEditor_GetHkeyLine() into hInfo
    return word 4 of hInfo
 end rev_GetSelectedHandlerScriptEndLineNum
 
 function rev_GetFirstScriptEditorSelectedHkey
-   put rev_GetHandlerTreeSelectedInfo() into hInfo
+   put scriptEditor_GetHkeyLine() into hInfo
    put word 2 of hInfo into hName
    put word 1 of hInfo into hType
    if hType = "M" then put "c" into hType
@@ -698,13 +666,6 @@ function rev_GetFirstScriptEditorSelectedHkey
    put hName,hType,hObject,1 into hKey
    return hKey
 end rev_GetFirstScriptEditorSelectedHkey
-
-function rev_GetHandlerTreeSelectedInfo
-   put rev_HandlerTreeField() into handlerField
-   put the hilitedLine of handlerField into lineNum
-   put line lineNum of the cHandlers of handlerField into tHandler
-   return tHandler
-end rev_GetHandlerTreeSelectedInfo
 
 
 --> Rev | 4.0
@@ -1229,3 +1190,39 @@ function rev_IsRevStack theStackName
         return false
     end if
 end rev_IsRevStack
+
+
+--> ScriptEditor | Private
+-
+private command _autoSave hKey, someHtml
+   -- in development, not tested or working
+   breakpoint
+   
+   _setMyLastHkey hKey
+   
+   if someHtml = "<p></p>" then
+      put empty into someHtml
+      hkey_StoreHelp hKey, someHtml
+   end if
+   put _getMyLastHkey() into lastHkey
+   if lastHkey is not empty then
+      put rev_GetScriptEditorDocumentation() into lastHtmlText
+      put "Save" && lastHkey & CR & lastHtmlText into someComment
+      -- lcw_Notify someComment, true
+   end if
+end _autoSave
+
+private function _getMyLastHkey
+   put the behavior of me into reallyMe
+   set lockmessages to true
+   put the displayed_Hkey of reallyMe into hKey
+   set lockmessages to false
+   return hKey
+end _getMyLastHkey
+
+private command _setMyLastHkey hKey
+   put the behavior of me into reallyMe
+   set lockmessages to true
+   set the displayed_Hkey of reallyMe to hKey
+   set lockmessages to false
+end _setMyLastHkey

@@ -24,6 +24,33 @@ I think you need to handle the 'GURL' apple event in your application.
 */
 
 
+--> Photos
+-
+command photos_Import imageFile, albumName
+   -- doe not seem to be working
+   -- https://gist.github.com/natcl/7a5c98aae8b21475caf9
+   -- launch imageFile with "/System/Applications/Photos.app"
+   
+   /*
+   -- tell application "Photos"
+   set DestinationAlbumName to "Inbox"			
+   if not (exists container named DestinationAlbumName) then
+      make new album named DestinationAlbumName
+   end if				
+   import ImageFile into container named DestinationAlbumName with skip check duplicates
+   -- end tell
+   */
+   
+   put "tell application 'Photos' to import '[[imageFile]]' into container named '[[albumName]]'" into tScript
+   -- put space & "with skip check duplicates" after tScript
+   replace "'" with quote in tScript
+   put merge (tScript) into aScript
+   --
+   do aScript as AppleScript
+   put the result
+end photos_Import
+
+
 --> Terminal
 -
 command launch_Terminal pFolder, pActivate
@@ -44,30 +71,72 @@ command terminal_DoShell someShell, pActivate
    return appleScriptResult
 end terminal_DoShell
 
+
+--> Applescripts
+-
+-- on appleEvent theClass, theID
+put the params
+pass appleEvent
+end appleEvent
+
 function appleScript_DoShell someShell, pStripQuotes
    put "do shell script" && kwote (someShell) into appleScriptLine
    put appleScript_DoLine (appleScriptLine, "Terminal", pStripQuotes) into appleScriptResult
    return appleScriptResult
 end appleScript_DoShell
 
+function finder_ListActive
+   -- https://www.macscripter.net/viewtopic.php?id=43978 to do conversiotn in Applescript
+   get "get the name of every process whose background only is false"
+   put appleScript_DoLine (it, "System Events") into tResult
+   
+   delete char 1 of tResult
+   delete char -1 of tResult
+   replace quote with empty in tResult
+   replace ", " with CR in tResult
+   return tResult
+end finder_ListActive
+
 
 --> AppleScript | Browsers
 -
+/*
+Here are a number of sources for Applescript and browsers:
+- https://stackoverflow.com/questions/263741/using-applescript-to-grab-the-url-from-the-frontmost-window-in-web-browsers-the
+*/
+
 function chrome_GetURL
    -- https://stackoverflow.com/questions/2483033/get-the-url-of-the-frontmost-tab-from-chrome-on-os-x
+   if "Google Chrome" is not among the lines of finder_ListActive() then return empty
+   --
    get appleScript_DoLine ("get URL of active tab of first window", "Google Chrome")	
    return it
 end chrome_GetURL
 
 function firefox_GetUrl
+   -- Firefox is not very scriptable
    -- see "http://www.macosxhints.com/article.php?story=20060325015454467"
-   get appleScript_DoLine ("set myURL to «class curl» of window 1", "firefox-bin")
+   /*
+   tell application "Firefox" to activate
+   tell application "System Events"
+   keystroke "l" using command down
+   keystroke "c" using command down
+   */
+   
+   -- get appleScript_DoLine ("set myURL to item 3 of properties of front window as list", "Firefox")
+   -- get appleScript_DoLine ("set myURL to item 3 of properties of front window as list", "firefox-bin")
+   -- get appleScript_DoLine ("set myURL to «class curl» of window 1", "Firefox")
    return it
 end firefox_GetUrl
 
 function safari_GetUrl
    -- see "http://www.macosxhints.com/article.php?story=20060325015454467"
-   get appleScript_DoLine ("set myURL to URL of document 1", "Safari")
+   -- tell application "Safari" to return URL of front document
+   -- get appleScript_DoLine ("set myURL to URL of document 1", "Safari")
+   
+   if "Safari" is not among the lines of finder_ListActive() then return empty
+   --
+   get appleScript_DoLine ("set myURL to name of front document", "Safari")
    return it
 end safari_GetUrl
 

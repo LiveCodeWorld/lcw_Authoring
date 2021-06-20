@@ -1,14 +1,13 @@
-﻿script "Global_HkeyArray_Hkey_Menu"
+﻿script "Global | HkeyArray | Hkey | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global | Tree | HkeyArray | Menu
+name: Global | HkeyArray | Hkey | Menu
 type: controller
 version: 0.6
 
-/*
-For trees displaying HkeyArrays of object scripts.
-*/
+/*For trees displaying HkeyArrays of object scripts.*/
+
 
 --> Variables
 -

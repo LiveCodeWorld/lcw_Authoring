@@ -28,8 +28,6 @@ end project_Deps
 command project_CustomInit
    set the cursor to watch
    send "display_LcwProjectList" to me in 2 ticks
-   -- 
-   rev_AddBehaviorHacks true
    
    -- add menu options
    ide_SetMenuTitle "Recent", "Watch"
@@ -38,7 +36,8 @@ command project_CustomInit
    
    -- load dictionary
    ide_LoadDictionaryTerms
-   -- set the loc of me to the screenloc
+   
+   send "rev_AddBehaviorHacks true" to me in 2 ticks
 end project_CustomInit
 
 

@@ -92,7 +92,7 @@ end _
 on menu_ExternalCallGraph scriptObject
    put LocalArray ["hkeyShortArray"] into hkeyShortArray
    --
-   graph_ObjectHkeyArray hkeyShortArray, scriptObject, "fast undirected spring"
+   graph_CreateScriptObjectHkeyArray hkeyShortArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    _DisplaySVG imageFile, scriptObject
 end menu_ExternalCallGraph
@@ -101,7 +101,7 @@ on menu_ObjectDependencyGraph scriptObject
    put LocalArray ["hkeyShortArray"] into hkeyShortArray
    put hkeyArray_ShortToLong (hkeyShortArray) into hKeyArray
    --
-   graph_ObjectHkeyArray hKeyArray, scriptObject, "fast undirected spring"
+   graph_CreateScriptObjectHkeyArray hKeyArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    _DisplaySVG imageFile, scriptObject
 end menu_ObjectDependencyGraph

@@ -7,6 +7,47 @@ type: library
 version: 0.2
 
 
+--> Working on
+-
+setprop rect_Test [someColour] someRect
+   put the long id of the target into targetObject
+   if someRect is empty then put the rect of targetObject into someRect
+   put the short name of targetObject && someColour into someName
+   
+   switch
+      case exists (btn someName)
+         put the long id of btn someName into placeholderButton
+         
+         if someRect is a rect then
+            set the rect of placeholderButton to someRect
+         end if
+         
+         switch someColour
+            case empty
+            case "random"
+               put colour_GetRandom() into someColour
+            default
+               set the backgroundcolor of placeholderButton to someColour
+         end switch
+         return placeholderButton
+      default
+         if word 1 of targetObject = "group" then
+            put the short id of targetObject into groupID
+         else
+            put empty into groupID
+         end if
+         create_Placeholder someName, someRect, groupID, someColour
+         put the result into placeholderButton
+         return placeholderButton
+   end switch
+end rect_Test
+
+setprop rect_Mask [someRect] someColour
+   set the rect_Test [someColour] of the target to someRect
+   return the result
+end rect_Mask
+
+
 --> Create
 -
 command create_PlaceHolder someName, pRect, pGroupID, pColour, pShowName
@@ -55,45 +96,12 @@ command create_PlaceHolder someName, pRect, pGroupID, pColour, pShowName
    return placeholderButton
 end create_PlaceHolder
 
-setprop rect_Mask [someRect] someColour
-   put the long id of the target into targetObject
-   if someRect is empty then put the rect of targetObject into someRect
-   put the short name of targetObject && someColour into someName
-   
-   switch
-      case exists (btn someName)
-         put the long id of btn someName into placeholderButton
-         
-         if someRect is a rect then
-            set the rect of placeholderButton to someRect
-         end if
-         
-         switch someColour
-            case empty
-            case "random"
-               put colour_GetRandom() into someColour
-            default
-               set the backgroundcolor of placeholderButton to someColour
-         end switch
-         return placeholderButton
-      default
-         if word 1 of targetObject = "group" then
-            put the short id of targetObject into groupID
-         else
-            put empty into groupID
-         end if
-         create_Placeholder someName, someRect, groupID, someColour
-         put the result into placeholderButton
-         return placeholderButton
-   end switch
-end rect_Mask
-
 
 --> Create | Test Button
 -
 command test_Rect someRect, someName, pColour
    -- this puts the button inside the group
-   put script_CallingObject() into callingObject
+   put debug_GetCallingObject() into callingObject
    put the short id of callingObject into pGroupID
    
    switch
@@ -110,11 +118,12 @@ command test_Rect someRect, someName, pColour
    end switch
 end test_Rect
 
-command rect_Test someRect
+command rect_Test someRect, pObject
    -- this puts the button on the card
-   put script_CallingObject() into callingObject
-   if the rect of callingObject is not someRect then
-      set the rect_Mask [someRect] of callingObject to "red"
+   if pObject is empty then put debug_GetCallingObject() into pObject
+   --
+   if the rect of pObject is not someRect then
+      set the rect_Mask [someRect] of pObject to "red"
    end if
 end rect_Test
 

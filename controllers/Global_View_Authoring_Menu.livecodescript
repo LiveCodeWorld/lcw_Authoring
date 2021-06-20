@@ -1,10 +1,11 @@
-﻿script "Global_View_Authoring_Menu"
+﻿script "Global | View | Authoring | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_View_Authoring_Menu
+name: Global | View | Authoring | Menu
 type: controller
 version: 0.1
+
 
 --> Variables
 -
@@ -14,21 +15,137 @@ local LocalArray
 --> Menu | Props
 -
 on menu_Init tObject
+   -- called only once 
    put the index_View of tObject into indexView
-   put indexView into LocalArray ["indexView"]
-   
-   put the view_Index of indexView into LocalArray ["viewProps"]
-   
-   put the displayed_ProjectName of indexView into LocalArray ["projectName"]
-   put the displayed_ProjectFolder of indexView into LocalArray ["projectFolder"]
-   put the displayed_ModuleFolder of indexView into LocalArray ["moduleFolder"]
-   put the displayed_ModuleName of indexView into LocalArray ["moduleName"]
-   put the displayed_ModuleHomeStackPath of indexView into LocalArray ["moduleHomeStackPath"]   
+   if exists (indexView) is true then
+      -- a view ppalette
+      put indexView into LocalArray ["indexView"]
+      put the view_Index of indexView into LocalArray ["viewProps"]
+      
+      put the displayed_ProjectName of indexView into LocalArray ["projectName"]
+      put the displayed_ProjectFolder of indexView into LocalArray ["projectFolder"]
+      put the displayed_ModuleFolder of indexView into LocalArray ["moduleFolder"]
+      put the displayed_ModuleName of indexView into LocalArray ["moduleName"]
+      put the displayed_ModuleHomeStackPath of indexView into LocalArray ["moduleHomeStackPath"]   
+      --
+      put the title_Text of tObject into viewName
+   else
+      -- a view stack
+      put the stack_Name of tObject into viewName
+   end if
+   --
+   if there is not a stack viewName then return empty
+   --
+   put viewName into LocalArray ["viewName"] -- should be same as moduleName
+   put the long id of control 1 of cd 1 of stack viewName into viewObject
+   put viewObject into LocalArray ["viewObject"]
+   --
+   pass menu_Init
 end menu_Init
+
+getprop menu_Target [tObject]
+   -- called once per menu
+   return LocalArray ["viewObject"]
+end menu_Target
+
+getprop decorations_Param [viewObject]
+   put the stack_Name of viewObject into sName
+   put the decorations of stack sName into sDecoration
+   if sDecoration is empty then return "empty"
+   if sDecoration = "title,menu,minimize,maximize,close" then return "default"
+   return sDecorations
+end decorations_Param
+
+getprop decorations_Params
+   /*
+   You can specify one or more of the following decorations:
+   
+   title: Shows the window's title bar
+   minimize: Shows the minimize (iconify) box in the title bar
+   maximize: Shows the maximize (zoom) box in the title bar
+   close: Shows the close box in the title bar
+   menu: Shows the menu bar in the window (Unix and Windows only)
+   system: Shows the window as a system window (OS X, Unix, and Windows only)
+   noShadow: Remove the window's drop shadow (OS X only)
+   metal: Shows the window with a textured appearance (OS X only)
+   */
+   
+   return "default,empty,-,title,minimize,maximize,close,system,noShadow,metal"
+end decorations_Params
+
+getprop resizable_Param [someView]
+   put the stack_Name of someView into stackName
+   put the resizable of stack stackName into someBoolean
+   return someBoolean
+end resizable_Param
+
+getprop resizable_Params
+   return "true,false"
+end resizable_Params
+
+getprop disabled_CreateViewMenu [someView]
+   put the view_GlobalMenuTitle of someView into gMenuTitle
+   put menu_Exists (gMenuTitle) into mExists
+   if mExists is true then
+      return true
+   else
+      return false
+   end if
+end disabled_CreateViewMenu
+
+getprop disabled_FixView [someView]
+   put the stack_Name of someView into stackName
+   if the scriptonly of stack stackName is true then
+      return false
+   else
+      return "delete"
+   end if
+end disabled_FixView
+
+getprop disabled_EditViewMenus [templateView]
+   put the module_Controllers of templateView into menuStackObjects
+   return menuStackObjects is empty
+end disabled_EditViewMenus
+
+getprop disabled_EditViewBehaviors [templateView]
+   put the module_Behaviors of templateView into moduleBehaviors
+   return moduleBehaviors is empty
+end disabled_EditViewBehaviors
+
+getprop disabled_SetCardViewBehavior [templateView]
+   put the card_Object of templateView into cardObject
+   put the behavior of cardObject into bObject
+   put the name of stack "behavior_ViewTemplateCard" into cardViewBehavior
+   if the name of bObject = cardViewBehavior then
+      return true
+   else
+      return false
+   end if
+end disabled_SetCardViewBehavior
+
+getprop disabled_SetViewMetadata [templateView]
+   put the view_Name of templateView into viewName
+   put the stack_Name of templateView into stackName
+   if stackName = viewName then
+      return true
+   else
+      return false
+   end if
+end disabled_SetViewMetadata
 
 
 --> Global | View | Authoring | Menu
 -
+on menu_DisplayTools dView
+   put the view_Name of dView into viewName
+   --
+   display_ModuleTools viewName
+end menu_DisplayTools
+
+on menu_ObjectInspector dView
+   object_Inspect dView
+end menu_ObjectInspector
+
 on menu_Clone someView
    put the stack_Name of someView into stackName
    stack_Clone stackName
@@ -38,20 +155,51 @@ end menu_Clone
 on _
 end _
 
-on menu_CreateModuleMenu someView
-   put LocalArray ["moduleFolder"] into moduleFolder
-   put LocalArray ["moduleName"] into moduleName
-   put _askMenuTitle (moduleName) into globalMenuTitle
+on menu_Resizable someView, someBoolean
+   put the stack_Name of someView into stackName
+   set the resizable of stack stackName to someBoolean
+end menu_Resizable
+
+on menu_Decorations someView, someDeco
+   /*
+   The decorations of a stack is one of the following:
    
-   project_CreateMenu moduleFolder, globalMenuTitle
-   put the result into controllerStackObject
-   edit the script of controllerStackObject
-end menu_CreateModuleMenu
+   - "default"
+   - empty
+   - one or more of "title", "minimize", "maximize", "close", "menu", "system", "noShadow", and "metal", separated by commas
+   - a WDEF identifier (on Mac OS or OS X systems)
+   
+   By default, the decorations property of newly created stacks is set to "default"  
+   */
+   
+   put the stack_Name of someView into stackName
+   --
+   if someDeco is "empty" then
+      set the decorations of stack stackName to empty
+   else
+      set the decorations of stack stackName to someDeco
+   end if
+end menu_Decorations
+
+on menu_Toplevel someView
+   put the stack_Name of someView into stackName
+   toplevel stack stackName
+end menu_Toplevel
+
+on _
+end _
 
 on submenu_Assets
    return "Global | View | Assets | Menu"
 end submenu_Assets
 
+on submenu_Dev
+   return "Dev | Menu"
+end submenu_Dev
+
+
+--> Dev | Menu
+-
 on _
 end _
 
@@ -96,6 +244,15 @@ end menu_DisplayViewTemplate
 on _
 end _
 
+on menu_CreateViewMenu someView
+   put the view_GlobalMenuTitle of someView into gMenutitle
+   --
+   put the project_Name of someView into projectName
+   display_AskCreateMenu projectName, gMenuTitle
+   put the result into controllerStackObject
+   edit the script of controllerStackObject
+end menu_CreateViewMenu
+
 on menu_EditViewMenus someView
    put the template_View of someView into templateView
    put the module_Controllers of templateView into menuStackObjects
@@ -131,41 +288,6 @@ on menu_SetCardViewBehavior someView
    module_SetCardBehavior viewName
 end menu_SetCardViewBehavior
 
-on menu_SetViewMetadata someView
-   breakpoint
-   put the stack_Name of someView into viewName
-   put metadata_ConstructUripArray (viewName, "view") into uRipArray
-   
-   if word 1 of someView = "card" then
-      put someView into templateCardView
-      if exists (control 1 of templateCardView) is false then
-         breakpoint
-         answer warning "There is not control on the template card!"
-         exit to top
-      end if
-      
-      put the long id of control 1 of templateCardView into someView
-   end if
-   
-   -- put the template_View of someView into templateView
-   set the script_MetaData of someView to uRipArray
-   edit the script of someView
-end menu_SetViewMetadata
-
-on menu_CreateViewMenu templateView
-   breakpoint
-   put the module_Folder of templateView into moduleFolder
-   put the view_Name of templateView into viewName
-   
-   put menu_GlobalTitleFromViewName (viewName) into globalMenuTitle
-   put "What is the name of your global menu...." into someQuestion
-   put lcw_Ask (someQuestion, globalMenuTitle) into globalMenuTitle
-   
-   module_CreateController globalMenuTitle, moduleFolder
-   put the result into moduleControllerPath
-   edit the script of stack moduleControllerPath
-end menu_CreateViewMenu
-
 on _
 end _
 
@@ -193,49 +315,6 @@ end menu_FixView
 on submenu_Wireframe
    return "Global | View | Wireframe | Menu"
 end submenu_Wireframe
-
-
---> Global | View | Authoring | Menu | Disabled
--
-getprop disabled_FixView [someView]
-   put the stack_Name of someView into stackName
-   if the scriptonly of stack stackName is true then
-      return false
-   else
-      return "delete"
-   end if
-end disabled_FixView
-
-getprop disabled_EditViewMenus [templateView]
-   put the module_Controllers of templateView into menuStackObjects
-   return menuStackObjects is empty
-end disabled_EditViewMenus
-
-getprop disabled_EditViewBehaviors [templateView]
-   put the module_Behaviors of templateView into moduleBehaviors
-   return moduleBehaviors is empty
-end disabled_EditViewBehaviors
-
-getprop disabled_SetCardViewBehavior [templateView]
-   put the card_Object of templateView into cardObject
-   put the behavior of cardObject into bObject
-   put the name of stack "behavior_ViewTemplateCard" into cardViewBehavior
-   if the name of bObject = cardViewBehavior then
-      return true
-   else
-      return false
-   end if
-end disabled_SetCardViewBehavior
-
-getprop disabled_SetViewMetadata [templateView]
-   put the view_Name of templateView into viewName
-   put the stack_Name of templateView into stackName
-   if stackName = viewName then
-      return true
-   else
-      return false
-   end if
-end disabled_SetViewMetadata
 
 
 --> Private

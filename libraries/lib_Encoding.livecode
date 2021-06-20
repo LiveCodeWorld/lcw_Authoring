@@ -23,6 +23,73 @@ command file_SaveTempText someText, pFileExt
 end file_SaveTempText
 */
 
+
+--> Working on
+-
+
+
+--> UTF8
+-
+function text_HtmlToUtf8 someHTML
+   set the htmltext of the templatefield to someHTML
+   put the unicodetext of the templatefield into someUTF16
+   put unidecode (someUTF16, "UTF8") into utf8Text
+   return utf8Text
+end text_HtmlToUtf8
+
+function text_ConvertHtml someHTML
+   set the htmltext of the templatefield to someHTML
+   put the text of the templatefield into someText
+   return someText
+end text_ConvertHtml
+
+function text_ConvertUtf8 someUTF16
+   set the unicodetext of the templatefield to someUTF16
+   put the text of the templatefield into someText
+   return someText
+end text_ConvertUtf8
+
+function utf8_Encode someText
+   put unidecode (uniencode (someText), "UTF8") into encodedText
+   return encodedText
+end utf8_Encode
+
+function utf8_Decode utf8Text
+   -- put unidecode (uniencode (utf8Text, "UTF8")) into utf8Text
+   put uniencode (utf8Text,"UTF8") into someU16
+   put unidecode (someU16, "ANSI") into someText
+   return someText
+end utf8_Decode
+
+command text_Utf8Decode @utf8Text
+   put unidecode(uniencode (utf8Text, "UTF8")) into utf8Text
+   -- put uniencode(utf8Text,"UTF8") into someU16
+   -- put unidecode(someU16, "ANSI") into utf8Text
+end text_Utf8Decode
+
+command text_Utf8Encode @someText
+   -- put unidecode(uniencode(someText),"UTF8") into someText
+   put utf8_Encode (someText) into someText
+end text_Utf8Encode
+
+function text_Utf8ToHtml someUtf8, someField
+    lock screen
+    put the htmltext of someField into oHtml
+    put uniencode (someUtf8, "UTF8") into someU16
+    set the unicodetext of someField to someU16
+    put the htmltext of someField into someHtml
+    delete char 1 to 3 of someHtml
+    set the htmltext of someField to oHtml
+    unlock screen
+    delete char -4 to -1 of someHtml
+    return someHtml
+end text_Utf8ToHtml
+
+function json_Utf8Encode pString
+   return json_EncodeString (pString)
+end json_Utf8Encode
+
+
 --> Encoding | HTML | Entities
 -
 function html_ReplaceEntities someHtml
@@ -132,14 +199,9 @@ command sitemap_EntityEscape @someURL
    xml_Escape someURL
 end sitemap_EntityEscape
 
-
---> UTF8
+--> JSON | Encode
 -
-function json_Utf8Encode pString
-   return json.encodeString (pString)
-end json_Utf8Encode
-
-private function json.decode pString
+function json_Decode pString
    switch pString
       case "false"
          return "false"
@@ -177,7 +239,7 @@ private function json.decode pString
             end if
          end if
    end switch
-end json.decode
+end json_Decode
 
 private function unicodeEscapes pString
    put false into inEsc
@@ -226,7 +288,7 @@ private function unicodeEscapes pString
    return nString
 end unicodeEscapes
 
-private function json.encodeValue pString
+private function json_EncodeValue pString
    switch pString
       case true
          return "true"
@@ -241,16 +303,17 @@ private function json.encodeValue pString
          return quote & quote
          break
       default
-         if pString is not a number OR pString contains NULL OR the last char of word 1 to -1 of pString is "." then #TKD Things like "3." or unicode ". " (period followed by NULL) need to be encoded by LiveCode says it is a number
-            return kwote (json.encodeString(pString))
+         if pString is not a number OR pString contains NULL OR the last char of word 1 to -1 of pString is "." then 
+            -- TKD Things like "3." or unicode ". " (period followed by NULL) need to be encoded by LiveCode says it is a number
+            return kwote (json_EncodeString (pString))
          else
             return pString
          end if
          break
    end switch
-end json.encodeValue
+end json_EncodeValue
 
-private function json.encodeString pString
+function json_EncodeString pString
    replace "\" with "\\" in pString
    replace quote with "\u0022" in pString
    replace numtochar(8) with "\b" in pString
@@ -281,11 +344,11 @@ private function json.encodeString pString
       --         end repeat 
       --      end if
       
-      return utf8encode(pString)
+      return utf8encode (pString)
    end if
-end json.encodeString
+end json_EncodeString
 
-private function json.toUtf8 @pJson
+private function json_ToUtf8 @pJson
    local tNulls = "1111"
    
    repeat with n = 1 to 4
@@ -300,16 +363,16 @@ private function json.toUtf8 @pJson
          break
       case "0101"  -- UTF-16BE
          if bigEndian then
-            return utf8encode(pJson, true)
+            return utf8encode (pJson, true)
          else
-            return utf8encode(swapEndianness(pJson), true)
+            return utf8encode (swapEndianness(pJson), true)
          end if
          break
       case "1010"  -- UTF-16LE
          if not bigEndian then
-            return utf8encode(pJson, true)
+            return utf8encode (pJson, true)
          else
-            return utf8encode(swapEndianness(pJson), true)
+            return utf8encode (swapEndianness(pJson), true)
          end if
          break
       case "0001"  -- UTF-32BE
@@ -319,7 +382,7 @@ private function json.toUtf8 @pJson
          return "libJson-error: 4 byte unicode, can't decode"
          break
    end switch
-end json.toUtf8
+end json_ToUtf8
 
 private function swapEndianness pString, pSize
    if pSize is empty then put 2 into pSize
@@ -333,9 +396,9 @@ end swapEndianness
 
 private function utf8encode pString, pIsUnicode
    if pIsUnicode then
-      return unidecode(pString, "UTF8")
+      return unidecode (pString, "UTF8")
    else
-      return unidecode(uniencode(pString),"UTF8")
+      return unidecode (uniencode (pString),"UTF8")
    end if
 end utf8encode
 
@@ -492,38 +555,6 @@ function text_SwapEOL pText, pWhat
 end text_SwapEOL
 
 
---> Text | Utf8
--
-function utf8_Encode someText
-   put unidecode(uniencode(someText),"UTF8") into encodedText
-   return encodedText
-end utf8_Encode
-
-command text_Utf8Decode @utf8Text
-   put unidecode(uniencode(utf8Text,"UTF8")) into utf8Text
-   -- put uniencode(utf8Text,"UTF8") into someU16
-   -- put unidecode(someU16, "ANSI") into utf8Text
-end text_Utf8Decode
-
-command text_Utf8Encode @someText
-   -- put unidecode(uniencode(someText),"UTF8") into someText
-   put utf8_Encode (someText) into someText
-end text_Utf8Encode
-
-function text_Utf8ToHtml someUtf8, someField
-    lock screen
-    put the htmltext of someField into oHtml
-    put uniencode(someUtf8, "UTF8") into someU16
-    set the unicodetext of someField to someU16
-    put the htmltext of someField into someHtml
-    delete char 1 to 3 of someHtml
-    set the htmltext of someField to oHtml
-    unlock screen
-    delete char -4 to -1 of someHtml
-    return someHtml
-end text_Utf8ToHtml
-
-
 --> HTML | Tidy
 -
 /*
@@ -668,7 +699,7 @@ function xml_ToArray pXML, pTranslateKeyBoolean, pStoreEncodedAs, pUseValueKey, 
          put xml_ConvertXMLNodeToArray (treeID, theRootNode, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArray [theRootNode]
       end if
       
-      revDeleteXMLTree treeID
+      revXMLDeleteTree treeID
    end if
    return theArray
 end xml_ToArray

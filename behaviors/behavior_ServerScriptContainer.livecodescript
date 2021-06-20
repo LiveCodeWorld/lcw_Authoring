@@ -12,7 +12,6 @@ on transportAgain
    /*
    {"title":"Joseph Stalin","create":{"type":"create","item":{"story":"","title":"Assassination"},"date":1459264331300,"source":{"url":"https://en.wikipedia.org/wiki/Leon_trotsky#Assassination","repo":"https://github.com/LiveCodeWorld/lib_MediaWiki","transport":"https://livecode.world/mediawiki/transportAgain","rev":712216007,"date":1459264331300,"link_dictionary":{"wiki_links":{"Legacy":{"section_number":31,"section_level":3,"dot_number":1}},"default":{"transport":"https://livecode.world/mediawiki/importSection"}}}}}
    */
-   -- put script_GetCommentAboveMe() into someJSON
    put $_POST_RAW into someJSON
    
    put json_ToArray (someJSON) into createArray
@@ -65,7 +64,7 @@ on listImages
    put pageTitle && "Images" into imagePageTitle
    
    put imagePageTitle into pageArray ["title"]
-   put pageArray_ConstructItemArray (pageImages, "markdown") into itemArray
+   put storyArray_ConstructItem (pageImages, "markdown") into itemArray
    pageArray_AddItemArray itemArray, pageArray
    put json_FromArray (pageArray) into pageJSON
    
@@ -156,7 +155,6 @@ end fedwiki_ParseDroppedWikipediaImage
    
 command fedwiki_ParseWikipediaThumbNail droppedHtml
    -- <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"><img alt="" src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Bruce_Sterling_at_ARE_2010.jpg/220px-Bruce_Sterling_at_ARE_2010.jpg" width="220" height="147" class="thumbimage" srcset="//upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Bruce_Sterling_at_ARE_2010.jpg/330px-Bruce_Sterling_at_ARE_2010.jpg 1.5x, //upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Bruce_Sterling_at_ARE_2010.jpg/440px-Bruce_Sterling_at_ARE_2010.jpg 2x" data-file-width="3888" data-file-height="2592">
-   -- if droppedHtml is empty then put script_GetCommentAboveMe() into droppedHTML
    put fedwikipedia_ExtractShortImageFile (droppedHTML) into shortImageFile
    
    put wikicommons_FetchBasicTwoImagePageArray (shortImageFile) into pageArray
@@ -189,7 +187,7 @@ command fedwiki_ParseExternalUrl someUrl
       default
          html_FetchScraped someURL, tidyXML, xmlArray, treeID
          put xmlArray ["html"]["head"]["title"] into htmlTitle
-         revDeleteXMLTree treeID
+         revXMLDeleteTree treeID
          
          put "Here is a wiki link for this external url that you can drag onto you page:" into someText
          put "- [ ] [" & someURL && htmlTitle & "]" after someText

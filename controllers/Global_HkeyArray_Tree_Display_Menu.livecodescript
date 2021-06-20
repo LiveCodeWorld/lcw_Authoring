@@ -112,7 +112,7 @@ end display_Styles
 --> Deps
 -
 command display_ObjectOutline hkeyArray, someTitle, treeView
-   put hkeyArray_ConstructObjectArray (hkeyArray) into objectArray
+   put hkeyArray_GetDepArray (hkeyArray) into objectArray
    
    lock screen
    set the tree_Array [1] of the tree_Field of treeView to objectArray

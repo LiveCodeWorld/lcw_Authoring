@@ -1,8 +1,8 @@
-﻿script "Global_HkeyArray_Line_Menu"
+﻿script "Global | HkeyArray | Line | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_HkeyArray_Line_Menu
+name: Global | HkeyArray | Line | Menu
 type: controller
 version: 0.1
 

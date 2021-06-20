@@ -1,21 +1,19 @@
-﻿script "Global_HkeyArray_Menu"
+﻿script "Global | HkeyArray | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_HkeyArray_Menu
+name: Global | HkeyArray | Menu
 type: controller
+target: hKey
 version: 0.4
 
-/*
-The menu for tree views of overlay arrays.
+/*The menu for tree views of overlay arrays.
 See also "Global | Image | Dot | Menu" and "Global | Script | Dependency | Menu"
 These menus should be renamed "Global | HkeyArray | Tree | ...."
 
 This menu is designed to be the title menu of a tree or similar widget that presents an hkeyArray.
 it should allow export to the appropriate place on disk, as it can take a long time to process these arrays,
-and they may want to be examined before they are saved!
-*/
-
+and they may want to be examined before they are saved!*/
 
 
 --> Variables
@@ -23,10 +21,43 @@ and they may want to be examined before they are saved!
 local LocalArray
 
 
-private command _SetHkeyLine treeView, @hKeyLine
-   put the displayed_Object of treeView into stackObject
-   put the selected_Value of treeView into selectedValue
-   put the hilited_Element of treeView into pathItems
+--> Menu | Props
+-
+getprop menu_Target [tObject]
+   put the display_View of tObject into displayView
+   put displayView into LocalArray ["displayView"]
+   --
+   -- put the displayed_Object of displayView into hObject
+   put the displayed_Hkey of displayView into hKey
+   -- put the title_Text of displayView into hKey
+   hkeyLine_Deconstruct hKey, hName, hType, hObject
+   put the overlay_Folder of hObject into overlayFolder
+   put the displayed_Data of displayView into hkeyArray
+   --
+   put hkeyArray into LocalArray ["hkeyArray"]
+   put overlayFolder into LocalArray ["overlayFolder"]
+   put hKey into LocalArray ["hKey"]
+   put hObject into LocalArray ["scriptObject"]
+   --
+   return hKey
+end menu_Target
+
+getprop menu_CheckTarget [hKey]
+   hkeyLine_Deconstruct hKey, hName, hType, hObject
+   return exists (hObject)
+end menu_CheckTarget
+
+command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
+   put LocalArray ["overlayFolder"] into overlayFolder
+   put LocalArray ["hKey"] into hKey
+   put LocalArray ["stackLabel"] into stackLabel
+   put LocalArray ["scriptObject"] into scriptObject
+end deconstructLocalArray
+
+private command _SetHkeyLine displayView, @hKeyLine
+   put the displayed_Object of displayView into stackObject
+   put the selected_Value of displayView into selectedValue
+   put the hilited_Element of displayView into pathItems
    
    if item 1 of pathItems = "Calls" then
       put item 4 of pathItems into hKeyLine
@@ -47,53 +78,74 @@ end _SetHkeyLine
 
 --> Global | HkeyArray | Menu
 -
-on menu_DisplayDepObjects mTarget
-   -- mTarget seems to be cardObject ???
-   put LocalArray ["treeView"] into treeView
-   
-   put the displayed_Object of treeView into hObject
-   put the displayed_Hkey of treeView into hKey
-   
-   put the hkey_Array of treeView into hkeyArray
-   -- put the view_Data of treeView into hkeyArray
-   put the displayed_Array of treeView into objectHkeyArray
-   
-   put keys (objectHkeyArray) into depObjects
-   put hKey into someTitle
-   put "DepObjects" into item 2 to -1 of someTitle
-   
-   display_Index depObjects, someTitle, "Global | DepObjects | Tree | Menu", "Global | DepObjects | Line | Menu"
-   put the result into indexView
-   
+on menu_DisplayHkeyDepArray hKey
+   put LocalArray ["hkeyArray"] into hkeyArray
+   put hkeyArray_GetDepArray (hkeyArray) into hkeyDepArray
+   --
+   display_Data hkeyDepArray, hKey, "hkeyDepArray"
+   put the result into displayView
+   --
+   display_SetInteractions displayView, "DepObjects | Tree", mDoubleUp
+   --
    set the displayed_Hkey of indexView to hKey
-   --  set the displayed_Object of indexView to hObject
-   
    set the displayed_HkeyArray of indexView to hkeyArray
-   set the displayed_ObjectHkeyArray of indexView to objectHkeyArray
-   
-   -- set the displayed_Object of indexView to hObject
-   set the displayed_Hkey of indexView to hKey
-end menu_DisplayDepObjects
+   set the displayed_HkeyDepArray of indexView to hkeyDepArray
+   --
+   return displayView
+end menu_DisplayHkeyDepArray
+
+on menu_HkeyRefresh hKey
+   display_HkeyArray hKey
+end menu_HkeyRefresh
 
 on _
 end _
 
-on menu_FetchHandler treeView
-   _SetHkeyLine treeView, hKeyLine
+on submenu_Hkey
+   return "Global | Tree | HkeyArray | Menu"
+end submenu_Hkey
+
+on submenu_CreateGraph
+   return "Global | Tree | HkeyArray | Graph | Create | Menu"
+end submenu_CreateGraph
+
+on _
+end _
+
+on submenu_Filter
+   return "Global | HkeyArray | Tree | Filter | Menu"
+end submenu_Filter
+
+on submenu_Deps
+   return "Global | HkeyArray | Tree | Deps | Menu"
+end submenu_Deps
+
+on _
+end _
+
+on submenu_Dev
+   return "Dev | Menu"
+end submenu_Dev
+
+
+--> Global | HkeyArray | Menu | Props
+-
+on menu_FetchHandler displayView
+   _SetHkeyLine displayView, hKeyLine
    put hkey_FetchHandler (hKeyLine)
 end menu_FetchHandler
 
-on menu_DisplayHandlerDeps treeView
-   _SetHkeyLine treeView, hKeyLine
+on menu_DisplayHandlerDeps displayView
+   _SetHkeyLine displayView, hKeyLine
    display_HandlerDeps hKeyLine
 end menu_DisplayHandlerDeps
 
-on menu_AddToDictionary treeView
+on menu_AddToDictionary displayView
    breakpoint
    
-   put the displayed_Object of treeView into stackObject
-   put the selected_Value of treeView into selectedValue
-   put the hilited_Element of treeView into pathItems
+   put the displayed_Object of displayView into stackObject
+   put the selected_Value of displayView into selectedValue
+   put the hilited_Element of displayView into pathItems
    
    if selectedValue is an array then
       put line 1 of the keys of selectedValue into pShortCall
@@ -119,52 +171,11 @@ on menu_AddToDictionary treeView
    script_ExportHandlersAndCalls stackObject, true
 end menu_AddToDictionary
 
-on _
-end _
-
-on submenu_Hkey
-   return "Global | Tree | HkeyArray | Menu"
-end submenu_Hkey
-
-on submenu_CreateGraph
-   return "Global | Tree | HkeyArray | Graph | Create | Menu"
-end submenu_CreateGraph
-
-on _
-end _
-
-on submenu_Filter
-   return "Global | HkeyArray | Tree | Filter | Menu"
-end submenu_Filter
-
-on submenu_Deps
-   return "Global | HkeyArray | Tree | Deps | Menu"
-end submenu_Deps
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-on _
-end _
-
-on menu_TestValue treeView
-   put the selected_Value of treeView into selectedValue
-   if selectedValue is an array then
-      display_Array selectedValue
-   else
-      put selectedValue
-   end if
-end menu_TestValue
-
-
---> Global | HkeyArray | Menu | Props
--
 
 --> Global | HkeyArray | Menu | Disabled
 -
-getprop disabled_FetchHandler [treeView]
-   _SetHkeyLine treeView, hKeyLine
+getprop disabled_FetchHandler [displayView]
+   _SetHkeyLine displayView, hKeyLine
    if hKeyLine is empty then
       return true
    else
@@ -172,14 +183,14 @@ getprop disabled_FetchHandler [treeView]
    end if
 end disabled_FetchHandler
 
-getprop disabled_DisplayHandlerDeps [treeView]
-   _SetHkeyLine treeView, hKeyLine
+getprop disabled_DisplayHandlerDeps [displayView]
+   _SetHkeyLine displayView, hKeyLine
    put hkey_FetchCalls (hKeyLine) into hCalls
    return hCalls is empty
 end disabled_DisplayHandlerDeps
 
-getprop disabled_DisplayHandlerDeps [treeView]
-   put the hilited_Element of treeView into pathItems
+getprop disabled_DisplayHandlerDeps [displayView]
+   put the hilited_Element of displayView into pathItems
    
    switch item 1 of pathItems
       case "Missing"
@@ -194,8 +205,8 @@ getprop disabled_DisplayHandlerDeps [treeView]
    return false
 end disabled_DisplayHandlerDeps
 
-getprop disabled_AddToDictionary [treeView]
-   put the hilited_Element of treeView into pathItems
+getprop disabled_AddToDictionary [displayView]
+   put the hilited_Element of displayView into pathItems
    put item 1 of pathItems = "Missing" into isMissing
    if isMissing is false then return true
    
@@ -212,12 +223,18 @@ getprop disabled_AddToDictionary [treeView]
 end disabled_AddToDictionary
 
 
---> Deps
--
-
 --> Dev | Menu
 -
-on menu_RecreateOverlay treeView, overlayName
+on menu_Test hKey
+   hkeyLine_Deconstruct hKey, hName, hType, hObject
+   put hkey_Find ("M _WalkHkeyRecursive", hObject) into foundCall
+   put foundCall
+end menu_Test
+
+on _
+end _
+
+on menu_RecreateOverlay displayView, overlayName
    set the cursor to watch
    
    local pImageView, pResizeStyle
@@ -229,16 +246,16 @@ on menu_RecreateOverlay treeView, overlayName
    display_Overlay overlayFolder, overlayName, pImageView, pResizeStyle, stackLabel
 end menu_RecreateOverlay
 
-on menu_SaveDisplayedOverlayArray treeView, graphStyle
-   put the displayed_Object of treeView into scriptObject
+on menu_SaveDisplayedOverlayArray displayView, graphStyle
+   put the displayed_Object of displayView into scriptObject
    
-   put the title_Text of treeView into hKey
-   put the displayed_Array of treeView into hKeyArray
+   put the title_Text of displayView into hKey
+   put the displayed_Array of displayView into hKeyArray
    
-   -- put the displayed_OverlayFolder of treeView into overlayFolder
+   -- put the displayed_OverlayFolder of displayView into overlayFolder
    put library_HkeyFolder (hKey) into overlayFolder
    
-   -- put the displayed_OverlayName of treeView into overlayName
+   -- put the displayed_OverlayName of displayView into overlayName
    put lcw_Ask ("What name would you like to give this overlay?", graphStyle) into overlayName
    
    put overlay_GetData (overlayFolder) into overlayData
@@ -254,56 +271,22 @@ on menu_SaveDisplayedOverlayArray treeView, graphStyle
    display_OverlayData overlayFolder, hKey
 end menu_SaveDisplayedOverlayArray
 
-on menu_SetOverlayObject treeView
-   put the displayed_Object of treeView into scriptObject
+on menu_SetOverlayObject displayView
+   put the displayed_Object of displayView into scriptObject
    overlay_SetOverlayObject overlayFolder, scriptObject
 end menu_SetOverlayObject
 
-on menu_ExportScriptArray treeView
-   put the displayed_Array of treeView into hKeyArray
-   put the displayed_Object of treeView into scriptObject
+on menu_ExportScriptArray displayView
+   put the displayed_Array of displayView into hKeyArray
+   put the displayed_Object of displayView into scriptObject
    -- set the script_OverlayData of scriptObject
-   put the displayed_OverlayName of treeView into overlayName
+   put the displayed_OverlayName of displayView into overlayName
    set the script_LinkArray [overlayName] of scriptObject to hKeyArray
    put the result into someFile
    finder_Reveal someFile
 end menu_ExportScriptArray
 
-on menu_RevealOverlayFolder treeView
+on menu_RevealOverlayFolder displayView
    put LocalArray ["overlayFolder"] into overlayFolder
    finder_Reveal overlayFolder
 end menu_RevealOverlayFolder
-
-
---> Menu | Props
--
-on menu_Init targetObject, mPath, mTitlePath
-   put the tree_View of targetObject into treeView
-   
-   put the displayed_Object of treeView into scriptObject
-   if exists (scriptObject) is true then
-      put empty into hKey
-      put the name of scriptObject into stackLabel
-      put the overlay_Folder of scriptObject into overlayFolder 
-   else
-      put the displayed_Hkey of treeView into hKey
-      -- put the title_Text of treeView into hKey
-      put hKey into stackLabel
-      -- put library_HkeyFolder (hKey) into overlayFolder
-      -- put the overlay_Folder of scriptObject into overlayFolder
-   end if
-   
-   put treeView into LocalArray ["treeView"]
-   put targetObject into LocalArray ["targetObject"]
-   put overlayFolder into LocalArray ["overlayFolder"]
-   put hKey into LocalArray ["hKey"]
-   put stackLabel into LocalArray ["stackLabel"]
-   put scriptObject into LocalArray ["scriptObject"]
-end menu_Init
-
-command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
-   put LocalArray ["overlayFolder"] into overlayFolder
-   put LocalArray ["hKey"] into hKey
-   put LocalArray ["stackLabel"] into stackLabel
-   put LocalArray ["scriptObject"] into scriptObject
-end deconstructLocalArray

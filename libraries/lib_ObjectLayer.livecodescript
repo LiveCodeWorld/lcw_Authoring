@@ -7,48 +7,8 @@ type: library
 version: 0.1
 
 
---> Top
+--> Object | Layer
 -
-getprop top_Controls
-   put the long ID of the target into targetObject
-   return object_GetGroupControls (targetObject, false)
-end top_Controls
-
-getprop top_Views
-   put the long ID of the target into groupOrCard
-   return object_GetTopViews (groupOrCard)
-end top_Views
-
-
---> Object | Top
--
-getprop top_Control [pName]
-   put the childcontrolids of the target into topControlIDs
-   switch
-      case pName is empty
-         put line 1 of topControlIDs into cID
-         if cID is empty then return empty
-         return the long id of control id cID of the target
-      case pName is a number
-         put line pName of topControlIDs into cID
-         if cID is empty then return empty
-         return the long id of control id cID of the target
-      default
-         repeat for each line cID in topControlIDs
-            put the long id of control id cID of the target into topControl
-            if the short name of topControl = pName then
-               return topControl
-            end if
-         end repeat
-         return empty
-   end switch
-end top_Control
-
-getprop object_TopControls
-   put the long ID of the target into targetObject
-   return object_GetGroupControls(targetObject, false)
-end object_TopControls
-
 function object_TopLevelGroup someCard, testGroupName
    object_SetToplevelGroupArrays topLevel_NameDictionary, topLevel_IdDictionary, someCard
    put keys(topLevel_NameDictionary) into possibleGroupNames
@@ -69,7 +29,7 @@ getprop object_TopViews
 end object_TopViews
 
 function object_GetTopViews groupOrCard
-   put the object_TopControls of groupOrCard into topControls
+   put the top_Controls of groupOrCard into topControls
    put empty into topViews
    repeat for each line someObject in topControls
       if the object_IsView of someObject is true then

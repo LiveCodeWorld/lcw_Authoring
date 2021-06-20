@@ -8,6 +8,33 @@ version: 0.9
 copyright: David Bovill
 
 
+--> Working on
+-
+function rect_FromWidthAndHeight someRect, sWidth, sHeight, pMinWidth, pMinHeight
+   if someWidth is not empty then
+      if pMinWidth is not empty then
+         put max (pMinWidth,sWidth) into sWidth
+      end if
+      put item 1 of someRect + sWidth into item 3 of someRect
+   end if
+   
+   if sHeight is not empty then
+      if pMinHeight is not empty then
+         put max (pMinHeight,sHeight) into sHeight
+      end if
+      put item 2 of someRect + sHeight into item 4 of someRect
+   end if
+   return someRect
+end rect_FromWidthAndHeight
+
+-- function rect_FromWidthAndHeight someRect, someWidth, someHeight, pSomeMargin
+rect_SubtractMargins someRect, pSomeMargin
+if someWidth is not empty then put item 1 of someRect + someWidth into item 3 of someRect
+if someHeight is not empty then put item 2 of someRect + someHeight into item 4 of someRect
+return someRect
+end rect_FromWidthAndHeight
+
+
 --> Rect | Scale
 -
 function rect_RelativeRect someRect, someCentre
@@ -358,6 +385,21 @@ function rect_FitToHeight originalW, originalH, targetRect
     return newRect
 end rect_FitToHeight
 
+function rect_FitToTopWidth fWidth, fHeight, sRect
+   -- oWidth/oHeight = fWidth/fHeight
+   -- newHeight = oWidth * fHeight/fWidth
+   
+   put item 3 of sRect - item 1 of sRect into oWidth
+   put item 4 of sRect - item 2 of sRect into oHeight
+   
+   put round (oWidth * fHeight/fWidth) into newHeight
+   
+   put sRect into newRect
+   put item 2 of newRect + newHeight into item 4 of newRect
+   --
+   return newRect
+end rect_FitToTopWidth
+
 function rect_FitToWidth originalW, originalH, targetRect
     rect_ExtractDimensions targetRect, newW, someH
     put newW / originalW into sFactor
@@ -623,11 +665,14 @@ function rect_SubtractMargin someMargin, someRect
 end rect_SubtractMargin
 
 command rect_SubtractMargins @someRect, pMargin
-   margin_Normalize pMargin, leftM, topM, rightM, bottomM   
+   margin_Normalize pMargin, leftM, topM, rightM, bottomM
+   -- 
    add leftM to item 1 of someRect
    add topM to item 2 of someRect
    subtract rightM from item 3 of someRect
    subtract bottomM from item 4 of someRect
+   --
+   return leftM,topM,rightM,bottomM 
 end rect_SubtractMargins
 
 command rect_AddMargins @someRect, pMargin
@@ -718,12 +763,6 @@ function rect_Resize someRect, someWidth, someHeight
    put rect_TranslateByVector (someRect, xVector, yVector) into newRect
    return newRect
 end rect_Resize
-
-function rect_FromWidthAndHeight someRect, someWidth, someHeight
-   if someWidth is not empty then put item 1 of someRect + someWidth into item 3 of someRect
-   if someHeight is not empty then put item 2 of someRect + someHeight into item 4 of someRect
-   return someRect
-end rect_FromWidthAndHeight
 
 function rect_LocWidthHeight someLoc, newW, newH
    put round(newW/2) into leftBit

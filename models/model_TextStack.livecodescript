@@ -33,7 +33,7 @@ end projectOverlay_SvgFile
 -
 getprop textstack_HkeyObjectArray
    put the projectOverlay_Array ["processedHkey.array"] of the target into processedHkeyArray  
-   put hkeyArray_ConstructObjectArray (processedHkeyArray) into hkeyObjectArray
+   put hkeyArray_GetDepArray (processedHkeyArray) into hkeyObjectArray
    return hkeyObjectArray
 end textstack_HkeyObjectArray
 
@@ -113,13 +113,3 @@ function textStack_ConstructFolder mainStackName
    if pDontCreate is false then folder_CreateNested textStackFolder
    return textStackFolder
 end textStack_ConstructFolder
-
-function textStack_ScriptFile dataFolder, pDontCreate
-   if pDontCreate is false then
-      folder_CreateNested dataFolder
-   else
-      text_AddTrailing dataFolder, slash
-   end if
-   put dataFolder & "lcw_script.txt" into someFile
-   return someFile
-end textStack_ScriptFile

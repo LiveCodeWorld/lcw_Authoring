@@ -37,8 +37,8 @@ on _
 end _
 
 on menu_RevDictionaryTerms
-   put rev_FetchDictionaryTerms() into dictionaryTerms
-   display_Index dictionaryTerms, "rev_FetchDictionaryTerms()"
+   put ide_FetchDictionaryTerms() into dictionaryTerms
+   display_Index dictionaryTerms, "ide_FetchDictionaryTerms()"
 end menu_RevDictionaryTerms
 
 

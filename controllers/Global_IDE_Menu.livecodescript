@@ -1,38 +1,22 @@
-﻿script "Global_IDE_Menu"
+﻿script "Global | IDE | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_IDE_Menu
+name: Global | IDE | Menu
 type: controller
-version: 0.2
-
-local LocalArray
+version: 0.3
 
 
---> Menu | Props
+--> Menu | Init
 -
 getprop ide_BNames
    return _IdeBnames()
 end ide_BNames
 
 getprop behaviorHack_Params
-   return _IdeBnames()
+   return env_ListIdeBehaviorStackNames()
 end behaviorHack_Params
    
-private function _IdeBnames
-   put env_ListBehaviorPaths() into bPaths
-   set the itemdelimiter to slash
-   repeat for each line bPath in bPaths
-      if exists (stack bPath) is false then next repeat
-      if item -1 of bPath begins with "behavior_Ide" then
-         put the short name of stack bPath into bName
-         put bName & CR after bNames
-      end if
-   end repeat
-   delete char -1 of bNames
-   return bNames
-end _IdeBnames
-
 
 --> Global | IDE | Menu
 -
@@ -40,9 +24,9 @@ on menu_BehaviorHack mTarget, ideBname
    edit the script of stack ideBname
 end menu_BehaviorHack
 
-on menu_EditOverride
+on menu_EditTransportOverride
    edit the script of stack "behavior_RigLocalOveride"
-end menu_EditOverride
+end menu_EditTransportOverride
 
 on submenu_InterfaceScripts
    return "IDE | Interface | Menu"

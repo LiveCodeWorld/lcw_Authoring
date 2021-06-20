@@ -24,7 +24,8 @@ on menu_DisplayObjectHkeys indexView
    
    put objectHkeyArray [depObject] into depKeyArray
    put keys (depKeyArray) into shortObjectDepKeys
-   breakpoint
+   --
+   display_Lines shortObjectDepKeys, "shortObjectDepKeys"
 end menu_DisplayObjectHkeys
 
 

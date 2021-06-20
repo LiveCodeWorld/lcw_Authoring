@@ -282,7 +282,7 @@ function ccc_ExtractData someHTML
       put revXMLAttribute (treeID, tNode, "href") into relPersonLink
       put relPersonLink into cccArray ["authors"][personName]
    end repeat
-   revDeleteXMLTree treeID
+   revXMLDeleteTree treeID
    return cccArray
 end ccc_ExtractData
 

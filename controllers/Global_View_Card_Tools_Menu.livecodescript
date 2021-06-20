@@ -1,61 +1,36 @@
-﻿script "Global_View_Card_Tools_Menu"
+﻿script "Global | View | Card | Tools | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_View_Card_Tools_Menu
+name: Global | View | Card | Tools | Menu
 type: controller
 version: 0.2
+
 
 --> Variables
 -
 local LocalArray
 
-
---> Global | View | Card | Tools | Menu
+--> Menu | Props
 -
-on submenu_ViewAuthoring
-   return "Global | View | Authoring | Menu"
-end submenu_ViewAuthoring
-
-on submenu_Geometry
-   return "Global | View | Test | Geometry | Menu"
-end submenu_Geometry
-
-on submenu_ViewProperty
-   return "Global | View | Property | Menu"
-end submenu_ViewProperty
-
-on submenu_ViewScript
-   return "Global | View | Script | Menu"
-end submenu_ViewScript
-
-on _
-end _
-
-on menu_DisplayViewTools displayView
-   put the displayed_Object of displayView into someView
-   put the template_Object of displayView into svgView
+getprop menu_Target [tObject]
+   if the stack_IsDisplay of tObject then
+      put the display_View of tObject into displayView
+      put the displayed_Object of displayView into templateView
+      return templateView     
+   end if
+   
+   put the card_Object of tObject into cardObject
+   put cardObject into LocalArray ["cardObject"]
    --
-   put the module_Name of svgView into moduleName
-   put the project_Name of svgView into projectName
-   --
-   display_ModuleFromName moduleName, projectName
-end menu_DisplayViewTools
+   if exists (control 1 of cardObject) is false then
+      return cardObject
+   end if
+   
+   put the long id of control 1 of cardObject into templateView
+   return templateView
+end menu_Target
 
-on menu_ReIndexMenus displayView
-   -- module menus are not being indexed
-   put the template_Object of displayView into templateView
-   -- 
-   module_ReIndexMenus templateView
-end menu_ReIndexMenus
-
-on menu_OpenSubstack someView, substackName
-   go to stack substackName
-end menu_OpenSubstack
-
-
---> Global | View | Card | Tools | Menu | Disabled
--
 getprop disabled_EditBehavior [someView]
    put the behavior of someView into bObject
    put exists (bObject) into bExists
@@ -88,9 +63,70 @@ getprop disabled_OpenSubstack [someView]
    end if
 end disabled_OpenSubstack
 
-
---> Global | View | Card | Tools | Menu | Props
--
 getprop substack_Names [someView]
    return LocalArray ["substackNames"]
 end substack_Names
+
+
+--> Global | View | Card | Tools | Menu
+-
+on submenu_View
+   put LocalArray ["cardObject"] into cardObject
+   if exists (control 1 of cardObject) is false then
+      return "Global | View | Card | Create | Menu"
+   end if
+   
+   put the long id of control 1 of cardObject into viewObject
+   --
+   put the view_MenuTitle [true] of viewObject into mTitle
+   put menu_GetGlobalController (mTitle) into mController
+   if exists (mController) is false then
+      put "Global | View | Card | Tools | Menu" into mTitle
+   end if
+   return mTitle
+end submenu_View
+
+on _
+end _
+
+on submenu_ViewAuthoring
+   return "Global | View | Authoring | Menu"
+end submenu_ViewAuthoring
+
+on submenu_Geometry
+   return "Global | View | Geometry | Menu"
+   -- return "Global | View | Test | Geometry | Menu"
+end submenu_Geometry
+
+on submenu_ViewProperty
+   return "Global | View | Property | Menu"
+end submenu_ViewProperty
+
+on submenu_ViewScript
+   return "Global | View | Script | Menu"
+end submenu_ViewScript
+
+on _
+end _
+
+on menu_ModuleTools templateView
+   put the view_Name of templateView into moduleName
+   put the stack_Name of templateView into moduleName
+   --
+   display_ModuleTools moduleName
+end menu_ModuleTools
+
+on menu_DisplayViewTools templateView
+   put the module_Name of templateView into moduleName
+   put the project_Name of templateView into projectName
+   --
+   display_ModuleFromName moduleName, projectName
+end menu_DisplayViewTools
+
+on menu_ReIndexMenus templateView
+   module_ReIndexMenus templateView
+end menu_ReIndexMenus
+
+on menu_OpenSubstack someView, substackName
+   go to stack substackName
+end menu_OpenSubstack

@@ -38,14 +38,14 @@ on menu_RemoveObject treeView, depObject
    deconstructLocalArray overlayFolder, hKey, stackLabel, scriptObject
    
    hkeyArray_RemoveObjectLinks hkeyArray, depObject
-   put hkeyArray_ConstructObjectArray (hkeyArray) into objectArray
+   put hkeyArray_GetDepArray (hkeyArray) into objectArray
    
    put merge ("Filtered hkeyArray") into someTitle
    
-   if exists(scriptObject) then
+   if exists (scriptObject) then
       display_ObjectDepArray scriptObject, hKeyArray
    else
-      display_HKeyArray hKeyArray, hkey
+      display_HKeyArray hkey, hKeyArray
    end if
    return empty
    
@@ -162,7 +162,7 @@ end submenu_Filter
 -
 getprop dep_Objects [treeView]
    put the displayed_Array of treeView into hKeyArray
-   put hkeyArray_ConstructObjectArray (hkeyArray) into objectArray
+   put hkeyArray_GetDepArray (hkeyArray) into objectArray
    return keys (objectArray)
 end dep_Objects
 
@@ -212,7 +212,7 @@ private function _HkeysInMainstack treeView
 end _HkeysInMainstack
 
 command display_ObjectOutline hkeyArray, someTitle, treeView
-   put hkeyArray_ConstructObjectArray (hkeyArray) into objectArray
+   put hkeyArray_GetDepArray (hkeyArray) into objectArray
    
    lock screen
    set the tree_Array [1] of the tree_Field of treeView to objectArray

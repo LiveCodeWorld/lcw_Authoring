@@ -11,6 +11,79 @@ A place for all the view scripts which we probably no longer need.
 */
 
 
+--> View | PathIndex
+-
+function view_PathIndex
+   put env_ListViewStackPaths() into stackPaths
+   return stackPaths
+end view_PathIndex
+
+
+--> View | PathIndex | Old
+-
+function view_PathIndex includeStem
+   -- see "env_ListViewStackPaths()"
+   -- return view_ListNames (empty, includeStem)
+   -- return view_ListNamesOfStandardFiles()
+   put view_ShortFiles() into shortFiles
+   
+   put empty into viewPaths
+   repeat for each line someFile in shortFiles
+      put view_FileToPath (someFile, includeStem) into viewPath
+      put viewPath & CR after viewPaths
+   end repeat
+   delete last char of viewPaths
+   return viewPaths
+end view_PathIndex
+
+function view_ShortFiles
+   put library_ViewFolder() into someFolder
+   put folder_ShortFiles(someFolder) into shortFiles
+   return shortFiles
+end view_ShortFiles
+
+function view_FileToPath someFile, includeStem
+   set the itemdelimiter to "/"
+   put last item of someFile into viewPath
+   
+   replace "_" with "|" in viewPath
+   set the itemdelimiter to "."
+   if item -1 of viewPath is among the items of "livecode.rev.opml.html" then delete last item of viewPath
+   if includeStem is true then view_NormalizeName viewPath
+   return viewPath
+end view_FileToPath
+
+
+--> View | List
+-
+function view_ListNames pStartFilter, pIncludeStem
+   -- return view_PathIndex (includeStem)
+   put hArray_ListViewNames() into vNames
+   if pIncludeStem is not true then put replacetext (vNames, "(View\|)\W*", empty) into vNames
+   if pStartFilter is empty then return vNames
+   
+   view_NormalizeName pStartFilter
+   if pIncludeStem is not true then
+      set the itemdelimiter to "|"
+      delete item 1 of pStartFilter
+   end if
+   filter vNames with (pStartFilter & "*")
+   return vNames
+end view_ListNames
+
+function view_ListNamesOfStandardFiles
+   put view_ShortFiles() into shortFiles
+   
+   put empty into viewPaths
+   repeat for each line someFile in shortFiles
+      put view_FileToPath (someFile, includeStem) into viewPath
+      put viewPath & CR after viewPaths
+   end repeat
+   delete last char of viewPaths
+   return viewPaths
+end view_ListNamesOfStandardFiles
+
+
 --> View | Props
 -
 getprop view_DisplayProperty [someProp]
@@ -171,21 +244,6 @@ command view_TrimFirstViewNameItem @vNames
    end repeat
 end view_TrimFirstViewNameItem
 
-function view_ListNames pStartFilter, pIncludeStem
-   -- return view_PathIndex (includeStem)
-   put hArray_ListViewNames() into vNames
-   if pIncludeStem is not true then put replacetext (vNames, "(View\|)\W*", empty) into vNames
-   if pStartFilter is empty then return vNames
-   
-   view_NormalizeName pStartFilter
-   if pIncludeStem is not true then
-      set the itemdelimiter to "|"
-      delete item 1 of pStartFilter
-   end if
-   filter vNames with (pStartFilter & "*")
-   return vNames
-end view_ListNames
-
 function view_FilteredPaths vName, pIncludeStem
    return view_ListNames (vName, pIncludeStem)
    
@@ -196,23 +254,6 @@ function view_FilteredPaths vName, pIncludeStem
    filter viewPathIndex with (vName & "*")
    return viewPathIndex
 end view_FilteredPaths
-
-function view_PathIndex includeStem
-   return view_ListNames (empty, includeStem)
-   return view_ListNamesOfStandardFiles()
-end view_PathIndex
-
-function view_ListNamesOfStandardFiles
-   put view_ShortFiles() into shortFiles
-   
-   put empty into viewPaths
-   repeat for each line someFile in shortFiles
-      put view_FileToPath (someFile, includeStem) into viewPath
-      put viewPath & CR after viewPaths
-   end repeat
-   delete last char of viewPaths
-   return viewPaths
-end view_ListNamesOfStandardFiles
 
 function view_NameToFile viewPath, pFileExt
    put view_PathToShortFile (viewPath, pFileExt) into shortFile
@@ -385,7 +426,7 @@ getprop template_DefaultScript [pObjectType]
    if pObjectType is empty then put "view template" into pObjectType
    put the view_Name of the target into ViewName
    put objectType into UripType
-   put user_GetName() into AuthorName
+   put lcw_GetAuthor() into AuthorName
    put the template_ObjectDefScript of scriptObject into DefScript
    
    put scaffold_GetTemplate ("View Template") into templateScript
@@ -824,16 +865,6 @@ end view_ChildReferences
 
 --> View | Menu
 -
-getprop view_ToolMenu [pItems]
-   put the long id of the target into targetObject
-   put the view_Object of targetObject into someView
-   if exists(someView) is false then put targetObject into someView
-   
-   put the menu_ToolTitle of targetObject into mTitle -- searches so more danger of recursion   
-   put menu_GetTextFromTitleTable (mTitle, targetObject) into mText
-   return mText
-end view_ToolMenu
-
 getprop view_ChildToolMenus
    put the long id of the target into targetObject
    put the mobile_Name of targetObject into targetObject
@@ -904,7 +935,7 @@ getprop view_IsTemplate [vName]
    if vName is empty then
       put the view_Template of targetObject into templateObject
    else
-      put view_GetTemplateObject (vName) templateObject
+      put view_GetTemplateObject (vName) into templateObject
    end if
    return templateObject = targetObject
 end view_IsTemplate
@@ -1615,7 +1646,7 @@ end card_Views
 
 getprop card_TopViews [viewName]
    put the card_Object of the target into cardObject
-   put the object_TopControls of cardObject into topControls
+   put the top_Controls of cardObject into topControls
    repeat for each line someControl in topControls
       put the view_Name of someControl into testViewName
       if viewName is empty and testViewName is not empty then
@@ -1723,7 +1754,7 @@ getprop view_Inside [vNameOrStem]
    if lazyViewNameMatch (vNameOrStem, vName) is true then return targetObject
    
    -- now lets recurse the children
-   put the object_TopControls of targetObject into topControls
+   put the top_Controls of targetObject into topControls
    repeat for each line topControl in topControls
       put the view_Inside [vNameOrStem] of topControl into foundView
       if exists(foundView) then return foundView
@@ -1786,7 +1817,7 @@ getprop view_LazyMatchInside [vNames]
          -- no more vNames to search so lets return the found object
          return targetObject
       else
-         put the object_TopControls of targetObject into topControls
+         put the top_Controls of targetObject into topControls
          repeat for each line testControl in topControls
             put the view_LazyMatchInside [vNames] of testControl into foundView
             if exists(foundView) then return foundView
@@ -1818,7 +1849,7 @@ getprop view_MatchInside [vNames]
          -- no more vNames to search so lets return the found object
          return targetObject
       else
-         put the object_TopControls of targetObject into topControls
+         put the top_Controls of targetObject into topControls
          repeat for each line testControl in topControls
             put the view_MatchInside [vNames] of testControl into foundView
             if exists(foundView) then return foundView

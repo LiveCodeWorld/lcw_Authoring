@@ -9,6 +9,128 @@ version: 0.1
 
 --> Working on
 -
+getprop object_PropertyText
+   local objectPropArray, hArray, pExportHandlers, pDontDiff, pForceIndexHandlerCalls
+   local revPropText, someScript, objectText, objectHtml, metadataArray, customArray, someImage
+   
+   put the long id of the target into tObject
+   --
+   put the object_PropertyArray of tObject into revPropertyArray
+   put rev_PropertyArrayToText (revPropertyArray) into revPropText
+   /*
+   object_GetPropertyArrays tObject, objectPropArray, hArray, pExportHandlers, pDontDiff, true, pForceIndexHandlerCalls
+   object_DeconstructPropertyArray objectPropArray, revPropText, someScript, objectText, objectHtml, customArray, someImage 
+   */
+   return revPropText
+end object_PropertyText
+
+getprop rev_PropertyArray [dontDiff]
+   put the long id of the target into targetObject
+   put the properties of targetObject into revPropertyArray
+   
+   if dontDiff is not true then
+      put the object_DefaultPropArray of the target into defaultPropArray
+      repeat for each key propName in defaultPropArray
+         if defaultPropArray [propName] = revPropertyArray [propName] then
+            delete local revPropertyArray [propName]
+         end if
+      end repeat
+   end if
+   
+   switch word 1 of targetObject
+      case "field"
+         put the htmltext of targetObject into revPropertyArray ["htmlText"] -- a stupid RunRev bug!!!
+         break
+      case "button"
+         put the hilite of targetObject into revPropertyArray ["hilited"] -- a stupid RunRev bug!!!
+         break
+   end switch
+   
+   -- delete local revPropertyArray ["defaultButton"] -- should not be in the properties as read only
+   object_AddMissingArrays revPropertyArray, targetObject
+   return revPropertyArray
+end rev_PropertyArray
+
+setprop rev_PropertyArray [stripID] revPropertyArray
+   put the long id of the target into targetObject
+   
+   -- put the object_DefaultPropArray of targetObject into defaultPropArray
+   -- union revPropertyArray with defaultPropArray -- no need just set up template to default before creating.
+   
+   put revPropertyArray ["id"] into newID
+   if stripID is true then delete local revPropertyArray ["id"]
+   
+   set the properties of targetObject to revPropertyArray
+   
+   if stripID is not true and word 1 of targetObject is not "stack" then -- id may have changed so reset targetObject
+      if newID is a number then
+         put newID into word 3 of targetObject
+         if exists(targetObject) is false then breakPoint -- should exists!
+      end if
+   end if
+   
+   switch word 1 of targetObject
+      case "field"
+         set the htmltext of targetObject to revPropertyArray ["htmlText"] -- a stupid RunRev bug!!!
+         break
+      case "button"
+         set the hilite of targetObject to revPropertyArray ["hilited"] -- a stupid RunRev bug!!!
+         break
+   end switch
+   
+   rev_SetMissing revPropertyArray, targetObject -- should not be needed RunRev bug !!!
+   
+   return targetObject
+end rev_PropertyArray
+
+command object_GetPropertyArrays targetObject, @objectPropArray, @hArray, pExportHandlers, pDontDiff, pDontExport, pForceIndexHandlerCalls
+   put the rev_PropertyArray [pDontDiff] of targetObject into revPropertyArray
+   
+   switch word 1 of targetObject
+      case "stack"
+         put the style of targetObject into objectPropArray ["style"]
+         put the stackfiles of targetObject into stackFileTable
+         if stackFileTable is not empty then put stackFileTable into objectPropArray ["stackfiles"]
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "button"
+         get revPropertyArray ["text"]
+         if it is not empty then put it into objectPropArray ["text"]
+         delete local revPropertyArray ["text"]
+         
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "field"
+         get revPropertyArray ["htmlText"]
+         if it is not empty then put it into objectPropArray ["htmlText"]
+         delete local revPropertyArray ["htmlText"]
+         
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "image"
+         if revPropertyArray ["fileName"] is empty then
+            put the text of targetObject into objectPropArray ["image"] -- strange hack to get the full contents of an image
+         end if
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "videoclip"
+         put the text of targetObject into objectPropArray ["videoclip"] -- strange hack to get the full contents of a videoclip
+         break
+      case "audioclip"
+         -- put the text of targetObject into objectPropArray ["audioclip"] -- RunRev bug!!! No way to export an audoclip
+         copy targetObject
+         put the clipboarddata ["objects"] into objectPropArray ["audioclip"]
+         break
+      default
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+   end switch 
+   
+   put revPropertyArray into objectPropArray ["rev"] -- contains id
+end object_GetPropertyArrays
+
+
+--> Object | Script | Indexing
+-
 command object_AddScriptAndCustomArray @objectPropArray, targetObject, @hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
    -- this should be updated and changed to not use "lcw_ExportAndAddScriptToHarray"
    -- but use "script_ExportAndIndexMenus" or similar instead
@@ -55,16 +177,6 @@ getprop object_MetaArray [pLinkToViews]
    put mainstack_ConstructMetaArray (mainStackObject, hArray, pLinkToViews, false) into metaArray
    return metaArray
 end object_MetaArray
-
-getprop object_PropertyText
-   local objectPropArray, hArray, pExportHandlers, pDontDiff, pForceIndexHandlerCalls
-   local revPropText, someScript, objectText, objectHtml, metadataArray, customArray, someImage
-   object_GetPropertyArrays nestedObject, objectPropArray, hArray, pExportHandlers, pDontDiff, true, pForceIndexHandlerCalls
-   
-   object_DeconstructPropertyArray revPropertyArray, revPropText, someScript, objectText, objectHtml, customArray, someImage
-   put rev_PropertyArrayToText (revPropertyArray) into revPropText
-   return revPropText
-end object_PropertyText
 
 getprop object_DefaultPropArray
    put the long id of the target into someObject
@@ -118,19 +230,6 @@ getprop object_DefaultPropArray
    
    return defaultArray
 end object_DefaultPropArray
-
-getprop stackArray_Version
-   return 1.0
-end stackArray_Version
-
-getprop stack_Array [pLinkToViews]
-   put the stack_Object of the target into stackObject
-   
-   local stackArray, stackPropertyArray, hArray, pExportHandlers, pDontDiff, pForceIndexHandlerCalls
-   stack_GetPropertArrays stackObject, stackArray, hArray, pLinkToViews, pExportHandlers, pDontDiff, true, pForceIndexHandlerCalls
-   put the stack_Object of the target into stackObject
-   return stackArray
-end stack_Array
 
 getprop stack_PropertArrays [pLinkToViews]
    local pExportHandlers, pDontDiff, pForceIndexHandlerCalls
@@ -328,65 +427,6 @@ setprop custom_PropertyArray customArray
    set the customPropertySet of the target to oSetName
 end custom_PropertyArray
 
-getprop rev_PropertyArray [dontDiff]
-   put the long id of the target into targetObject
-   put the properties of targetObject into revPropertyArray
-   
-   if dontDiff is not true then
-      put the object_DefaultPropArray of the target into defaultPropArray
-      repeat for each key propName in defaultPropArray
-         if defaultPropArray [propName] = revPropertyArray [propName] then
-            delete local revPropertyArray [propName]
-         end if
-      end repeat
-   end if
-   
-   switch word 1 of targetObject
-      case "field"
-         put the htmltext of targetObject into revPropertyArray ["htmlText"] -- a stupid RunRev bug!!!
-         break
-      case "button"
-         put the hilite of targetObject into revPropertyArray ["hilited"] -- a stupid RunRev bug!!!
-         break
-   end switch
-   
-   -- delete local revPropertyArray ["defaultButton"] -- should not be in the properties as read only
-   object_AddMissingArrays revPropertyArray, targetObject
-   return revPropertyArray
-end rev_PropertyArray
-
-setprop rev_PropertyArray [stripID] revPropertyArray
-   put the long id of the target into targetObject
-   
-   -- put the object_DefaultPropArray of targetObject into defaultPropArray
-   -- union revPropertyArray with defaultPropArray -- no need just set up template to default before creating.
-   
-   put revPropertyArray ["id"] into newID
-   if stripID is true then delete local revPropertyArray ["id"]
-   
-   set the properties of targetObject to revPropertyArray
-   
-   if stripID is not true and word 1 of targetObject is not "stack" then -- id may have changed so reset targetObject
-      if newID is a number then
-         put newID into word 3 of targetObject
-         if exists(targetObject) is false then breakPoint -- should exists!
-      end if
-   end if
-   
-   switch word 1 of targetObject
-      case "field"
-         set the htmltext of targetObject to revPropertyArray ["htmlText"] -- a stupid RunRev bug!!!
-         break
-      case "button"
-         set the hilite of targetObject to revPropertyArray ["hilited"] -- a stupid RunRev bug!!!
-         break
-   end switch
-   
-   rev_SetMissing revPropertyArray, targetObject -- should not be needed RunRev bug !!!
-   
-   return targetObject
-end rev_PropertyArray
-
 
 --> Mainstack | Array
 -
@@ -394,97 +434,6 @@ function object_ConvertAbbreviated aObject
    replace " id " with "_" in aObject
    return aObject
 end object_ConvertAbbreviated
-
-setprop stack_Array [pRename] stackArray
-   local newCreationArray
-   lock screen
-   set the relayerGroupedControls to false -- required otherwize setting layers moves objects out of groups = hack
-   
-   put the stack_Object of the target into stackNameObject
-   set the defaultstack to stackNameObject
-   
-   if pRename is not false then
-      put stackNameObject into stackArray ["manifest"]["object"]
-      put the short name of stackNameObject into stackArray ["manifest"]["name"]
-   end if
-   
-   put stackArray ["objects"]["stack"] into stackPropertyArray
-   set the object_PropertyArray of stackNameObject to stackPropertyArray
-   
-   put stackArray ["manifest"]["cards"] into allCdsArray
-   if allCdsArray is an array then
-      put the number of lines of keys (allCdsArray) into numberOfCards
-      put 1 into cardNum
-      repeat with cardNum = 1 to numberOfCards
-         card_CreateFromArray cardNum, stackArray, newCreationArray
-         if cardNum = numberOfCards then exit repeat
-         
-         -- now loop again
-         create card
-         repeat for each line bgID in the groupIDs of this card
-            -- if there are any bg behavior grps, remove them and let the objectProp set them back if needed
-            remove group id bgID from this cd
-         end repeat
-      end repeat
-   else
-      -- lazy zero manifest (objects only array)
-      put stackArray ["objects"] into oArray
-      repeat for each key aFolder in oArray
-         if aFolder = "stack" then next repeat
-         put oArray [aFolder] into objectPropertyArray
-         put aFolder into aObject
-         replace "_" with " id " in aObject
-         
-         object_Create aObject, empty, objectPropertyArray
-      end repeat
-   end if
-   
-   -- interestingly filename is not in the properties of a stack
-   put manifestArray ["filename"] into someFile
-   if someFile is not empty then set the filename of stackNameObject to someFile
-   
-   put 1 into clipNum
-   repeat for each element clipArray in stackArray ["manifest"]["videoclips"]
-      put clipArray ["object"] into aObject
-      put aObject into aFolder
-      replace " id " with "_" in aFolder
-      put stackArray ["objects"][aFolder]["rev"] into revPropertyArray
-      put stackArray ["objects"][aFolder]["videoclip"] into clipData
-      if clipData is empty then next repeat
-      
-      put the tempname into someFile
-      put clipData into url ("binfile:" & someFile)
-      -- create videoClip -- does not work for videoClips
-      import videoClip from file someFile
-      -- put the result into createdObject -- RunRev bug it or the result does not give the createdObject
-      
-      delete local revPropertyArray ["layer"]
-      set the rev_PropertyArray of videoClip clipNum to revPropertyArray
-      add 1 to clipNum
-   end repeat
-   
-   put 1 into clipNum
-   repeat for each element clipArray in stackArray ["manifest"]["audioClips"]
-      put clipArray ["object"] into aObject
-      put aObject into aFolder
-      replace " id " with "_" in aFolder
-      put stackArray ["objects"][aFolder]["rev"] into revPropertyArray
-      put stackArray ["objects"][aFolder]["audioclip"] into clipData
-      if clipData is empty then next repeat
-      
-      put the tempname into someFile
-      put clipData into url ("binfile:" & someFile)
-      -- create audioClip -- does not work for videoClips
-      import audioClip from file someFile
-      -- put the result into createdObject -- RunRev bug it or the result does not give the createdObject
-      
-      delete local revPropertyArray ["layer"]
-      set the rev_PropertyArray of audioClip clipNum to revPropertyArray
-      add 1 to clipNum
-   end repeat
-   unlock screen
-   return manifestArray
-end stack_Array
 
 
 --> Card | Create
@@ -1098,51 +1047,6 @@ end object_FetchCustomArray
 
 --> Object | Property | Array
 -
-command object_GetPropertyArrays targetObject, @objectPropArray, @hArray, pExportHandlers, pDontDiff, pDontExport, pForceIndexHandlerCalls
-   put the rev_PropertyArray [pDontDiff] of targetObject into revPropertyArray
-   
-   switch word 1 of targetObject
-      case "stack"
-         put the style of targetObject into objectPropArray ["style"]
-         put the stackfiles of targetObject into stackFileTable
-         if stackFileTable is not empty then put stackFileTable into objectPropArray ["stackfiles"]
-         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
-         break
-      case "button"
-         get revPropertyArray ["text"]
-         if it is not empty then put it into objectPropArray ["text"]
-         delete local revPropertyArray ["text"]
-         
-         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
-         break
-      case "field"
-         get revPropertyArray ["htmlText"]
-         if it is not empty then put it into objectPropArray ["htmlText"]
-         delete local revPropertyArray ["htmlText"]
-         
-         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
-         break
-      case "image"
-         if revPropertyArray ["fileName"] is empty then
-            put the text of targetObject into objectPropArray ["image"] -- strange hack to get the full contents of an image
-         end if
-         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
-         break
-      case "videoclip"
-         put the text of targetObject into objectPropArray ["videoclip"] -- strange hack to get the full contents of a videoclip
-         break
-      case "audioclip"
-         -- put the text of targetObject into objectPropArray ["audioclip"] -- RunRev bug!!! No way to export an audoclip
-         copy targetObject
-         put the clipboarddata ["objects"] into objectPropArray ["audioclip"]
-         break
-      default
-         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
-   end switch 
-   
-   put revPropertyArray into objectPropArray ["rev"] -- contains id
-end object_GetPropertyArrays
-
 private command rev_SetMissing revPropertyArray, targetObject
    /*
    I can confirm that the antialiased/gradient props are not included in graphics; and the bitmap effect properties are not reported for controls.

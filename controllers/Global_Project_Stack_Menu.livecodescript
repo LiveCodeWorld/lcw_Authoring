@@ -4,11 +4,9 @@
 license: GPLv3
 name: Global | Project | Stack | Menu
 type: controller
+target: stackObject
 version: 0.4
 
-
---> Global | Project | Stack | Menu
--
 /*
 First section uses code from "lib_DisplayGraph"
 This depends on "projectOverlay_File ["processedHkey.array"]" 
@@ -18,7 +16,74 @@ The menu was originally designed to work with indexViews of project stacks,
 but can equally be used directly in the ScriptEditor.
 */
 
+
+--> Menu | Init
+-
+getprop menu_Target [tObject]
+   put the display_View of tObject into displayView
+   -- 
+   switch
+      case exists (displayView) is false
+         put the stack_Object of tObject into stackObject
+         return stackObject
+         break
+      case word 1 of tObject = "widget"
+         put the displayed_Object of displayView into sObject
+         return sObject
+      default
+         put the selected_Line of displayView into projectName
+         put the name of stack projectName into stackObject
+         return stackObject
+   end switch
+end menu_Target
+
+getprop useStack_Param [stackObject]
+   set the wholematches to true
+   put the short name of stackObject is among the lines of the stacksinuse into isUsed
+   return isUsed
+end useStack_Param
+
+getprop useStack_Params [stackObject]
+   put the substacks of stackObject into subStackNames
+   return subStackNames
+end useStack_Params
+
+getprop disabled_Index [stackObject]
+   put the index_View of the target into indexView
+   return indexView is empty
+end disabled_Index
+
+getprop disabled_DisplayDependencyObjectArray [stackObject]
+   put the projectOverlay_File ["processedHkey.array"] of stackObject into processedHkeyArrayFile
+   put there is a file processedHkeyArrayFile into fileExists
+   return fileExists is false
+end disabled_DisplayDependencyObjectArray
+
+getprop disabled_DependencyObjects [stackObject]
+   put the projectOverlay_File ["processedHkey.array"] of stackObject into processedHkeyArrayFile
+   put there is a file processedHkeyArrayFile into fileExists
+   return fileExists is false
+end disabled_DependencyObjects
+
+getprop disabled_TrashStack [stackObject]
+   put the substacks of stackObject into subStackNames
+   return subStackNames is not empty
+end disabled_TrashStack
+
+getprop disabled_DisplaySubstack [stackObject]
+   put the substacks of stackObject into subStackNames
+   return subStackNames is empty
+end disabled_DisplaySubstack
+
+
+--> Global | Project | Stack | Menu
+-
+on menu_GraphProject stackObject
+   graph_Project stackObject
+end menu_GraphProject
+
 on menu_GraphScript stackObject
+   breakpoint
    graph_Project stackObject
 end menu_GraphScript
 
@@ -30,7 +95,6 @@ on menu_GoToStack stackObject
 end menu_GoToStack
 
 on menu_EditStackScript stackObject
-   put the name of stackObject
    edit the script of stackObject
 end menu_EditStackScript
 
@@ -48,30 +112,7 @@ on _
 end _
 
 on menu_TrashStack stackObject
-   put merge ("Are you sure you want to delete the file, and remove the [[stackObject]] from all projects?") into someQuestion
-   answer someQuestion with "OK" or "Cancel"
-   if it is "Cancel" then exit to top
-   
-   put the filename of stackObject into longStackFile
-   
-   breakpoint
-   /*
-   -- lets not bother doing this automatically
-   library_RemoveStackFromAllProjects stackObject
-   */
-   
-   stop using stackObject
-   set the stack_IsKnow of stackObject to false -- do this for all projects ?
-   --
-   delete stackObject
-   delete file longStackFile
-   --
-   breakpoint
-   put menu_GetTargetObject() into tObject
-   put the index_View of tObject into indexView
-   if exists (indexView) then
-      dispatch "refresh" to _indexView()
-   end if
+   display_AskProjectTrashStack stackObject
 end menu_TrashStack
 
 on menu_DisplaySubstack stackObject, subStackName
@@ -115,47 +156,3 @@ on menu_ScriptLibraryDependencies stackObject
    -- in "lib_DisplayGraph" (depends on hArray based walk and "deps_SaveMainstackAndExportArrays")
    put the script_DepLibs of stackObject -- into dependencyStacks
 end menu_ScriptLibraryDependencies
-
-
---> Global | Project | Stack | Menu | Props
--
-getprop use_Stack [stackObject]
-   set the wholematches to true
-   put the short name of stackObject is among the lines of the stacksinuse into isUsed
-   return isUsed
-end use_Stack
-
-getprop sub_StackNames [stackObject]
-   put the substacks of stackObject into subStackNames
-   return subStackNames
-end sub_StackNames
-
-
---> Global | Project | Stack | Menu | Disabled
--
-getprop disabled_Index [scriptObject]
-   put the index_View of the target into indexView
-   return indexView is empty
-end disabled_Index
-
-getprop disabled_DisplayDependencyObjectArray [stackObject]
-   put the projectOverlay_File ["processedHkey.array"] of stackObject into processedHkeyArrayFile
-   put there is a file processedHkeyArrayFile into fileExists
-   return fileExists is false
-end disabled_DisplayDependencyObjectArray
-
-getprop disabled_DependencyObjects [stackObject]
-   put the projectOverlay_File ["processedHkey.array"] of stackObject into processedHkeyArrayFile
-   put there is a file processedHkeyArrayFile into fileExists
-   return fileExists is false
-end disabled_DependencyObjects
-
-getprop disabled_TrashStack [stackObject]
-   put the substacks of stackObject into subStackNames
-   return subStackNames is not empty
-end disabled_TrashStack
-
-getprop disabled_DisplaySubstack [stackObject]
-   put the substacks of stackObject into subStackNames
-   return subStackNames is empty
-end disabled_DisplaySubstack
