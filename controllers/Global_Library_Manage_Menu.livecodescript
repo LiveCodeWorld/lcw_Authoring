@@ -265,9 +265,10 @@ command _DisplayFoundDifferences someObjects, someComment
    end if
    
    put "Scripts which differ from exported scripts" into someTitle
-   display_Array exportErrorArray, someTitle, "Global | Script | Duplicates | Menu", "Global | Script | Duplicates | Line | Menu", empty, "display_ObjectScript"
-   put the result into treeView
- 
+   display_Array exportErrorArray, someTitle, "Found Differences"
+   put the result into displayView
+   display_SetInteractions displayView, "Script | Duplicates", "display_ObjectScript"
+   
    return exportErrorArray
 end _DisplayFoundDifferences
 

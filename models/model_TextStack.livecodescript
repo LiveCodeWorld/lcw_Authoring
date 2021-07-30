@@ -33,7 +33,7 @@ end projectOverlay_SvgFile
 -
 getprop textstack_HkeyObjectArray
    put the projectOverlay_Array ["processedHkey.array"] of the target into processedHkeyArray  
-   put hkeyArray_GetDepArray (processedHkeyArray) into hkeyObjectArray
+   put hkeyArray_GetStackDepArray (processedHkeyArray) into hkeyObjectArray
    return hkeyObjectArray
 end textstack_HkeyObjectArray
 

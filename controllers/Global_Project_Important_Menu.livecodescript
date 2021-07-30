@@ -17,7 +17,7 @@ on menu_AddToImportantStacks scriptObject
    put the stack_Name of scriptObject into projectStackName
    project_AddImportantStack projectStackName
    lcw_Notify merge("Added stack '[[projectStackName]]' to the project array.")
-   display_LcwProjectList
+   display_Environment
 end menu_AddToImportantStacks
 
 on menu_StoreOpenStacks scriptObject, projectName
@@ -25,20 +25,20 @@ on menu_StoreOpenStacks scriptObject, projectName
    filter stackNames without "rev*"
    stack_StripUnsaved stackNames
    project_StoreImportantStacks stackNames, projectName
-   display_LcwProjectList
+   display_Environment
 end menu_StoreOpenStacks
 
 on menu_StoreLoadedStacks scriptObject, projectName
    put revLoadedStacks() into stackNames
    stack_StripUnsaved stackNames
    project_StoreImportantStacks stackNames, projectName
-   display_LcwProjectList
+   display_Environment
 end menu_StoreLoadedStacks
 
 on menu_DisplayProject mTarget
    put the index_View of mTarget into indexView
    if exists (indexView) is false then
-      display_LcwProjectList
+      display_Environment
       exit to top
    end if
    
@@ -50,7 +50,8 @@ end menu_DisplayProject
 on menu_DisplayProjectArray mTarget, projectName
    put library_FetchProjectArray (projectName) into projectArray
    put merge ("library_FetchProjectArray (projectName),[[projectName]]") into someTitle
-   display_Array projectArray, someTitle, "Global | Project | Menu"
+   display_Array projectArray, someTitle
+   display_SetInteractions the result, "Project"
 end menu_DisplayProjectArray
 
 on _

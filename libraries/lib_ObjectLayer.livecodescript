@@ -6,6 +6,112 @@ name: lib_ObjectLayer
 type: library
 version: 0.1
 
+/*
+This is very old and needs reworking.
+No dependencies
+*/
+
+--> Working on
+-
+getprop object_VisibleControls [setShort]
+   put the long ID of the target into targetObject
+   get object_ControlsInside (targetObject, setShort, true)
+   return it
+end object_VisibleControls
+
+function object_ControlsInside containerObject, setShort, visibleOnly
+   -- was "object_NestedControls", then "object_GetVisibleControls"
+   local objectIndex
+   repeat with controlNum = 1 to the number of controls in containerObject
+      put the long id of control controlNum of containerObject into testObject
+      if visibleOnly is true and the visible of testObject is false then next repeat
+      if setShort is not false then object_SetShortStackName testObject, stackNameStart, stackNameEnd
+      put testObject & return after objectIndex
+   end repeat
+   delete last char of objectIndex
+   return objectIndex
+end object_ControlsInside
+
+function object_GetTopGroups someContainer, setShort, visibleOnly
+   -- was "object_TopGroups"
+   -- this stem technique is not needed (use same as "object_GetGroupControls")
+   
+   put the long ID of someContainer into someContainer
+   put empty into myGroups
+   repeat with groupNum = 1 to the number of groups in someContainer
+      put the long ID of group groupNum of someContainer into testGroup
+      if visibleOnly is true and the visible of testGroup is false then next repeat
+      
+      put offset(someContainer, testGroup) - 1 into endStem
+      put char 1 to endStem of testGroup into groupStem
+      put the number of words of groupStem into wordNum
+      if wordNum = 4 then
+         if setShort is not false then object_SetShortStackName testGroup, stackNameStart, stackNameEnd
+         put testGroup & return after myGroups
+      end if
+   end repeat
+   delete last char of myGroups
+   return myGroups
+end object_GetTopGroups
+
+command object_SetShortStackName @someObject, @mainStackStart, @mainStackEnd
+   -- was "set_ShortStackBit"
+   object_StackNameOffsets someObject, mainStackStart, mainStackEnd, substackStart, substackEnd
+   put char mainStackStart to mainStackEnd of someObject into longStackName
+   
+   if exists(stack longStackName) is false then
+      return empty
+   else
+      put the short name of stack longStackName into shortStackName
+      put char mainStackStart to mainStackEnd of someObject into stackPath
+      put shortStackName into char mainStackStart to mainStackEnd of someObject
+      return stackPath
+   end if
+end object_SetShortStackName
+
+command object_StackNameOffsets someObject, @mainStackStart, @mainStackEnd, @substackStart, @substackEnd
+   -- now modified to look for substacks
+   
+   put the number of chars of someObject into lastQuoteCharNum
+   put lastQuoteCharNum - 1 into mainStackEnd
+   put text_OffsetBefore(quote, someObject, lastQuoteCharNum) + 1 into mainStackStart
+   
+   put someObject into testSubStack
+   delete char (mainStackStart - 7) to -1 of testSubStack
+   
+   -- put offset(space & "stack" && quote, testSubStack) into substackStart
+   put offset("stack" && quote, testSubStack) into substackStart
+   -- put wordoffset("stack" && quote, testSubStack) into substackStart
+   
+   if substackStart = 0 then
+      put 0 into substackEnd
+      return char (mainStackStart - 7) to -1 of someObject
+   else
+      put 8 - 1 into tweek
+      put substackStart + tweek into tSkip
+      put offset(quote, testSubStack, tSkip) into substackEnd
+      
+      put substackStart + tweek into substackStart
+      put substackEnd + tSkip - 1 into substackEnd
+      return char (substackStart - 7) to -1 of someObject
+   end if
+end object_StackNameOffsets
+
+
+--> Props
+-
+getprop top_Controls
+   get word  1 of the name of the target
+   if it is not among the items of "group,card" then return empty
+   --
+   put the childControlIDs of the target into topIDs
+   repeat for each line someID in topIDs
+      put the long id of control id someID & CR after topControls
+   end repeat
+   delete char -1 of topControls
+   return topControls
+end top_Controls
+
 
 --> Object | Layer
 -
@@ -32,7 +138,7 @@ function object_GetTopViews groupOrCard
    put the top_Controls of groupOrCard into topControls
    put empty into topViews
    repeat for each line someObject in topControls
-      if the object_IsView of someObject is true then
+      if the uRIP ["type"] of someObject = "view" then
          put someObject & CR after topViews
       end if
    end repeat
@@ -60,28 +166,6 @@ getprop object_TopGroups [visibleOnly]
    return object_GetTopGroups(someContainer, true, visibleOnly)
 end object_TopGroups
 
-function object_GetTopGroups someContainer, setShort, visibleOnly
-   -- was "object_TopGroups"
-   -- this stem technique is not needed (use same as "object_GetGroupControls")
-   
-   put the long ID of someContainer into someContainer
-   put empty into myGroups
-   repeat with groupNum = 1 to the number of groups in someContainer
-      put the long ID of group groupNum of someContainer into testGroup
-      if visibleOnly is true and the visible of testGroup is false then next repeat
-      
-      put offset(someContainer, testGroup) - 1 into endStem
-      put char 1 to endStem of testGroup into groupStem
-      put the number of words of groupStem into wordNum
-      if wordNum = 4 then
-         if setShort is not false then object_SetShortStackName testGroup, stackNameStart, stackNameEnd
-         put testGroup & return after myGroups
-      end if
-   end repeat
-   delete last char of myGroups
-   return myGroups
-end object_GetTopGroups
-
 command object_SetToplevelGroupArrays @topLevel_NameDictionary, @topLevel_IdDictionary, cardObject
    -- should be renamed to "object_SetToplevelCardGroupArrays"?
    if cardObject is empty then put the long ID of this card into cardObject
@@ -97,9 +181,6 @@ command object_SetToplevelGroupArrays @topLevel_NameDictionary, @topLevel_IdDict
    end repeat
 end object_SetToplevelGroupArrays
 
-
---> Object | Layer
--
 getprop object_GroupLayer
    put the long ID of the target into someObject
    put someObject into containerGroup
@@ -178,11 +259,6 @@ function object_ControlIDs someGroup, visibleOnly
    return idIndex
 end object_ControlIDs
 
-getprop object_VisibleControls [setShort]
-   put the long ID of the target into targetObject
-   return object_ControlsInside(targetObject, setShort, true)
-end object_VisibleControls
-
 function object_GetTopControl someGroup, pName
    repeat with controlNum = 1 to the number of controls in someGroup
       put the long ID of control controlNum of someGroup into controlObject
@@ -211,3 +287,31 @@ function object_GetGroupControls someGroup, nested
    delete last char of myControls
    return myControls
 end object_GetGroupControls
+
+
+--> Deps
+-
+function text_OffsetAfter stringToFind, textToSearch, pStartSearchAt
+   put offset (stringToFind, textToSearch, pStartSearchAt) into foundCharNum
+   if foundCharNum is not 0 then
+      add pStartSearchAt to foundCharNum
+   end if
+end text_OffsetAfter
+
+function text_OffsetBefore someString, someText, beforeHere
+   -- was "offsetBefore"
+   if beforeHere is not empty then
+      delete char beforeHere to -1 of someText
+   end if
+   put 1 into offsetNum
+   put 0 into lastOffset
+   repeat
+      get text_OffsetAfter(someString, someText, lastOffset)
+      if it is 0 then
+         return lastOffset
+      else
+         put it into lastOffset
+         add 1 to offsetNum
+      end if
+   end repeat
+end text_OffsetBefore

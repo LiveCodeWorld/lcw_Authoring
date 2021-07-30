@@ -24,7 +24,7 @@ on menu_FixStackBehaviors mTarget
    put the stack_Name of mTarget into stackName
    stack_FixBrokenBehaviors stackName
    put the result into displayArray
-   display_Array displayArray, ("Behaviors of stack" && kwote(stackName))
+   display_Array displayArray, "Behaviors of stack", kwote(stackName)
 end menu_FixStackBehaviors
 
 on menu_AlreadyKnown scriptObject, someBoolean

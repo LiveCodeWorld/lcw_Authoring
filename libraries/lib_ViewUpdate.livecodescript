@@ -1,10 +1,36 @@
 ﻿script "lib_ViewUpdate"
 --> MetaData
 -
+copyright: David Bovill
 license: GPLv3
 name: lib_ViewUpdate
-type: script library
+type: library
 version: 0.8
+
+
+--> Working on
+-
+
+
+--> View | Update | Props
+-
+setprop view_Swap [sendReplace] vName
+   view_NormalizeName vName
+   put view_GetTemplateObject (vName) into anotherView
+   if exists(anotherView) is false then
+      beep
+      return merge("Error: library [[viewPath]] view does not exist.")
+   end if
+   set the view_Replacement [sendReplace] of the target to anotherView
+   put the result into copiedView
+   
+   -- refresh display
+   set the wholematches to true
+   if "opn_ViewOutline" is among the lines of the openstacks then
+      set the displayed_ViewOutline of stack "opn_ViewOutline" to the displayed_ViewOutline of stack "opn_ViewOutline"
+   end if
+   return copiedView
+end view_Swap
 
 
 --> Control
@@ -234,6 +260,7 @@ setprop view_Replacement [sendReplace] anotherView
    put the long id of copiedView into copiedView
    return copiedView
 end view_Replacement
+
 
 --> Bottome | Controls
 -
@@ -471,27 +498,6 @@ command view_Update viewObject, pSendReplace
    set the view_Replacement [pSendReplace] of viewObject to viewTemplate
    return the result
 end view_Update
-
-
---> View | Update | Props
--
-setprop view_Swap [sendReplace] vName
-   view_NormalizeName vName
-   put view_GetTemplateObject (vName) into anotherView
-   if exists(anotherView) is false then
-      beep
-      return merge("Error: library [[viewPath]] view does not exist.")
-   end if
-   set the view_Replacement [sendReplace] of the target to anotherView
-   put the result into copiedView
-   
-   -- refresh display
-   set the wholematches to true
-   if "opn_ViewOutline" is among the lines of the openstacks then
-      set the displayed_ViewOutline of stack "opn_ViewOutline" to the displayed_ViewOutline of stack "opn_ViewOutline"
-   end if
-   return copiedView
-end view_Swap
 
 
 --> View | Insert

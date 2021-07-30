@@ -1,6 +1,7 @@
 ﻿script "Global | View | Card | Tools | Menu"
 --> MetaData
 -
+copyright: David Bovill
 license: GPLv3
 name: Global | View | Card | Tools | Menu
 type: controller
@@ -13,6 +14,10 @@ local LocalArray
 
 --> Menu | Props
 -
+getprop menu_IsSimple
+   return true
+end menu_IsSimple
+
 getprop menu_Target [tObject]
    if the stack_IsDisplay of tObject then
       put the display_View of tObject into displayView
@@ -86,9 +91,6 @@ on submenu_View
    return mTitle
 end submenu_View
 
-on _
-end _
-
 on submenu_ViewAuthoring
    return "Global | View | Authoring | Menu"
 end submenu_ViewAuthoring
@@ -120,7 +122,7 @@ on menu_DisplayViewTools templateView
    put the module_Name of templateView into moduleName
    put the project_Name of templateView into projectName
    --
-   display_ModuleFromName moduleName, projectName
+   display_ModuleFromShortModuleFolder shortModuleFolder, projectName
 end menu_DisplayViewTools
 
 on menu_ReIndexMenus templateView

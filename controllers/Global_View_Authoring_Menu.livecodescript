@@ -16,17 +16,17 @@ local LocalArray
 -
 on menu_Init tObject
    -- called only once 
-   put the index_View of tObject into indexView
-   if exists (indexView) is true then
-      -- a view ppalette
-      put indexView into LocalArray ["indexView"]
-      put the view_Index of indexView into LocalArray ["viewProps"]
+   put the display_View of tObject into displayView
+   if exists (displayView) is true then
+      -- a view palette
+      put displayView into LocalArray ["displayView"]
+      put the view_Index of displayView into LocalArray ["viewProps"]
       
-      put the displayed_ProjectName of indexView into LocalArray ["projectName"]
-      put the displayed_ProjectFolder of indexView into LocalArray ["projectFolder"]
-      put the displayed_ModuleFolder of indexView into LocalArray ["moduleFolder"]
-      put the displayed_ModuleName of indexView into LocalArray ["moduleName"]
-      put the displayed_ModuleHomeStackPath of indexView into LocalArray ["moduleHomeStackPath"]   
+      put the displayed_ProjectName of displayView into LocalArray ["projectName"]
+      put the displayed_ProjectFolder of displayView into LocalArray ["projectFolder"]
+      put the displayed_ModuleFolder of displayView into LocalArray ["moduleFolder"]
+      put the displayed_ModuleName of displayView into LocalArray ["moduleName"]
+      put the displayed_ModuleHomeStackPath of displayView into LocalArray ["moduleHomeStackPath"]   
       --
       put the title_Text of tObject into viewName
    else
@@ -74,6 +74,8 @@ getprop decorations_Params
 end decorations_Params
 
 getprop resizable_Param [someView]
+   if exists (someView) is false then return false
+   --   
    put the stack_Name of someView into stackName
    put the resizable of stack stackName into someBoolean
    return someBoolean
@@ -84,6 +86,8 @@ getprop resizable_Params
 end resizable_Params
 
 getprop disabled_CreateViewMenu [someView]
+   if exists (someView) is false then return false
+   --   
    put the view_GlobalMenuTitle of someView into gMenuTitle
    put menu_Exists (gMenuTitle) into mExists
    if mExists is true then
@@ -94,6 +98,8 @@ getprop disabled_CreateViewMenu [someView]
 end disabled_CreateViewMenu
 
 getprop disabled_FixView [someView]
+   if exists (someView) is false then return false
+   --   
    put the stack_Name of someView into stackName
    if the scriptonly of stack stackName is true then
       return false
@@ -103,16 +109,22 @@ getprop disabled_FixView [someView]
 end disabled_FixView
 
 getprop disabled_EditViewMenus [templateView]
+   if exists (templateView) is false then return true
+   --   
    put the module_Controllers of templateView into menuStackObjects
    return menuStackObjects is empty
 end disabled_EditViewMenus
 
 getprop disabled_EditViewBehaviors [templateView]
+   if exists (templateView) is false then return true
+   --   
    put the module_Behaviors of templateView into moduleBehaviors
    return moduleBehaviors is empty
 end disabled_EditViewBehaviors
 
 getprop disabled_SetCardViewBehavior [templateView]
+   if exists (templateView) is false then return true
+   --   
    put the card_Object of templateView into cardObject
    put the behavior of cardObject into bObject
    put the name of stack "behavior_ViewTemplateCard" into cardViewBehavior
@@ -124,6 +136,8 @@ getprop disabled_SetCardViewBehavior [templateView]
 end disabled_SetCardViewBehavior
 
 getprop disabled_SetViewMetadata [templateView]
+   if exists (templateView) is false then return true
+   --   
    put the view_Name of templateView into viewName
    put the stack_Name of templateView into stackName
    if stackName = viewName then
@@ -136,6 +150,58 @@ end disabled_SetViewMetadata
 
 --> Global | View | Authoring | Menu
 -
+on menu_RenameModule viewObject
+   put the view_Name of viewObject into oldModuleName
+   --
+   put the project_Folder of stack oldModuleName into projectFolder
+   put the project_Name of stack oldModuleName into projectName
+   put lcw_Ask ("Give this module a new name...", oldModuleName) into newModuleName
+   --
+   module_Rename oldModuleName, newModuleName, projectName
+   --
+   display_ProjectLibs projectName
+   display_ProjectModules projectName
+end menu_RenameModule
+
+on menu_TestClose viewObject
+   put the project_Folder of viewObject into projectFolder
+   put the module_Folder of viewObject into moduleFolder
+   put the module_Name of viewObject into moduleName
+   --
+   module_CloseStacks moduleName, projectFolder
+   put revLoadedStacks()
+   --
+   project_InitialiseFolder moduleFolder
+end menu_TestClose
+
+on _
+end _
+
+on menu_AddToStackfiles dView
+   put the module_Folder of dView into moduleFolder
+   put project_ConstructFoundStackFileArray (moduleFolder) into newStackFileArray
+   --
+   put the stackfile_Array of dView into stackfileArray
+   union stackfileArray with newStackFileArray
+   set the stackfile_Array of dView to stackfileArray
+   --
+   put the stack_Name of dView into stackName
+   display_Data stackFileArray, stackName, "Stackfile Array"
+end menu_AddToStackfiles
+
+on menu_ExportModuleJson viewObject
+   put the module_Folder of viewObject into moduleFolder
+   --
+   project_ExportMenusAndStackFiles moduleFolder
+   put the result into projectArray
+   --
+   put the view_Name of viewObject into moduleName
+   display_Data projectArray, moduleName, "Module Array"  
+end menu_ExportModuleJson
+
+on _
+end _
+
 on menu_DisplayTools dView
    put the view_Name of dView into viewName
    --
@@ -143,51 +209,15 @@ on menu_DisplayTools dView
 end menu_DisplayTools
 
 on menu_ObjectInspector dView
-   object_Inspect dView
+   display_ObjectProperties dView
 end menu_ObjectInspector
 
-on menu_Clone someView
-   put the stack_Name of someView into stackName
-   stack_Clone stackName
-   put it into clonedStack
-end menu_Clone
-
 on _
 end _
 
-on menu_Resizable someView, someBoolean
-   put the stack_Name of someView into stackName
-   set the resizable of stack stackName to someBoolean
-end menu_Resizable
-
-on menu_Decorations someView, someDeco
-   /*
-   The decorations of a stack is one of the following:
-   
-   - "default"
-   - empty
-   - one or more of "title", "minimize", "maximize", "close", "menu", "system", "noShadow", and "metal", separated by commas
-   - a WDEF identifier (on Mac OS or OS X systems)
-   
-   By default, the decorations property of newly created stacks is set to "default"  
-   */
-   
-   put the stack_Name of someView into stackName
-   --
-   if someDeco is "empty" then
-      set the decorations of stack stackName to empty
-   else
-      set the decorations of stack stackName to someDeco
-   end if
-end menu_Decorations
-
-on menu_Toplevel someView
-   put the stack_Name of someView into stackName
-   toplevel stack stackName
-end menu_Toplevel
-
-on _
-end _
+on subMenu_Frame
+   return "Global | Frame | Menu"
+end subMenu_Frame
 
 on submenu_Assets
    return "Global | View | Assets | Menu"
@@ -270,13 +300,13 @@ on menu_EditViewBehaviors someView
 end menu_EditViewBehaviors
 
 on menu_ReindexMenus someView
-   -- should figure out how to update the indexView menu
+   -- should figure out how to update the displayView menu
    put the template_View of someView into templateView
    
    module_ReIndexMenus templateView
    put the result into moduleMenuTitleArray
    
-   display_Array moduleMenuTitleArray, "Module Menu Title Array,module_ReIndexMenus"
+   display_Array moduleMenuTitleArray, "Module Menu Title Array", "module_ReIndexMenus"
    lcw_Notify "Indexed all module menus!"
 end menu_ReindexMenus
 

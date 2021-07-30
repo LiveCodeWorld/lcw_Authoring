@@ -39,7 +39,7 @@ end _
 
 on menu_EditOpenStack scriptObject, openStackName
    put the name of stack openStackName into stackObject
-   object_Inspect stackObject
+   display_ObjectProperties stackObject
    edit the script of stack openStackName
 end menu_EditOpenStack
 

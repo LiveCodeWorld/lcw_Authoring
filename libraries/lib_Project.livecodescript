@@ -88,7 +88,7 @@ function project_ConstructStandardFile stackName, projectFolder, pShortFolder, p
    put project_NameToShortFolder (stackName) into shortFileBit
    put project_NameToShortFolder (pShortFolder) into shortFolder
    --
-   put project_ConstructFolder (pShortFolder, projectFolder) into standardFolder
+   put folder_AddShort (projectFolder, pShortFolder) into standardFolder
    if pCreateFolder is true then folder_CreateNested standardFolder
    --
    put shortFileBit & "." & pExtension into shortFile

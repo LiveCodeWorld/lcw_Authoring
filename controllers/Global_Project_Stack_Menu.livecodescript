@@ -17,9 +17,19 @@ but can equally be used directly in the ScriptEditor.
 */
 
 
---> Menu | Init
+--> Menu | Props
 -
+on menu_Init tObject
+   -- not called unless top menu
+   get mArray_GetActiveTitle()
+end menu_Init
+
+getprop menu_IsSimple
+   return false
+end menu_IsSimple
+
 getprop menu_Target [tObject]
+   get mArray_GetActiveTitle()
    put the display_View of tObject into displayView
    -- 
    switch
@@ -28,8 +38,18 @@ getprop menu_Target [tObject]
          return stackObject
          break
       case word 1 of tObject = "widget"
-         put the displayed_Object of displayView into sObject
-         return sObject
+         put the displayed_Object of displayView into stackObject
+         if exists (stackObject) is false then
+            put the selected_Line of tObject into stackName
+            if exists (stack stackName) then
+               put the name of stack stackName into stackObject
+               return stackObject
+            else
+               return empty
+            end if
+         else
+            return stackObject
+         end if
       default
          put the selected_Line of displayView into projectName
          put the name of stack projectName into stackObject
@@ -78,6 +98,10 @@ end disabled_DisplaySubstack
 
 --> Global | Project | Stack | Menu
 -
+on submenu_Index
+   return "Global | Project | Stack | Tree | Menu"
+end submenu_Index
+
 on menu_GraphProject stackObject
    graph_Project stackObject
 end menu_GraphProject
@@ -111,23 +135,23 @@ end menu_UseStack
 on _
 end _
 
-on menu_TrashStack stackObject
-   display_AskProjectTrashStack stackObject
-end menu_TrashStack
-
 on menu_DisplaySubstack stackObject, subStackName
    put the short name of stackObject into stackName
    go to stack subStackName of stack stackName
 end menu_DisplaySubstack
 
+on menu_TrashStack stackObject
+   display_AskProjectTrashStack stackObject
+end menu_TrashStack
+
 on _
 end _
 
-on submenu_Index
-   return "Global | Project | Stack | Tree | Menu"
-end submenu_Index
+on submenu_Image
+   return "Global | Image | SVG | Menu"
+end submenu_Image
 
-on submenu_Deps
+-- on submenu_Deps
    return "Deps | Menu"
 end submenu_Deps
 

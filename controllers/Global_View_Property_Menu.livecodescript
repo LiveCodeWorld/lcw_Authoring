@@ -61,7 +61,7 @@ on _
 end _
 
 on menu_PropertyPalette someView
-   object_Inspect someView
+   display_ObjectProperties someView
 end menu_PropertyPalette
 
 on menu_GoToTemplate someView

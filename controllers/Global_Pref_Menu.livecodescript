@@ -1,21 +1,19 @@
-﻿script "Global_Pref_Menu"
+﻿script "Global | Pref | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_Pref_Menu
+name: Global | Pref | Menu
 type: controller
 version: 0.6
 
-/*
-This is the first ever script-only menu!
+/*This is the first ever script-only menu!
 
 This menu manipulates Livecode World preferences.
 It is designed to be a general cross platform library for safely storing user preferences.
 
 It is designed to work on "scriptObjects", that is references to Livecode controls that contain scripts.
 The long id of the control is passed as the first param to the controller (menu),
-and any handler that dispatches one of the commands below will work as long as you pass a reference to the scriptObject.
-*/
+and any handler that dispatches one of the commands below will work as long as you pass a reference to the scriptObject.*/
 
 
 --> Global | Pref | Menu

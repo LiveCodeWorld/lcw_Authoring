@@ -22,21 +22,26 @@ and they may want to be examined before they are saved!
 --> Menu | Init
 -
 on menu_Init tObject
-   put the tree_View of tObject into treeView
-   put treeView into LocalArray ["tree_View"]
-   put the displayed_Array of treeView into displayedArray
+   put the display_View of tObject into dView
+   put the displayed_HkeyArray of dView into hkeyArray
    --
-   -- put displayedArray into LocalArray ["displayedArray"]
-   -- put displayedArray ["Handlers"] into LocalArray ["hkeyArray"]
-   put displayedArray into LocalArray ["hkeyArray"]
+   put hkeyArray into LocalArray ["hkeyArray"]
    --
-   put the displayed_Object of treeView into scriptObject
+   put the displayed_Object of dView into scriptObject
+   if exists (scriptObject) is false then
+      put the title_Text of dView into hKey
+      hkey_Deconstruct hKey, hName, hType, hObject, hNum
+      put hObject into scriptObject
+   end if
+   
+   if exists (scriptObject) is true then
+      put the overlay_Folder of scriptObject into overlayFolder
+      put overlayFolder into LocalArray ["overlayFolder"]
+      put overlay_ListNames (overlayFolder) into LocalArray ["overlayNames"]
+      put dot_ListGraphStyles() into LocalArray ["graphStyles"]
+   end if
+   --
    put scriptObject into LocalArray ["scriptObject"]
-   put the overlay_Folder of scriptObject into overlayFolder
-   put overlayFolder into LocalArray ["overlayFolder"]
-   --
-   put dot_AllGraphStyles() into LocalArray ["graphStyles"]
-   put overlay_ListNames (overlayFolder) into LocalArray ["overlayNames"]
 end menu_Init
 
 command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
@@ -119,17 +124,33 @@ on menu_DisplaySvg scriptObject, shortSvgFile
    end if
 end menu_DisplaySvg
 
-on menu_CreateSvgGraph scriptObject, graphStyle
-   local pProjectName
+on menu_CreateSvgGraph sObject, graphStyle
    put LocalArray ["hkeyArray"] into hkeyArray
    
-   graph_CreateScriptObjectHkeyArray hKeyArray, scriptObject, graphStyle
-   put the result into imageFile
-   
-   display_SVG imageFile, scriptObject
+   graph_CreateScriptObjectHkeyArray hKeyArray, sObject, graphStyle
+   put the result into svgFile
+   --
+   display_SVG svgFile, sObject
    put the result into displayView
-   set the displayed_Object of displayView to scriptObject
+   set the displayed_Object of displayView to sObject
 end menu_CreateSvgGraph
+
+on menu_DisplayLinkArrayGraph sObject
+   put LocalArray ["hkeyArray"] into linkArray
+   --
+   display_LinkArrayGraph linkArray, "LinkArray Graph"
+end menu_DisplayLinkArrayGraph
+
+on menu_SimpleGraph sObject
+   put LocalArray ["hkeyArray"] into linkArray
+   --
+   put dot_FromHkeyLinkArray (linkArray) into dotText
+   dot_CreateGraph dotText
+   put the result into svgFile
+   --
+   display_SVG svgFile
+end menu_SimpleGraph
+
 
 on _
 end _
@@ -327,6 +348,6 @@ end menu_DisplayOverlayGraph
 
 --> Deps
 -
-function dot_AllGraphStyles
+function dot_ListGraphStyles
    return "radial,spring,circular,-,hierarchical,-,undirected spring,fast undirected spring" 
-end dot_AllGraphStyles
+end dot_ListGraphStyles

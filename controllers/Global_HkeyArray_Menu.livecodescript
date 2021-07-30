@@ -47,12 +47,62 @@ getprop menu_CheckTarget [hKey]
    return exists (hObject)
 end menu_CheckTarget
 
-command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
+--> Global | HkeyArray | Menu | Disabled
+-
+getprop disabled_FetchHandler [displayView]
+   _SetHkeyLine displayView, hKeyLine
+   if hKeyLine is empty then
+      return true
+   else
+      return false
+   end if
+end disabled_FetchHandler
+
+getprop disabled_DisplayHandlerDeps [displayView]
+   _SetHkeyLine displayView, hKeyLine
+   put hkey_FetchCalls (hKeyLine) into hCalls
+   return hCalls is empty
+end disabled_DisplayHandlerDeps
+
+getprop disabled_DisplayHandlerDeps [displayView]
+   put the hilited_Element of displayView into pathItems
+   
+   switch item 1 of pathItems
+      case "Missing"
+         return true
+      case "Handlers"
+         if the number of items of pathItems = 1 then return true
+         break
+      case "Calls"
+         if the number of items of pathItems < 4 then return true
+         break
+   end switch
+   return false
+end disabled_DisplayHandlerDeps
+
+getprop disabled_AddToDictionary [displayView]
+   put the hilited_Element of displayView into pathItems
+   put item 1 of pathItems = "Missing" into isMissing
+   if isMissing is false then return true
+   
+   put the number of items of pathItems > 2 into isLong
+   if isLong is false then return true
+   
+   put item 3 of pathItems into shortHkeyLine
+   put word 2 of shortHkeyLine into ignoreTerm
+   
+   put ide_IsDictionaryTerm (ignoreTerm) into isInDictionary
+   if isInDictionary is true then return true
+   
+   return false
+end disabled_AddToDictionary
+
+private command _DeconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
    put LocalArray ["overlayFolder"] into overlayFolder
    put LocalArray ["hKey"] into hKey
    put LocalArray ["stackLabel"] into stackLabel
    put LocalArray ["scriptObject"] into scriptObject
-end deconstructLocalArray
+end _DeconstructLocalArray
 
 private command _SetHkeyLine displayView, @hKeyLine
    put the displayed_Object of displayView into stackObject
@@ -93,6 +143,10 @@ on menu_DisplayHkeyDepArray hKey
    --
    return displayView
 end menu_DisplayHkeyDepArray
+
+on submenu_Show
+   return "Global | HkeyArray | Tree | Menu"
+end submenu_Show
 
 on menu_HkeyRefresh hKey
    display_HkeyArray hKey
@@ -172,57 +226,6 @@ on menu_AddToDictionary displayView
 end menu_AddToDictionary
 
 
---> Global | HkeyArray | Menu | Disabled
--
-getprop disabled_FetchHandler [displayView]
-   _SetHkeyLine displayView, hKeyLine
-   if hKeyLine is empty then
-      return true
-   else
-      return false
-   end if
-end disabled_FetchHandler
-
-getprop disabled_DisplayHandlerDeps [displayView]
-   _SetHkeyLine displayView, hKeyLine
-   put hkey_FetchCalls (hKeyLine) into hCalls
-   return hCalls is empty
-end disabled_DisplayHandlerDeps
-
-getprop disabled_DisplayHandlerDeps [displayView]
-   put the hilited_Element of displayView into pathItems
-   
-   switch item 1 of pathItems
-      case "Missing"
-         return true
-      case "Handlers"
-         if the number of items of pathItems = 1 then return true
-         break
-      case "Calls"
-         if the number of items of pathItems < 4 then return true
-         break
-   end switch
-   return false
-end disabled_DisplayHandlerDeps
-
-getprop disabled_AddToDictionary [displayView]
-   put the hilited_Element of displayView into pathItems
-   put item 1 of pathItems = "Missing" into isMissing
-   if isMissing is false then return true
-   
-   put the number of items of pathItems > 2 into isLong
-   if isLong is false then return true
-   
-   put item 3 of pathItems into shortHkeyLine
-   put word 2 of shortHkeyLine into ignoreTerm
-   
-   put ide_IsDictionaryTerm (ignoreTerm) into isInDictionary
-   if isInDictionary is true then return true
-   
-   return false
-end disabled_AddToDictionary
-
-
 --> Dev | Menu
 -
 on menu_Test hKey
@@ -238,7 +241,7 @@ on menu_RecreateOverlay displayView, overlayName
    set the cursor to watch
    
    local pImageView, pResizeStyle
-   deconstructLocalArray overlayFolder, hKey, stackLabel, scriptObject
+   _DeconstructLocalArray overlayFolder, hKey, stackLabel, scriptObject
    
    put overlay_GetArray (overlayFolder, overlayName) into overlayArray
    overlayArray_ConstructOverlayAndCreateFiles overlayArray, overlayFolder, overlayName

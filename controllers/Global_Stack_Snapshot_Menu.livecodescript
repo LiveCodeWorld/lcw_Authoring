@@ -1,8 +1,8 @@
-﻿script "Global_Stack_Snapshot_Menu"
+﻿script "Global | Stack | Snapshot | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_Stack_Snapshot_Menu
+name: Global | Stack | Snapshot | Menu
 type: controller
 version: 0.1
 

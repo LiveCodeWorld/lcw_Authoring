@@ -1,10 +1,39 @@
-﻿script "Global_Project_Stack_Tree_Menu"
+﻿script "Global | Project | Stack | Tree | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_Project_Stack_Tree_Menu
+name: Global | Project | Stack | Tree | Menu
 type: controller
 version: 0.1
+
+
+--> Menu | Props
+-
+private command _displayAndHilite
+   put _rescueDisplayCard() into displayCard
+   if exists(displayCard) is false then return empty
+   
+   lock screen
+   set the hilite_Used of displayCard to true
+   dispatch "display_ProjectArray" to displayCard
+   unlock screen
+   return displayCard
+end _displayAndHilite
+
+private function _indexView
+   put menu_GetTargetObject() into tObject
+   put the index_View of tObject into indexView
+   return indexView
+end _indexView
+
+private function _rescueDisplayCard
+   if there is a stack "Rescue livecode World" then
+      put the long id of card 1 of stack "Rescue livecode World" into displayCard
+      return displayCard
+   else
+      return empty
+   end if
+end _rescueDisplayCard
 
 
 --> Global | Project | Stack | Tree | Menu
@@ -62,36 +91,3 @@ end _
 on menu_RefreshIndex
    dispatch "refresh" to _indexView() 
 end menu_RefreshIndex
-
-
---> Deps
--
-command _displayAndHilite
-   put _rescueDisplayCard() into displayCard
-   if exists(displayCard) is false then return empty
-   
-   lock screen
-   set the hilite_Used of displayCard to true
-   dispatch "display_ProjectArray" to displayCard
-   unlock screen
-   return displayCard
-end _displayAndHilite
-
-
---> Objects
--
-function _indexView
-   put menu_GetTargetObject() into tObject
-   put the index_View of tObject into indexView
-   return indexView
-end _indexView
-
-function _rescueDisplayCard
-   if there is a stack "Rescue livecode World" then
-      put the long id of card 1 of stack "Rescue livecode World" into displayCard
-      return displayCard
-   else
-      return empty
-   end if
-end _rescueDisplayCard
-

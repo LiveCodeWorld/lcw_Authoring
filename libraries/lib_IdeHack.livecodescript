@@ -40,6 +40,15 @@ put revListScriptEditors()
 
 --> Working on
 -
+command display_Props sObject
+   -- was "object_Inspect"
+   revIDEInspectObjects sObject
+   return the result
+end display_Props
+
+command display_ObjectProperties sObject
+   display_Props sObject
+end display_ObjectProperties
 
 
 --> Rev | Script Editor | Search Results
@@ -121,16 +130,6 @@ end rev_SetScriptEditorSearchResults
 
 --> Object | Revolution
 -
-command object_Inspect scriptObject
-   -- was "object_EditProperty"
-   
-   revIDEInspectObjects scriptObject
-   -- send "revBuildPropertyPalette someObject" to stack "revTemplatePalette"
-   -- dispatch "revBuildPropertyPalette" to stack "revTemplatePalette" with someObjects
-   -- revBuildPropertyPalette someObjects
-   return the result
-end object_Inspect
-
 function object_FilterRev objectIndex
     repeat for each line someObject in objectIndex
         get the stack_Name of someObject

@@ -211,21 +211,6 @@ on menu_CreateAndExportHkeyGraphs treeView
    end repeat
 end menu_CreateAndExportHkeyGraphs
 
-on menu_CreateLongHkeyArray treeView
-   put the displayed_Hkey of treeView into hKey
-   put the displayed_Array of treeView into shortHkeyArray
-   put the set_Name of me into pSetName
-   
-   timer_Start "hkeyArray_ConstructLongArray"
-   --
-   put hkeyArray_ConstructLongArray (hKey, shortHkeyArray, pSetName) into longHkeyArray
-   --
-   timer_Stop "hkeyArray_ConstructLongArray", true
-   
-   put "Long Hkey Deps" into pStackLabel
-   display_HKeyArray longHkeyArray, hkey
-end menu_CreateLongHkeyArray
-
 on _
 end _
 

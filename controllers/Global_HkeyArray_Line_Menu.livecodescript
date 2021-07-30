@@ -11,12 +11,81 @@ version: 0.1
 -
 local LocalArray
 
-on menu_Init tObject
-   put the array_View of tObject into LocalArray ["arrayVew"]
-end menu_Init
+private command _AddGraphHeader
+   -- put graphHeader into dotText
+   line_Insert nodeSection, dotText
+   
+end _AddGraphHeader
+
+private command _SetArrays dView, @hkeyArray, @depKey
+   put the displayed_HkeyArray of dView into hkeyArray
+   get the selected_path of dView
+   if item 1 of it is "Missing" then breakpoint
+   put item 3 of it into depKey
+   --
+   hkey_Deconstruct depKey, hName, hType, hObject, hNum
+   return hObject
+end _SetArrays
 
 
 --> Global | HkeyArray | Line | Menu
+-
+on menu_CreateSvgGraph dView
+   _SetArrays dView, hkeyArray, depKey
+   put the result into scriptObject
+   --
+   put adata_GetMarkovArray (depKey, hkeyArray) into markovArray
+   
+   graph_CreateScriptObjectHkeyArray markovArray, scriptObject, "fast undirected spring"
+   put the result into imageFile
+   
+   display_SVG imageFile, scriptObject
+   put the result into displayView
+end menu_CreateSvgGraph
+
+on _
+end _
+
+on menu_MarkovArray dView
+   _SetArrays dView, hkeyArray, depKey
+   --
+   put adata_GetMarkovArray (depKey, hkeyArray) into markovArray
+   --
+   display_HkeyArray depKey, markovArray, "Markov"
+end menu_MarkovArray
+
+on menu_SubArray dView
+   _SetArrays dView, hkeyArray, depKey
+   --
+   put adata_GetChildArray (depKey, hKeyArray) into childArray
+   display_HkeyArray depKey, childArray, "Sub-array"
+end menu_SubArray
+
+on menu_ParentAndChildArray dView
+   _SetArrays dView, hkeyArray, depKey
+   --
+   put adata_GetParentAndChildArray (depKey, hKeyArray) into parentArray
+   display_HkeyArray depKey, parentArray, "Parents"
+end menu_ParentAndChildArray
+
+on _
+end _
+
+on menu_SimpleGraph dView
+   put the displayed_HkeyArray of dView into hkeyArray
+   --
+   put dot_FromLinkArray (hkeyArray) into dotText
+   dot_CreateGraph dotText
+   put the result into svgFile
+   --
+   display_SVG svgFile
+   --
+   -- finder_Reveal svgFile
+   -- display_Text dotText
+end menu_SimpleGraph
+
+
+--> Deev | Menu
 -
 on menu_CollectPrivateHandlers scriptObject
    put LocalArray ["arrayVew"] into arrayVew
@@ -51,10 +120,3 @@ getprop disabled_CollectPrivateHandlers [scriptObject]
          return false
    end switch
 end disabled_CollectPrivateHandlers
-
-
---> Global | HkeyArray | Line | Menu | Props
--
-
---> Global | HkeyArray | Line | Menu | Disabled
--
