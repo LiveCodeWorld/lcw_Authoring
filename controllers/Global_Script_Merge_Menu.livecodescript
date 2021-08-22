@@ -32,7 +32,7 @@ end menu_EditMyBehavior
 --> Global | Script | Merge | Menu | Props
 -
 getprop menu_Target [mTitle]
-   put menu_GetTargetObject() into mTarget
+   put menu_GetTopTargetObject() into mTarget
    put the textDisplay_View of mTarget into textDisplayView
    return textDisplayView
 end menu_Target

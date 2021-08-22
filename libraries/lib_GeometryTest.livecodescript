@@ -101,7 +101,7 @@ end create_PlaceHolder
 -
 command test_Rect someRect, someName, pColour
    -- this puts the button inside the group
-   put debug_GetCallingObject() into callingObject
+   put debug_CallingObject() into callingObject
    put the short id of callingObject into pGroupID
    
    switch
@@ -120,7 +120,7 @@ end test_Rect
 
 command rect_Test someRect, pObject
    -- this puts the button on the card
-   if pObject is empty then put debug_GetCallingObject() into pObject
+   if pObject is empty then put debug_CallingObject() into pObject
    --
    if the rect of pObject is not someRect then
       set the rect_Mask [someRect] of pObject to "red"

@@ -19,7 +19,7 @@ setprop view_Swap [sendReplace] vName
    put view_GetTemplateObject (vName) into anotherView
    if exists(anotherView) is false then
       beep
-      return merge("Error: library [[viewPath]] view does not exist.")
+      return merge("Error: cannot find view '[[vName]]'.")
    end if
    set the view_Replacement [sendReplace] of the target to anotherView
    put the result into copiedView
@@ -483,9 +483,12 @@ command view_Update viewObject, pSendReplace
       return merge ("Error: object does not exist")
    end if
    put the long id of viewObject into viewObject
-   if the view_Object of viewObject is not viewObject then
+   /*
+   get the view_Object of viewObject
+   if it is not viewObject then
       return merge ("Error: object is not a view")
    end if
+   */
    put pSendReplace is not false into pSendReplace
    
    -- put the view_Template of pSomeView into libraryView -- returns the top view if it is in a view / module stack

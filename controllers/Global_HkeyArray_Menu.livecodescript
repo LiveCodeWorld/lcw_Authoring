@@ -47,9 +47,7 @@ getprop menu_CheckTarget [hKey]
    return exists (hObject)
 end menu_CheckTarget
 
---> Global | HkeyArray | Menu | Disabled
--
-getprop disabled_FetchHandler [displayView]
+-- getprop disabled_FetchHandler [displayView]
    _SetHkeyLine displayView, hKeyLine
    if hKeyLine is empty then
       return true
@@ -58,13 +56,13 @@ getprop disabled_FetchHandler [displayView]
    end if
 end disabled_FetchHandler
 
-getprop disabled_DisplayHandlerDeps [displayView]
+-- getprop disabled_DisplayHandlerDeps [displayView]
    _SetHkeyLine displayView, hKeyLine
    put hkey_FetchCalls (hKeyLine) into hCalls
    return hCalls is empty
 end disabled_DisplayHandlerDeps
 
-getprop disabled_DisplayHandlerDeps [displayView]
+-- getprop disabled_DisplayHandlerDeps [displayView]
    put the hilited_Element of displayView into pathItems
    
    switch item 1 of pathItems
@@ -80,7 +78,7 @@ getprop disabled_DisplayHandlerDeps [displayView]
    return false
 end disabled_DisplayHandlerDeps
 
-getprop disabled_AddToDictionary [displayView]
+-- getprop disabled_AddToDictionary [displayView]
    put the hilited_Element of displayView into pathItems
    put item 1 of pathItems = "Missing" into isMissing
    if isMissing is false then return true
@@ -184,12 +182,12 @@ end submenu_Dev
 
 --> Global | HkeyArray | Menu | Props
 -
-on menu_FetchHandler displayView
+on menu_FetchHandler hKey
    _SetHkeyLine displayView, hKeyLine
    put hkey_FetchHandler (hKeyLine)
 end menu_FetchHandler
 
-on menu_DisplayHandlerDeps displayView
+on menu_DisplayHandlerDeps hKey
    _SetHkeyLine displayView, hKeyLine
    display_HandlerDeps hKeyLine
 end menu_DisplayHandlerDeps
@@ -228,16 +226,16 @@ end menu_AddToDictionary
 
 --> Dev | Menu
 -
-on menu_Test hKey
+on _Test hKey
    hkeyLine_Deconstruct hKey, hName, hType, hObject
    put hkey_Find ("M _WalkHkeyRecursive", hObject) into foundCall
    put foundCall
-end menu_Test
+end _Test
 
 on _
 end _
 
-on menu_RecreateOverlay displayView, overlayName
+on _RecreateOverlay displayView, overlayName
    set the cursor to watch
    
    local pImageView, pResizeStyle
@@ -247,9 +245,9 @@ on menu_RecreateOverlay displayView, overlayName
    overlayArray_ConstructOverlayAndCreateFiles overlayArray, overlayFolder, overlayName
    
    display_Overlay overlayFolder, overlayName, pImageView, pResizeStyle, stackLabel
-end menu_RecreateOverlay
+end _RecreateOverlay
 
-on menu_SaveDisplayedOverlayArray displayView, graphStyle
+on _SaveDisplayedOverlayArray displayView, graphStyle
    put the displayed_Object of displayView into scriptObject
    
    put the title_Text of displayView into hKey
@@ -272,14 +270,14 @@ on menu_SaveDisplayedOverlayArray displayView, graphStyle
    
    lcw_Notify "Saved array, but not created graph files for this new array!", true
    display_OverlayData overlayFolder, hKey
-end menu_SaveDisplayedOverlayArray
+end _SaveDisplayedOverlayArray
 
-on menu_SetOverlayObject displayView
+on _SetOverlayObject displayView
    put the displayed_Object of displayView into scriptObject
    overlay_SetOverlayObject overlayFolder, scriptObject
-end menu_SetOverlayObject
+end _SetOverlayObject
 
-on menu_ExportScriptArray displayView
+on _ExportScriptArray displayView
    put the displayed_Array of displayView into hKeyArray
    put the displayed_Object of displayView into scriptObject
    -- set the script_OverlayData of scriptObject
@@ -287,9 +285,9 @@ on menu_ExportScriptArray displayView
    set the script_LinkArray [overlayName] of scriptObject to hKeyArray
    put the result into someFile
    finder_Reveal someFile
-end menu_ExportScriptArray
+end _ExportScriptArray
 
-on menu_RevealOverlayFolder displayView
+on _RevealOverlayFolder displayView
    put LocalArray ["overlayFolder"] into overlayFolder
    finder_Reveal overlayFolder
-end menu_RevealOverlayFolder
+end _RevealOverlayFolder

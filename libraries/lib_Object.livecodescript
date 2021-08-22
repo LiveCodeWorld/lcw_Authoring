@@ -778,7 +778,7 @@ command field_HyperMenu
             put the menu_Button of the target into mButton
             menu_ClearTargetGlobals
             -- should set other stuff here mTitle and mTarget???
-            menu_SetTargetObject targetObject
+            menu_SetTopTargetObject targetObject
             
             popup mButton at someLocation
             set the menu_Action of mButton to empty

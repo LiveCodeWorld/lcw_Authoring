@@ -150,6 +150,10 @@ end disabled_SetViewMetadata
 
 --> Global | View | Authoring | Menu
 -
+on menu_ObjectInspector dView
+   display_ObjectProperties dView
+end menu_ObjectInspector
+
 on menu_RenameModule viewObject
    put the view_Name of viewObject into oldModuleName
    --
@@ -163,23 +167,12 @@ on menu_RenameModule viewObject
    display_ProjectModules projectName
 end menu_RenameModule
 
-on menu_TestClose viewObject
-   put the project_Folder of viewObject into projectFolder
-   put the module_Folder of viewObject into moduleFolder
-   put the module_Name of viewObject into moduleName
-   --
-   module_CloseStacks moduleName, projectFolder
-   put revLoadedStacks()
-   --
-   project_InitialiseFolder moduleFolder
-end menu_TestClose
-
 on _
 end _
 
 on menu_AddToStackfiles dView
    put the module_Folder of dView into moduleFolder
-   put project_ConstructFoundStackFileArray (moduleFolder) into newStackFileArray
+   put project_FetchStackFileArray (moduleFolder) into newStackFileArray
    --
    put the stackfile_Array of dView into stackfileArray
    union stackfileArray with newStackFileArray
@@ -199,18 +192,10 @@ on menu_ExportModuleJson viewObject
    display_Data projectArray, moduleName, "Module Array"  
 end menu_ExportModuleJson
 
-on _
-end _
-
-on menu_DisplayTools dView
-   put the view_Name of dView into viewName
-   --
-   display_ModuleTools viewName
-end menu_DisplayTools
-
-on menu_ObjectInspector dView
-   display_ObjectProperties dView
-end menu_ObjectInspector
+on menu_RevealModuleFolder viewObject
+   put the module_Folder of viewObject into moduleFolder
+   finder_Reveal moduleFolder
+end menu_RevealModuleFolder
 
 on _
 end _
@@ -230,29 +215,56 @@ end submenu_Dev
 
 --> Dev | Menu
 -
+on _SetViewMetadata viewObject
+   get the view_Name of viewObject
+   put the stack_Name of viewObject into viewName
+   put metadata_ConstructArray (viewName, "view") into uRipArray
+   --
+   -- set the view_Name ["view"] of viewObject to viewName
+   set the script_MetaData of viewObject to uRipArray
+   put the result into uRipArray
+   --
+   edit the script of viewObject
+end _SetViewMetadata
+
 on _
 end _
 
-on menu_RevealModuleFolder someView
-   put the module_Folder of someView into moduleFolder
-   finder_Reveal moduleFolder
-end menu_RevealModuleFolder
+on _DisplayTools dView
+   put the view_Name of dView into viewName
+   --
+   display_ModuleTools viewName
+end _DisplayTools
 
-on menu_ModuleAssetFolder someView
+on _TestClose viewObject
+   put the project_Folder of viewObject into projectFolder
+   put the module_Folder of viewObject into moduleFolder
+   put the module_Name of viewObject into moduleName
+   --
+   module_CloseStacks moduleName, projectFolder
+   put revLoadedStacks()
+   --
+   project_InitialiseFolder moduleFolder
+end _TestClose
+
+on _
+end _
+
+on _ModuleAssetFolder someView
    put the project_AssetFolder of someView into moduleAssetFolder
    finder_Reveal moduleAssetFolder
-end menu_ModuleAssetFolder
+end _ModuleAssetFolder
 
 on _
 end _
 
-on menu_SetCardMargin someView
+on _SetCardMargin someView
    put the card_Margin of someView into cardMargin
    put lcw_Ask ("What value do you want for the card space around the view?", cardMargin) into cardMargin
    set the card_Margin of someView to cardMargin
-end menu_SetCardMargin
+end _SetCardMargin
 
-on menu_DisplayView someView
+on _DisplayView someView
    put the stack_Name of someView into stackName
    go to stack stackName
    show stack stackName
@@ -263,43 +275,43 @@ on menu_DisplayView someView
    add 20 to item 2 of gLoc
    
    set the topleft of stack stackName to gLoc
-end menu_DisplayView
+end _DisplayView
 
-on menu_DisplayViewTemplate someView
+on _DisplayViewTemplate someView
    put the template_View of someView into templateView
    put the stack_Name of templateView into stackName
    go to stack stackName
-end menu_DisplayViewTemplate
+end _DisplayViewTemplate
 
 on _
 end _
 
-on menu_CreateViewMenu someView
+on _CreateViewMenu someView
    put the view_GlobalMenuTitle of someView into gMenutitle
    --
    put the project_Name of someView into projectName
-   display_AskCreateMenu projectName, gMenuTitle
+   ask_CreateProjectmenu projectName, gMenuTitle
    put the result into controllerStackObject
    edit the script of controllerStackObject
-end menu_CreateViewMenu
+end _CreateViewMenu
 
-on menu_EditViewMenus someView
+on _EditViewMenus someView
    put the template_View of someView into templateView
    put the module_Controllers of templateView into menuStackObjects
    repeat for each line menuStackObject in menuStackObjects
       edit the script of menuStackObject 
    end repeat
-end menu_EditViewMenus
+end _EditViewMenus
 
-on menu_EditViewBehaviors someView
+on _EditViewBehaviors someView
    put the template_View of someView into templateView
    put the module_Behaviors of templateView into moduleBehaviors
    repeat for each line moduleBehavior in moduleBehaviors
       edit the script of moduleBehavior 
    end repeat
-end menu_EditViewBehaviors
+end _EditViewBehaviors
 
-on menu_ReindexMenus someView
+on _ReindexMenus someView
    -- should figure out how to update the displayView menu
    put the template_View of someView into templateView
    
@@ -308,20 +320,20 @@ on menu_ReindexMenus someView
    
    display_Array moduleMenuTitleArray, "Module Menu Title Array", "module_ReIndexMenus"
    lcw_Notify "Indexed all module menus!"
-end menu_ReindexMenus
+end _ReindexMenus
 
 on _
 end _
 
-on menu_SetCardViewBehavior someView
+on _SetCardViewBehavior someView
    put the stack_Name of someView into viewName
    module_SetCardBehavior viewName
-end menu_SetCardViewBehavior
+end _SetCardViewBehavior
 
 on _
 end _
 
-on menu_FixView someView
+on _FixView someView
    put the stack_Name of someView into stackName
    
    put merge ("The stack for the view '[[stackName]]' is a scriptonly stack! would you like to create a full Livecode version?") into someComment
@@ -340,16 +352,16 @@ on menu_FixView someView
    save stack stackName
    
    answer "Copy everything to the new stack and then close the old one to destroy it!"
-end menu_FixView
+end _FixView
 
-on submenu_Wireframe
+-- on submenu_Wireframe
    return "Global | View | Wireframe | Menu"
 end submenu_Wireframe
 
 
 --> Private
 -
-private function _askMenuTitle projectName
+private function _AskMenuTitle projectName
    put line 1 of the clipboarddata ["text"] into maybeMenuTitle
    if word -1 of maybeMenuTitle = "Menu" then
       put maybeMenuTitle into suggestedAnswer
@@ -361,4 +373,4 @@ private function _askMenuTitle projectName
    put "What is the name of your global menu...." into someQuestion
    put lcw_Ask (someQuestion, suggestedAnswer) into globalMenuTitle
    return globalMenuTitle
-end _askMenuTitle
+end _AskMenuTitle

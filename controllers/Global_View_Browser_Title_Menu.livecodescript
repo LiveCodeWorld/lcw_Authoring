@@ -103,14 +103,14 @@ on _
 end _
 
 on menu_DisplayViewBrowserRecord treeView
-   put menu_GetTargetObject() into targetObject
+   put menu_GetTopTargetObject() into targetObject
    put the dgControl of targetObject into dgView
    put the dgProps ["record template"] of dgView into recordView
    object_GoTo recordView
 end menu_DisplayViewBrowserRecord
 
 on menu_ViewBrowserRecordBehavior treeView
-   put menu_GetTargetObject() into targetObject
+   put menu_GetTopTargetObject() into targetObject
    put the dgDataControl of targetObject into recordView
    put the behavior of recordView into recordBehavior
    if exists(recordBehavior) then

@@ -7,96 +7,345 @@ type: library
 version: 0.1
 
 /*
-In this library we keep everything to do with walking and filtering HA folders and files.
+In this library we keep everything to do with walking and filtering folders and files.
 */
 
+getprop folder_StackFileArray
+   put the stack_Folder of the target into someFolder
+   put directory_NestedStackFileArray (someFolder) into stackFileArray
+   return stackFileArray
+end folder_StackFileArray
 
---> Tree
--
-function _FilterFoundFiles fileIndex, pTopFolder, pWithExtension
-   /*
-   # skip all these folders:
-   /html/img
-   /html/captcha_check.php
-   /html/manager # do not add anything here to the site map
-   /html/admin  # skip this folder also
-   /html/donations # do not add anything here in fact this folder will be deleted eventually.
-   /html/home  # I skipped this folder also as it has nothing but images in it (looks like an app)
-   */
-   if line 1 of fileIndex = "." then delete line 1 of fileIndex
-   if pWithExtension is empty then
-      put ".html" into pEnding
-   else if char 1 of pWithExtension = "." then
-      put pWithExtension into pEnding
+getprop module_StackNameArray
+   put the module_Folder of the target into moduleFolder
+   put directory_NestedArray (projectFolder) into stackNameArray
+   return stackNameArray
+end module_StackNameArray
+
+getprop project_StackNameArray
+   put the project_Folder of the target into projectFolder
+   put directory_NestedArray (projectFolder) into stackNameArray
+   return stackNameArray
+end project_StackNameArray
+
+function directory_NestedStackFileArray someFolder
+   if there is not a folder someFolder then return empty
+   
+   # Walk
+   set the itemdelimiter to slash
+   put the number of items of someFolder into baseFolderNum
+   --
+   put directory_ListNestedPaths (someFolder) into nPaths
+   repeat for each line sFile in nPaths
+      if exists (stack sFile) then
+         put the short name of stack sFile into stackName
+         delete item 1 to baseFolderNum of sFile
+         put sFile into sFileArray [stackName]
+      end if
+   end repeat
+   return sFileArray
+end directory_NestedStackFileArray 
+
+function directory_ListNestedPaths someFolder, pSetRelative
+   local NestedPaths
+   if there is not a folder someFolder then return empty
+   
+   # Walk
+   set the itemdelimiter to slash
+   text_AddTrailing someFolder, slash
+   if pSetRelative is true then
+      put the number of items of someFolder into baseFolderNum
+      _WalkAndList NestedPaths, someFolder, baseFolderNum
    else
-      put "." & pWithExtension into pEnding
+      _WalkAndList NestedPaths, someFolder, baseFolderNum
+   end if
+   delete char -1 of NestedPaths
+   return NestedPaths
+end directory_ListNestedPaths 
+
+function directory_NestedArray someFolder
+   local folderArray
+   if there is not a folder someFolder then return empty
+   
+   # Walk
+   set the itemdelimiter to slash
+   put item -1 of someFolder into shortFolder
+   put the number of items of someFolder -1 into baseFolderNum
+   _WalkDirectory folderArray, someFolder, baseFolderNum
+   return folderArray [shortFolder]
+end directory_NestedArray
+
+private command _WalkAndList @NestedPaths, someFolder, pBaseFolderNum
+   put files (someFolder) into shortFiles
+   put someFolder into pathFolder
+   if pBaseFolderNum is a number then
+      set the itemdelimiter to slash
+      delete item 1 to pBaseFolderNum of pathFolder
    end if
    
-   set the itemdelimiter to "/"
-   set the wholematches to true
-   repeat for each line someFile in fileIndex
-      if item 2 of someFile is among the items of "captcha/img/donations/manager/admin/home/info" then next repeat
-      
-      -- let's skip folders (don't seem to be able to exclude them from tree cli
-      if not (someFile ends with ".xml" or someFile ends with ".html") then next repeat
-      
-      -- a couple of hacky tests for copies and backups
-      -- these files should really be moved into a folder called "backup"
-      if someFile ends with "-backup.html" then next repeat
-      if someFile = "./looklisten/deprecated-music-songs.html" then next repeat
-      if someFile = "./monastery/newsletter/newsletter-html-snippets-lib/trilogyAd.html" then
-         next repeat
-      end if
-      if someFile = "./readlearn/panchangam/zTrashNotInUse/book_promo_testing.html" then next repeat
-      if someFile = "./looklisten/podcasts/index.html" then next repeat
-      if someFile = "./looklisten/powtoons/index.html" then next repeat
-      if someFile begins with "./monastery/newsletter/email/" then next repeat
-      if someFile begins with "./readlearn/books/test-book-page" then next repeat
-      if someFile begins with "./looklisten/apps/" then next repeat
-      
-      put item -1 of someFile into shortFile
-      if shortFile contains "-bak_" then next repeat
-      if shortFile contains "\ copy" then next repeat
-      
-      -- for .xml files only (remove for speed)
-      if someFile begins with "./livespiritually/become-student/mc-daily_lesson_html/" then next repeat
-      if someFile contains "/zTrashLater/" or someFile contains "/ztrash/" then next repeat
-      if shortFile begins with "index" then
-         get char 6 to -1 of shortFile
-         if it is not pEnding then next repeat
-      end if
-      -- if shortFile begins with "index\" then next repeat
-      if shortFile contains "-rss" then next repeat
-      if shortFile = "sandbox.xml" then next repeat
-      
-      -- here we can add topFolder, or we can work out the url's
-      put pTopFolder into item 1 of someFile
-      put someFile & CR after goodFiles
+   # Add files (not folders) to NestedPaths
+   filter shortFiles without ".*"
+   repeat for each line shortFile in shortFiles
+      if char 1 of shortFile = "." then next repeat
+      put pathFolder & shortFile into foundPath
+      put foundPath & CR after NestedPaths
    end repeat
-   delete char -1 of goodFiles
-   return goodFiles
-end _FilterFoundFiles
+   
+   # Recurse
+   put folders (someFolder) into shortChildFolders
+   repeat for each line shortChildFolder in shortChildFolders
+      if char 1 of shortChildFolder = "." then next repeat
+      put someFolder & shortChildFolder & slash into childFolder
+      _WalkAndList NestedPaths, childFolder, pBaseFolderNum
+   end repeat
+end _WalkAndList
 
-command _AddInfoFiles @fileIndex, topFolder
-   /*
-   /html/info/*    # exclude all files except 
-   contact.html
-   copyright.html
-   privacy.html
+private command _WalkDirectory @folderArray, someFolder, pBaseFolderNum, pQuick
+   put _GetFolderKey (someFolder, pBaseFolderNum) into folderKey
+   --
+   put files (someFolder) into shortFiles
+   filter shortFiles without ".*"
+   if pQuick is true then
+      split shortFiles by CR as set
+      put shortFiles into folderArray [folderKey]
+   else
+      repeat for each line shortFile in shortFiles
+         if char 1 of shortFile = "." then next repeat
+         put empty into folderArray [folderKey][shortFile]
+      end repeat
+   end if
    
-   Ignore (and others)
-   /html/info/livecode-in-action
-   /html/info/search
-   */
-   
-   -- first let's tidy input
-   folder_Format topFolder
-   put char 1 to -1 of fileIndex into fileIndex
-   
-   -- now add the 3 files specified
-   repeat for each item shortBit in "contact,copyright,privacy"
-      put topFolder & "info/" & shortBit & ".html" into someFile
-      if there is not a file someFile then next repeat -- just in case
-      put CR & someFile after fileIndex
+   put folders (someFolder) into shortChildFolders
+   repeat for each line shortChildFolder in shortChildFolders
+      if char 1 of shortChildFolder = "." then next repeat
+      put someFolder & shortChildFolder & slash into childFolder
+      _WalkDirectory folderArray, childFolder, pBaseFolderNum
    end repeat
-end _AddInfoFiles
+end _WalkDirectory
+
+private function _GetFolderKey someFolder, baseFolderNum
+   set the itemdelimiter to slash
+   delete item 1 to baseFolderNum of someFolder
+   
+   if char -1 of someFolder is slash then delete char -1 of someFolder
+   if char 1 of someFolder is slash then delete char 1 of someFolder
+   split someFolder by slash
+   --
+   return someFolder
+end _GetFolderKey
+
+
+--> Folder | Array
+-
+function folder_ConstructArray someFolder
+   -- one level not recursive
+   local dataArray
+   text_AddTrailing someFolder, slash
+   put the directory into oDirectory
+   set the directory to someFolder
+   
+   put the folders into newShortFolders
+   if includeInvisible is not false then filter newShortFolders without ".*"
+   -- what else needs escaping?
+   replace "/" with ":" in newShortFolders
+   
+   repeat for each line shortFolder in newShortFolders
+      put someFolder & shortFolder & "/" into nestedFolder
+      set the directory to nestedFolder
+      put the files into shortFiles
+      if includeInvisible is not false then filter shortFiles without ".*"
+      repeat for each line shortFile in shortFiles
+         put nestedFolder & shortFile into filePath
+         
+         put dataArray [shortFolder] into fileIndex
+         line_Insert shortFile, fileIndex
+         put fileIndex into dataArray [shortFolder]
+      end repeat
+   end repeat
+   set the directory to someFolder
+   return dataArray
+end folder_ConstructArray
+
+function folder_ConstructDatagridArray someFolder, pIsExpanded
+   local dgArray
+   text_AddTrailing someFolder, slash
+   put the directory into oDirectory
+   set the directory to someFolder
+   
+   put the folders into newShortFolders
+   if includeInvisible is not false then filter newShortFolders without ".*"
+   -- what else needs escaping?
+   replace "/" with ":" in newShortFolders
+   
+   repeat with lineNum = 1 to the number of lines of newShortFolders
+      put pIsExpanded is true into dgArray [lineNum]["isExpanded"]
+      put line lineNum of newShortFolders into shortFolder
+      put shortFolder into dgArray [lineNum]["title"]
+      
+      put someFolder & shortFolder & "/" into nestedFolder
+      put nestedFolder into dgArray [lineNum]["folder"]
+      
+      set the directory to nestedFolder
+      put the files into shortFiles
+      if includeInvisible is not false then filter shortFiles without ".*"
+      repeat for each line shortFile in shortFiles
+         put nestedFolder & shortFile into filePath
+         
+         put dgArray [lineNum]["files"] into fileIndex
+         line_Insert shortFile, fileIndex
+         put fileIndex into dgArray [lineNum]["files"]
+      end repeat
+   end repeat
+   set the directory to someFolder
+   return dgArray
+end folder_ConstructDatagridArray
+
+
+--> Folder | Recursive
+-
+function folder_GetNestedIndex someFolder
+   -- a nested index of folders
+   local foundFolders
+   
+   text_AddTrailing someFolder, slash
+   put someFolder & return after foundFolders
+   
+   put the directory into oFolder
+   set the directory to someFolder
+   put the folders into folderIndex
+   filter folderIndex without ".*"
+   repeat for each line shortFolder in folderIndex
+      put someFolder & shortFolder & "/" into nestedFolder
+      put folder_GetNestedIndex (nestedFolder) & CR after foundFolders
+   end repeat
+   set the directory to oFolder
+   delete last char of foundFolders
+   return foundFolders
+end folder_GetNestedIndex
+
+function folder_ConstructFileOutline someFolder, @infoArray, excludeFolderList, includeInvisible, tabBit, pUseHtmlLinks
+   local shortFileOutline
+   
+   if there is not a folder someFolder then return empty
+   text_AddTrailing someFolder, slash
+   put infoArray["FolderIndex"] into folderIndex 
+   put infoArray["FileIndex"] into fileIndex 
+   line_Insert someFolder, folderIndex
+   put folderIndex into infoArray["FolderIndex"]
+   
+   put the directory into oDirectory
+   set the directory to someFolder
+   put the files into shortFiles
+   if includeInvisible is not false then filter shortFiles without ".*"
+   
+   repeat for each line shortFile in shortFiles
+      put someFolder & shortFile into filePath
+      line_Insert filePath, fileIndex
+      
+      if pUseHtmlLinks is not true then
+         put tabBit & shortFile into osTitle
+      else
+         put tabBit & html_ConstructNameLink(shortFile, filePath) into osTitle
+      end if
+      line_Insert osTitle, shortFileOutline
+   end repeat
+   put fileIndex into infoArray["FileIndex"]
+   
+   put the folders into newShortFolders
+   if includeInvisible is not false then filter newShortFolders without ".*"
+   
+   -- what else needs escaping?
+   replace "/" with ":" in newShortFolders
+   
+   repeat for each line shortFolder in newShortFolders
+      if shortFolder is among the items of excludeFolderList then next repeat
+      put someFolder & shortFolder & "/" into nestedFolder
+      
+      if pUseHtmlLinks is not true then
+         put tabBit & shortFolder into osTitle
+      else
+         put tabBit & html_ConstructNameLink (shortFolder, nestedFolder) into osTitle
+      end if
+      line_Insert osTitle, shortFileOutline
+      
+      put tabBit & tab into nextTabBit
+      put folder_ConstructFileOutline (nestedFolder, infoArray, excludeFolderList, includeInvisible, nextTabBit, pUseHtmlLinks) into nestedOutline
+      line_Insert nestedOutline, shortFileOutline
+   end repeat
+   
+   set the directory to oDirectory
+   return shortFileOutline
+end folder_ConstructFileOutline
+
+command folder_ConstructStackArrays @stackNameArray, @bigFileIndex, someFolder, searchNested, skipArchives, excludedFolderList	# recursive function
+   -- was "file_RecursiveStackSearch"
+   -- seems to look at files several times ???
+   if excludedFolderList is empty then put "CVS,retired,archive" into excludedFolderList
+   if skipArchives is not false and (char 1 of someFolder is "." or someFolder is among the items of excludedFolderList) then
+      return empty	# skip CVS folders
+   end if
+   
+   put the directory into oFolder
+   set the directory to someFolder
+   put the files into shortFiles
+   
+   text_AddTrailing someFolder, slash
+   _FilterAndAddStacks shortFiles, someFolder, stackNameArray, bigFileIndex
+   
+   if searchNested is not false then
+      put the folders into tFolderList
+      delete line 1 of tFolderList
+      repeat for each line tFolder in tFolderList
+         if the controlkey is "Down" then return foundFiles	# allow an exit?
+         if skipArchives is not false and (char 1 of tFolder is "." or tFolder is among the items of excludedFolderList) then
+            next repeat	# skip CVS folders
+         end if
+         
+         put someFolder & tFolder & "/" into tNuFolder
+         folder_ConstructStackArrays stackNameArray, bigFileIndex, tNuFolder, searchNested, skipArchives, excludedFolderList
+      end repeat
+   end if
+   
+   set the directory to oFolder
+   return ""
+end folder_ConstructStackArrays
+
+private command _FilterAndAddStacks shortFiles, someFolder, @stackNameArray, @bigFileIndex
+   local filteredFiles
+   
+   put shortFiles into mcFiles
+   filter mcFiles with "*.mc"
+   line_Insert mcFiles, filteredFiles
+   
+   put shortFiles into revFiles
+   filter revFiles with "*.rev"
+   line_Insert revFiles, filteredFiles
+   
+   if filteredFiles is not empty then
+      repeat for each line filePath in filteredFiles
+         put someFolder & filePath into tFilePath
+         
+         -- this is where you can test individual files
+         set lockmessages to true
+         if exists(stack tFilePath) then
+            put the short name of stack tFilePath into stackName
+            put the long name of stack tFilePath into mainStackObject
+            
+            array_AddToIndex mainStackObject, stackName, stackNameArray
+            
+            put the substacks of stack tFilePath into subStackNames
+            repeat for each line subStackName in subStackNames
+               put the long name of stack subStackName of stack tFilePath into subStackObject
+               
+               array_AddToIndex subStackObject, subStackName, stackNameArray
+            end repeat
+            
+            put tFilePath & return after foundFiles
+         end if
+         set lockmessages to false
+      end repeat
+      
+      put foundFiles after bigFileIndex
+   end if
+   return foundFiles
+end _FilterAndAddStacks

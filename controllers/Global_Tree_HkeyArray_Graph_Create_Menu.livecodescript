@@ -21,7 +21,7 @@ and they may want to be examined before they are saved!
 
 --> Menu | Init
 -
-on menu_Init tObject
+getprop menu_Target [tObject]
    put the display_View of tObject into dView
    put the displayed_HkeyArray of dView into hkeyArray
    --
@@ -42,7 +42,8 @@ on menu_Init tObject
    end if
    --
    put scriptObject into LocalArray ["scriptObject"]
-end menu_Init
+   return scriptObject
+end menu_Target
 
 command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
    put LocalArray ["overlayFolder"] into overlayFolder

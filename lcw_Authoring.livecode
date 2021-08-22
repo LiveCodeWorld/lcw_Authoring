@@ -7,11 +7,9 @@ type: project
 version: 0.6
 
 /*
-Modified to include lcw_Script dependency.
-
-lcw_Authoring introduces a custom initialisation routine, handeld by "_Custom"
+lcw_Authoring introduces a custom initialisation routine, handled by "_Custom"
 We display the project list with "display_Environment" 
-Add hacks to the script editor rev_AddBehaviorHacks
+Add hacks to the script editor ide_AddBehaviorHacks
 And add menus with ide_SetMenuTitle.
 */
 
@@ -27,17 +25,12 @@ end project_Deps
 -
 command project_CustomInit
    set the cursor to watch
-   send "display_Environment" to me in 2 ticks
-   
-   -- add menu options
-   ide_SetMenuTitle "Recent", "Watch"
-   ide_SetMenuTitle "Script", "Authoring"
-   ide_SetMenuTitle "List", "Authoring"
-   
-   -- load dictionary
+   --
+   ide_SetScriptEditorTitles "watch"
    ide_LoadDictionaryTerms
-   
-   send "rev_AddBehaviorHacks true" to me in 2 ticks
+   ide_AddBehaviorHacks true
+   --
+   display_Environment
 end project_CustomInit
 
 

@@ -4,7 +4,7 @@
 license: GPLv3
 name: behavior_DisplayScriptCard
 type: behavior
-version: 0.3
+version: 0.4
 
 
 --> Menu | Props
@@ -13,11 +13,11 @@ getprop menu_Target [mTitlePath]
    try
       switch
          case mTitlePath contains "Script | Record | Menu"
-            put menu_GetTargetObject() into targetObject
+            put menu_GetTopTargetObject() into targetObject
             put the displayed_Hkey of targetObject into hKey
             return hKey
          case mTitlePath contains "Global | Hkey | Calls | Menu"
-            put menu_GetTargetObject() into targetObject
+            put menu_GetTopTargetObject() into targetObject
             put the displayed_Hkey of targetObject into hKey
             return hKey
          case mTitlePath contains "Global | Dot | Graph Properties | Menu"

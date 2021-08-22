@@ -1,8 +1,8 @@
-﻿script "Global_HkeyArray_Script_Tree_Line_Menu"
+﻿script "Global | HkeyArray | Script | Tree | Line | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_HkeyArray_Script_Tree_Line_Menu
+name: Global | HkeyArray | Script | Tree | Line | Menu
 type: controller
 version: 0.1
 
@@ -14,7 +14,7 @@ local LocalArray
 
 --> Menu | Props
 -
-on menu_Init tObject
+getprop menu_Target [tObject]
    put the tree_View of tObject into treeView
    put treeView into LocalArray ["treeView"]
    
@@ -29,7 +29,7 @@ on menu_Init tObject
    put stackObject into LocalArray ["stackObject"]
    put shortHkey into LocalArray ["shortHkey"]
    put hKey into LocalArray ["hKey"]
-end menu_Init
+end menu_Target
 
 
 --> Global | HkeyArray | Script | Tree | Line | Menu
@@ -65,10 +65,3 @@ getprop disabled_DeleteHkeys
       return true
    end if
 end disabled_DeleteHkeys
-
-
---> Global | HkeyArray | Script | Tree | Line | Menu | Props
--
-
---> Global | HkeyArray | Script | Tree | Line | Menu | Disabled
--

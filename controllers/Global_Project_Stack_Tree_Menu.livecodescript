@@ -21,7 +21,7 @@ private command _displayAndHilite
 end _displayAndHilite
 
 private function _indexView
-   put menu_GetTargetObject() into tObject
+   put menu_GetTopTargetObject() into tObject
    put the index_View of tObject into indexView
    return indexView
 end _indexView

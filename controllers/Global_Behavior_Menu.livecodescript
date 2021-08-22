@@ -234,7 +234,7 @@ on _
 end _
 
 on menu_LivecodeBehaviorHacks mTarget, someBoolean
-   rev_AddBehaviorHacks someBoolean, true
+   ide_AddBehaviorHacks someBoolean
 end menu_LivecodeBehaviorHacks
 
 on menu_EditLivecodeBehaviorButton mTarget, ideBname
