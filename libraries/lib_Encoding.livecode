@@ -28,6 +28,35 @@ end file_SaveTempText
 -
 
 
+--> HTML | Tidy
+-
+/*
+Everything below here came from lib_FedWikiPedia
+*/
+
+function html_FetchTidy someURL
+   put "curl -s" && someURL && "| tidy -asxhtml --quiet yes --tidy-mark no --show-warnings false --show-errors 0" into someShell
+   put shell (someShell) into someXHTML
+   return someXHTML
+end html_FetchTidy
+
+command html_Tidy @someHtml
+   put the tempname & ".html" into inputFile 
+   put someHtml into url ("file:" & inputFile)
+   
+   put "tidy --force-output true --char-encoding utf8 --input-encoding utf8 --output-encoding utf8 --output-xml true -asxml -m" && inputFile into someShell
+   put shell (someShell) into shellResult   
+   put url ("file:" & inputFile) into someHtml
+end html_Tidy
+
+command html_FetchScraped someURL, @tidyXML, @xmlArray, @treeID
+   put html_FetchTidy (someURL) into tidyXML
+   put revXMLCreateTree (tidyXML, false, true, false) into treeID
+   xml_ExtractEncoding tidyXML, versionMatch, theXMLEncoding
+   put xml_ArrayFromID (treeID, theXMLEncoding) into xmlArray
+end html_FetchScraped
+
+
 --> UTF8
 -
 function text_HtmlToUtf8 someHTML
@@ -553,35 +582,6 @@ function text_SwapEOL pText, pWhat
     end switch
     return pText
 end text_SwapEOL
-
-
---> HTML | Tidy
--
-/*
-Everything below here came from lib_FedWikiPedia
-*/
-
-function html_FetchTidy someURL
-   put "curl -s" && someURL && "| tidy -asxhtml --quiet yes --tidy-mark no --show-warnings false --show-errors 0" into someShell
-   put shell (someShell) into someXHTML
-   return someXHTML
-end html_FetchTidy
-
-command html_Tidy @someHtml
-   put the tempname & ".html" into inputFile 
-   put someHtml into url ("file:" & inputFile)
-   
-   put "tidy --force-output true --char-encoding utf8 --input-encoding utf8 --output-encoding utf8 --output-xml true -asxml -m" && inputFile into someShell
-   put shell (someShell) into shellResult   
-   put url ("file:" & inputFile) into someHtml
-end html_Tidy
-
-command html_FetchScraped someURL, @tidyXML, @xmlArray, @treeID
-   put html_FetchTidy (someURL) into tidyXML
-   put revXMLCreateTree (tidyXML, false, true, false) into treeID
-   xml_ExtractEncoding tidyXML, versionMatch, theXMLEncoding
-   put xml_ArrayFromID (treeID, theXMLEncoding) into xmlArray
-end html_FetchScraped
 
 
 --> Encoding | Text

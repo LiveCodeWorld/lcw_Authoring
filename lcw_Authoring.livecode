@@ -26,11 +26,12 @@ end project_Deps
 command project_CustomInit
    set the cursor to watch
    --
-   ide_SetScriptEditorTitles "watch"
-   ide_LoadDictionaryTerms
    ide_AddBehaviorHacks true
+   ide_LoadDictionaryTerms
    --
-   display_Environment
+   ide_SetScriptEditorTitles "watch"
+   --
+   send "display_Environment" to me in 2 ticks
 end project_CustomInit
 
 
@@ -42,6 +43,7 @@ on preOpenStack
    else
       lcw_Init
       env_RecursivelyLoadProjects
+      project_CustomInit
    end if
 end preOpenStack
 

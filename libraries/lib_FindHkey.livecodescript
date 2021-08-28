@@ -19,13 +19,13 @@ Consider using a database.
 
 --> Display | Find
 -
-on mDoubleUp_FoundLib displayView, libName   
-   put the title_Text of displayView into shortHkey
-   put the name of stack libName into libObject
-   put hKeyLine_AddObject (shortHkey, libObject) into hKey
+command ask_FindHkey pShortHkey
+   put ask_Question ("What handler do you want to search for?", pShortHkey, "Handler Search") into pShortHkey
    --
-   hkey_Edit hKey
-end mDoubleUp_FoundLib
+   display_FoundLibs pShortHkey
+   put the result into displayView
+   return displayView
+end ask_FindHkey
 
 command display_FoundLibs shortHkey
    put hkey_FindAllLibs (shortHkey) into libNames
@@ -36,6 +36,14 @@ command display_FoundLibs shortHkey
    display_SetInteractions displayView, "Hkey | Find", "mDoubleUp_FoundLib"
    return displayView
 end display_FoundLibs
+
+on mDoubleUp_FoundLib displayView, libName   
+   put the title_Text of displayView into shortHkey
+   put the name of stack libName into libObject
+   put hKeyLine_AddObject (shortHkey, libObject) into hKey
+   --
+   hkey_Edit hKey
+end mDoubleUp_FoundLib
 
 
 --> Props

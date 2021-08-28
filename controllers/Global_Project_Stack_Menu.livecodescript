@@ -141,7 +141,7 @@ on menu_DisplaySubstack stackObject, subStackName
 end menu_DisplaySubstack
 
 on menu_TrashStack stackObject
-   display_AskProjectTrashStack stackObject
+   ask_TrashProjectStack stackObject
 end menu_TrashStack
 
 on _

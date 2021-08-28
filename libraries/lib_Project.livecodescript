@@ -40,13 +40,19 @@ command project_RenameStack stackName, newStackName, pEditScript
    # Rename stack
    set the name of stack stackName to newStackName
    
-   # Renamme short file
+   # Rename short file
    put project_ConstructShortFile (newStackName) into newShortFile
    project_ChangeStackShortFileName newStackName, newShortFile
    put the result into newStackPath
    
-   # Remove old and add new to stackfiles
-   _RenameKnown newStackName, oldStackName
+   # Remove old and add new to stackfiles of project
+   _RenameKnown newStackName, stackName
+   
+   # Save stack
+   save stack newStackName
+   
+   # Refresh display if needed
+   display_Project projectName, true
    
    # Re-edit script if needed
    if pEditScript is true then
@@ -62,7 +68,7 @@ private command _RenameKnown newStackName, oldStackName
    put the stackfile_Array of stack projectName into stackFileArray
    delete variable stackFileArray [oldStackName]
    put newRelativeFile into stackFileArray [newStackName]
-   set the stackfile_Array of stack homeStackStackPath to stackFileArray
+   set the stackfile_Array of stack projectName to stackFileArray
    --
    return stackFileArray
 end _RenameKnown
@@ -152,7 +158,7 @@ command ask_CreateProjectStack shortFolder, projectName, pQuestion, pExample
    return newStackPath
 end ask_CreateProjectStack
 
-   
+
 --> Project | Rename
 -
 command project_ChangeStackShortFileName stackPathOrName, newShortFile
@@ -360,7 +366,7 @@ function project_ConstructShortFile stackName
    put project_NameToShortFolder (stackName) & ".livecodescript" into stackName
    return stackName
 end project_ConstructShortFile
-   
+
 function project_NameToShortFolder moduleName
    -- factor this out. This is only a hack for menu naming
    set the itemdelimiter to "|"

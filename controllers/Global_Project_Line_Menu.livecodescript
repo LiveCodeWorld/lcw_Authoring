@@ -35,9 +35,6 @@ end _GetStackName
 private function _GetNewMenu menuBit
    put the long id of me into myController
    put merge ("Global | Project | [[menuBit]] | Line | Menu") into gMenuTitle
-   -- 
-   controller_CreateIfNeeded gMenuTitle, "lcw_Tools"
-   --
    return gMenuTitle
 end _GetNewMenu
 
