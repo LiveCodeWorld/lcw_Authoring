@@ -14,10 +14,6 @@ local LocalArray
 
 --> Menu | Props
 -
-getprop menu_IsSimple
-   return true
-end menu_IsSimple
-
 getprop menu_Target [tObject]
    if the stack_IsDisplay of tObject then
       put the display_View of tObject into displayView
@@ -28,33 +24,23 @@ getprop menu_Target [tObject]
    put the card_Object of tObject into cardObject
    put cardObject into LocalArray ["cardObject"]
    --
-   if exists (control 1 of cardObject) is false then
+   if exists (control 1 of cardObject) is true then
+      put the long id of control 1 of cardObject into templateView
+      return templateView
+   else
       return cardObject
    end if
-   
-   put the long id of control 1 of cardObject into templateView
-   return templateView
 end menu_Target
 
-getprop disabled_EditBehavior [someView]
-   put the behavior of someView into bObject
-   put exists (bObject) into bExists
-   return bExists is false
-end disabled_EditBehavior
+getprop disabled_ModuleTools [templateView]
+   put the module_Name of templateView into moduleName
+   return moduleName is empty
+end disabled_ModuleTools
 
-getprop disabled_SetViewCardBehavior [someView]
-   put the card_Object of someView into cardObject
-   put the behavior of cardObject into bObject
-   put exists (bObject) into bExists
-   return bExists is true
-end disabled_SetViewCardBehavior
-
-getprop disabled_EditViewCardBehavior [someView]
-   put the card_Object of someView into cardObject
-   put the behavior of cardObject into bObject
-   put exists (bObject) into bExists
-   return bExists is false
-end disabled_EditViewCardBehavior
+getprop disabled_ViewTools [templateView]
+   put the module_Name of templateView into moduleName
+   return moduleName is not empty
+end disabled_ViewTools
 
 getprop disabled_OpenSubstack [someView]
    put the stack_Object of someView into stackObject
@@ -95,6 +81,10 @@ on submenu_ViewAuthoring
    return "Global | View | Authoring | Menu"
 end submenu_ViewAuthoring
 
+on submenu_ModuleAuthoring
+   return "Global | Module | Authoring | Menu"
+end submenu_ModuleAuthoring
+
 on submenu_Geometry
    return "Global | View | Geometry | Menu"
    -- return "Global | View | Test | Geometry | Menu"
@@ -111,19 +101,27 @@ end submenu_ViewScript
 on _
 end _
 
-on menu_ModuleTools templateView
-   put the view_Name of templateView into moduleName
-   put the stack_Name of templateView into moduleName
+on menu_ViewTools templateView
+   put the view_Name of templateView into viewName
    --
+   display_ViewTools viewName
+end menu_ViewTools
+
+on menu_ModuleTools templateView
+   put the stack_Name of templateView into moduleName
+   -- put the module_Name of templateView into moduleName
+   if moduleName is empty then
+      breakpoint
+   end if
+   
    display_ModuleTools moduleName
 end menu_ModuleTools
 
-on menu_DisplayViewTools templateView
-   put the module_Name of templateView into moduleName
+on menu_DisplayModuleProject templateView
    put the project_Name of templateView into projectName
    --
-   display_ModuleFromShortModuleFolder shortModuleFolder, projectName
-end menu_DisplayViewTools
+   display_Project projectName
+end menu_DisplayModuleProject
 
 on menu_ReIndexMenus templateView
    module_ReIndexMenus templateView

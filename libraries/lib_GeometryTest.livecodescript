@@ -12,7 +12,7 @@ version: 0.2
 setprop rect_Test [someColour] someRect
    put the long id of the target into targetObject
    if someRect is empty then put the rect of targetObject into someRect
-   put the short name of targetObject && someColour into someName
+   put the short name of targetObject && someColour into someName -- ugly space if epty at end
    
    switch
       case exists (btn someName)
@@ -177,7 +177,7 @@ command rect_CreateTestButton someRect, someName, someScript, pGroupID, someColo
       return placeholderButton
    end if
    
-   create_Placeholder someName, pRect, pGroupID, someColour
+   create_Placeholder someName, someRect, pGroupID, someColour
    put the result into placeholderButton
    return placeholderButton
 end rect_CreateTestButton

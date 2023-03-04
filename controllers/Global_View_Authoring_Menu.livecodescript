@@ -14,7 +14,7 @@ local LocalArray
 
 --> Menu | Props
 -
-on menu_Init tObject
+private command _InitMenu tObject
    -- called only once 
    put the display_View of tObject into displayView
    if exists (displayView) is true then
@@ -31,7 +31,8 @@ on menu_Init tObject
       put the title_Text of tObject into viewName
    else
       -- a view stack
-      put the stack_Name of tObject into viewName
+      put the view_Name of tObject into viewName
+      -- put the stack_Name of tObject into viewName
    end if
    --
    if there is not a stack viewName then return empty
@@ -40,13 +41,19 @@ on menu_Init tObject
    put the long id of control 1 of cd 1 of stack viewName into viewObject
    put viewObject into LocalArray ["viewObject"]
    --
-   pass menu_Init
-end menu_Init
+   return viewObject
+end _InitMenu
 
 getprop menu_Target [tObject]
-   -- called once per menu
-   return LocalArray ["viewObject"]
+   _InitMenu tObject
+   put the result into viewObject
+   return viewObject
 end menu_Target
+
+getprop menu_CheckTarget [viewObject]
+   put the module_Folder of viewObject into mFolder
+   return there is not a folder mFolder
+end menu_CheckTarget
 
 getprop decorations_Param [viewObject]
    put the stack_Name of viewObject into sName
@@ -147,6 +154,20 @@ getprop disabled_SetViewMetadata [templateView]
    end if
 end disabled_SetViewMetadata
 
+private function _AskMenuTitle projectName
+   put line 1 of the clipboarddata ["text"] into maybeMenuTitle
+   if word -1 of maybeMenuTitle = "Menu" then
+      put maybeMenuTitle into suggestedAnswer
+   else
+      set the itemdelimiter to "_"
+      put "Global |" && item -1 of projectName && "| Menu" into suggestedAnswer
+   end if
+   
+   put "What is the name of your global menu...." into someQuestion
+   put lcw_Ask (someQuestion, suggestedAnswer) into globalMenuTitle
+   return globalMenuTitle
+end _AskMenuTitle
+
 
 --> Global | View | Authoring | Menu
 -
@@ -154,67 +175,29 @@ on menu_ObjectInspector dView
    display_ObjectProperties dView
 end menu_ObjectInspector
 
-on menu_RenameModule viewObject
-   put the view_Name of viewObject into oldModuleName
+on menu_DisplayViewProject dView
+   put the project_Name of dView into projectName
    --
-   put the project_Folder of stack oldModuleName into projectFolder
-   put the project_Name of stack oldModuleName into projectName
-   put lcw_Ask ("Give this module a new name...", oldModuleName) into newModuleName
-   --
-   module_Rename oldModuleName, newModuleName, projectName
-   --
-   display_ProjectLibs projectName
-   display_ProjectModules projectName
-end menu_RenameModule
+   display_Project projectName
+end menu_DisplayViewProject
 
-on _
-end _
+private on __
+end __
 
-on menu_AddToStackfiles dView
-   put the module_Folder of dView into moduleFolder
-   put project_FetchStackFileArray (moduleFolder) into newStackFileArray
-   --
-   put the stackfile_Array of dView into stackfileArray
-   union stackfileArray with newStackFileArray
-   set the stackfile_Array of dView to stackfileArray
-   --
-   put the stack_Name of dView into stackName
-   display_Data stackFileArray, stackName, "Stackfile Array"
-end menu_AddToStackfiles
+on menu_ProjectFolder someView
+   put the project_Folder of someView into projectFolder
+   finder_Reveal projectFolder
+end menu_ProjectFolder
 
-on menu_ExportModuleJson viewObject
-   put the module_Folder of viewObject into moduleFolder
-   --
-   project_ExportMenusAndStackFiles moduleFolder
-   put the result into projectArray
-   --
-   put the view_Name of viewObject into moduleName
-   display_Data projectArray, moduleName, "Module Array"  
-end menu_ExportModuleJson
-
-on menu_RevealModuleFolder viewObject
-   put the module_Folder of viewObject into moduleFolder
-   finder_Reveal moduleFolder
-end menu_RevealModuleFolder
-
-on _
-end _
+on menu_ProjectAssetFolder someView
+   put the project_AssetFolder of someView into moduleAssetFolder
+   finder_Reveal moduleAssetFolder
+end menu_ProjectAssetFolder
 
 on subMenu_Frame
    return "Global | Frame | Menu"
 end subMenu_Frame
 
-on submenu_Assets
-   return "Global | View | Assets | Menu"
-end submenu_Assets
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-
---> Dev | Menu
--
 on _SetViewMetadata viewObject
    get the view_Name of viewObject
    put the stack_Name of viewObject into viewName
@@ -230,12 +213,6 @@ end _SetViewMetadata
 on _
 end _
 
-on _DisplayTools dView
-   put the view_Name of dView into viewName
-   --
-   display_ModuleTools viewName
-end _DisplayTools
-
 on _TestClose viewObject
    put the project_Folder of viewObject into projectFolder
    put the module_Folder of viewObject into moduleFolder
@@ -246,14 +223,6 @@ on _TestClose viewObject
    --
    project_InitialiseFolder moduleFolder
 end _TestClose
-
-on _
-end _
-
-on _ModuleAssetFolder someView
-   put the project_AssetFolder of someView into moduleAssetFolder
-   finder_Reveal moduleAssetFolder
-end _ModuleAssetFolder
 
 on _
 end _
@@ -353,24 +322,3 @@ on _FixView someView
    
    answer "Copy everything to the new stack and then close the old one to destroy it!"
 end _FixView
-
--- on submenu_Wireframe
-   return "Global | View | Wireframe | Menu"
-end submenu_Wireframe
-
-
---> Private
--
-private function _AskMenuTitle projectName
-   put line 1 of the clipboarddata ["text"] into maybeMenuTitle
-   if word -1 of maybeMenuTitle = "Menu" then
-      put maybeMenuTitle into suggestedAnswer
-   else
-      set the itemdelimiter to "_"
-      put "Global |" && item -1 of projectName && "| Menu" into suggestedAnswer
-   end if
-   
-   put "What is the name of your global menu...." into someQuestion
-   put lcw_Ask (someQuestion, suggestedAnswer) into globalMenuTitle
-   return globalMenuTitle
-end _AskMenuTitle

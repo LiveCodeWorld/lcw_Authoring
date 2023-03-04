@@ -9,6 +9,32 @@ version: 0.1
 
 --> Working on
 -
+getprop custom_PropertyArray [pClean]
+   put the customPropertySet of the target into oSetName
+   set the customPropertySet of the target to empty
+   get the customProperties of the target
+   if it is an array then put it into customArray ["default"]
+   repeat for each line setName in the customPropertySets of the target
+      put the customProperties [setName] of the target into customArray [setName]
+   end repeat
+   set the customPropertySet of the target to oSetName
+   if pClean is not false then objectArray_CleanGeneral customArray
+   return customArray
+end custom_PropertyArray
+
+setprop custom_PropertyArray customArray
+   put the customPropertySet of the target into oSetName
+   set the customPropertySet of the target to empty
+   set the customProperties of the target to customArray ["default"]
+   repeat for each key setName in customArray
+      set the customProperties [setName] of the target to customArray [setName]
+   end repeat
+   set the customPropertySet of the target to oSetName
+end custom_PropertyArray
+
+
+--> Object
+-
 getprop object_PropertyText
    local objectPropArray, hArray, pExportHandlers, pDontDiff, pForceIndexHandlerCalls
    local revPropText, someScript, objectText, objectHtml, metadataArray, customArray, someImage
@@ -403,29 +429,6 @@ setprop object_PropertyArray [stripID] objectPropArray
    unlock screen
    return targetObject
 end object_PropertyArray
-
-getprop custom_PropertyArray [pClean]
-   put the customPropertySet of the target into oSetName
-   set the customPropertySet of the target to empty
-   get the customProperties of the target
-   if it is an array then put it into customArray ["default"]
-   repeat for each line setName in the customPropertySets of the target
-      put the customProperties [setName] of the target into customArray [setName]
-   end repeat
-   set the customPropertySet of the target to oSetName
-   if pClean is not false then objectArray_CleanGeneral customArray
-   return customArray
-end custom_PropertyArray
-
-setprop custom_PropertyArray customArray
-   put the customPropertySet of the target into oSetName
-   set the customPropertySet of the target to empty
-   set the customProperties of the target to customArray ["default"]
-   repeat for each key setName in customArray
-      set the customProperties [setName] of the target to customArray [setName]
-   end repeat
-   set the customPropertySet of the target to oSetName
-end custom_PropertyArray
 
 
 --> Mainstack | Array

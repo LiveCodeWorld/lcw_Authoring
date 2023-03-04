@@ -317,20 +317,8 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
    -- let's set the default values of the scripts metadata
    put metadata_ConstructArray (pStackName, pLibType) into uRipArray
    script_SetMetadataArray pScript, uRipArray
-   
-   if pShortFolder is empty then
-      put project_NameToShortFolder (pStackName) into pShortFolder
-      put "home" into pLibType
-      put "livecode" into someExtension
-   else
-      if pLibType is empty then put project_ConstructSingularType (pShortFolder) into pLibType
-      if pLibType = "home" then
-         put "livecode" into someExtension
-      else
-         put "livecodescript" into someExtension
-      end if
-   end if
-   put project_ConstructStandardFile (pStackName, projectFolder, pShortFolder, someExtension, true) into newStackPath
+   --
+   put project_Construct (pStackName, projectFolder, pShortFolder, pLibType) into newStackPath
    _CheckStackDoesNotAlreadyExist pStackName, projectFolder
    --
    if pNotScriptOnly is true then
@@ -346,6 +334,23 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
    set the stack_IsKnown of stack pStackName to true -- this also saves the stack
    return newStackPath
 end project_CreateStack
+
+function project_Construct stackName, projectFolder, pShortFolder, pLibType
+   if pShortFolder is empty then
+      put project_NameToShortFolder (stackName) into pShortFolder
+      put "home" into pLibType
+      put "livecode" into someExtension
+   else
+      if pLibType is empty then put project_ConstructSingularType (pShortFolder) into pLibType
+      if pLibType = "home" then
+         put "livecode" into someExtension
+      else
+         put "livecodescript" into someExtension
+      end if
+   end if
+   put project_ConstructStandardFile (stackName, projectFolder, pShortFolder, someExtension, true) into newStackPath
+   return newStackPath
+end project_Construct
 
 
 --> Project | Hacks
@@ -446,14 +451,6 @@ command project_Trash projectName
    revDeleteFolder projectFolder
    library_DeleteProjectArray projectName
 end project_Trash
-
-command project_FixStackFiles projectName
-   -- was "library_FixStackFiles"
-   put library_FetchProjectHomeStackObject (projectName) into projectHomeStack
-   stackFile_FixStackFiles projectHomeStack
-   put the result into resultArray
-   return resultArray
-end project_FixStackFiles
 
 
 --> Project | Stackfiles

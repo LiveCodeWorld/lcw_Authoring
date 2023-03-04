@@ -13,6 +13,73 @@ Now moved to "Global | View | Geometry | Menu" as it is prettier :)
 
 --> Global | View | Test | Geometry | Menu
 -
+on menu_DispatchResizeToFit viewObject
+   dispatch "ResizeToFit" to viewObject
+end menu_DispatchResizeToFit
+
+on menu_DispatchResizeStack vObject
+   put the card_Object of vObject into cardObject
+   dispatch "resizeStack" to cardObject
+end menu_DispatchResizeStack
+
+on menu_DispatchResizeControl vObject
+   dispatch "resizeControl" to vObject
+end menu_DispatchResizeControl
+
+on menu_DispatchPreopenCard viewObject
+   if the shiftKey is "Down" then breakpoint
+   dispatch "preOpenCard" to viewObject
+end menu_DispatchPreopenCard
+
+on menu_DispatchPreopenControl viewObject
+   if the shiftKey is "Down" then breakpoint
+   dispatch "preOpenControl" to viewObject
+   switch it
+      case "unhandled"
+         put the card_Object of viewObject into cardObject
+         display_BrokenBehaviors cardObject, true
+         break
+      default
+         -- all is fine
+   end switch
+end menu_DispatchPreopenControl
+
+private on _
+end _
+
+on menu_Gather vObject
+   put LocalArray ["stackTopLeft"] into stackTopLeft
+   put the stack_Name of vObject into vStackName
+   --
+   set the topleft of stack vStackName to stackTopLeft
+   show stack vStackName
+end menu_Gather
+
+on menu_EditCardBehavior vObject
+   put the card_Object of vObject into cObject
+   put the behavior of cObject into bObject
+   if exists (bObject) then
+      edit the script of bObject
+   else
+      lcw_AnswerWarning "There is no behavior for this card!", vObject
+   end if
+end menu_EditCardBehavior
+
+on menu_SetViewRect vObject
+   put the view_RectOnCard of vObject into viewRect
+   set the rect of vObject to viewRect
+end menu_SetViewRect
+
+private on __
+end __
+
+on menu_TestViewRectOnCard vObject
+   put the card_Object of vObject into cObject
+   --
+   put the view_RectOnCard of cObject into viewRect
+   rect_Test viewRect, cObject
+end menu_TestViewRectOnCard
+
 on menu_TestLayoutControl viewObject
    test_ViewRect "LayoutControl", viewObject
 end menu_TestLayoutControl

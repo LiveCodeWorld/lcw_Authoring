@@ -17,13 +17,14 @@ And add menus with ide_SetMenuTitle.
 --> Deps
 -
 getprop project_Deps
-   return "lcw,lcw_Menus,lcw_Script,lcw_Tools"
+   return "lcw,lcw_Menus,lcw_Script,lcw_Tools,lcw_Display"
 end project_Deps
 
 
 --> Custom
 -
 command project_CustomInit
+   -- display Environment palette
    set the cursor to watch
    --
    ide_AddBehaviorHacks true
@@ -42,6 +43,7 @@ on preOpenStack
       pass preOpenStack
    else
       lcw_Init
+      --
       env_RecursivelyLoadProjects
       project_CustomInit
    end if
@@ -55,6 +57,7 @@ command lcw_Init
    set the itemdelimiter to slash
    put the effective filename of the defaultstack into lcwHomePath
    put "lcw/lcw.livecode" into item -2 to -1 of lcwHomePath
+   
    if there is a stack lcwHomePath then
       dispatch "lcw_Init" to stack lcwHomePath
    end if

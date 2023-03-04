@@ -25,8 +25,6 @@ getprop menu_Target [tObject]
    put the display_View of tObject into dView
    put the displayed_HkeyArray of dView into hkeyArray
    --
-   put hkeyArray into LocalArray ["hkeyArray"]
-   --
    put the displayed_Object of dView into scriptObject
    if exists (scriptObject) is false then
       put the title_Text of dView into hKey
@@ -36,12 +34,15 @@ getprop menu_Target [tObject]
    
    if exists (scriptObject) is true then
       put the overlay_Folder of scriptObject into overlayFolder
-      put overlayFolder into LocalArray ["overlayFolder"]
       put overlay_ListNames (overlayFolder) into LocalArray ["overlayNames"]
+      --
+      put overlayFolder into LocalArray ["overlayFolder"]
       put dot_ListGraphStyles() into LocalArray ["graphStyles"]
+      put scriptObject into LocalArray ["scriptObject"]
    end if
    --
-   put scriptObject into LocalArray ["scriptObject"]
+   put dView into LocalArray ["dView"]
+   put hkeyArray into LocalArray ["hkeyArray"]
    return scriptObject
 end menu_Target
 
@@ -127,13 +128,17 @@ end menu_DisplaySvg
 
 on menu_CreateSvgGraph sObject, graphStyle
    put LocalArray ["hkeyArray"] into hkeyArray
+   put LocalArray ["dView"] into dView
    
    graph_CreateScriptObjectHkeyArray hKeyArray, sObject, graphStyle
    put the result into svgFile
    --
-   display_SVG svgFile, sObject
+   put the title_Text of dView into stackLabel
+   display_SVG svgFile, stackLabel
    put the result into displayView
+   --
    set the displayed_Object of displayView to sObject
+   return displayView
 end menu_CreateSvgGraph
 
 on menu_DisplayLinkArrayGraph sObject

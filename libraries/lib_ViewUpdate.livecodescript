@@ -10,6 +10,143 @@ version: 0.8
 
 --> Working on
 -
+command view_InsertFromPath viewPath, groupOrCard, pLocOrRect
+   if word 1 of groupOrCard is not among the items of "group,background,card" then
+      get merge ("Error: trying to insert view into wrong type of object [[name of the target]]!")
+      return the script_Error [it] of me
+   end if
+   
+   -- put view_NameToFile (viewPath) into viewFile
+   put view_GetTemplateObject(viewPath) into templateObject
+   put the stack_File of templateObject into viewFile
+   --
+   if exists (templateObject) is false then
+      get merge("Cannot find view template '[[viewPath]]'")
+      return the script_Error [it] of me
+   end if
+   --
+   view_InsertObject templateObject, groupOrCard, pLocOrRect
+   put the result into createdView
+   return createdView
+end view_InsertFromPath
+
+command view_InsertObject someObject, viewOrCard, pLocOrRect, pDontSelect
+   if exists (someObject) is false then return merge ("error, [[someObject]] does not exist")
+   if exists (viewOrCard) is false then return merge ("error, [[viewOrCard]] does not exist")
+   if pLocOrRect = "mouse" then put the clickloc into pLocOrRect
+   --
+   lock screen
+   copy someObject to viewOrCard
+   put it into viewInstance
+   
+   # Set Position
+   switch
+      case pLocOrRect is empty
+         put the loc of viewOrCard into oLoc
+         set the loc of viewInstance to oLoc
+         break
+      case pLocOrRect is a rect
+         set the rect of viewInstance to pLocOrRect
+         break
+      case pLocOrRect is a point
+         set the topleft of viewInstance to pLocOrRect -- assume it is topleft
+         break
+      case word 1 of viewOrCard is card "card"
+         put the loc of viewOrCard into oLoc
+         set the loc of viewInstance to oLoc
+         break
+      case word 1 of viewOrCard is card "stack"
+         return merge ("error, cannot insert into [[someObject]]")
+      default
+         -- pasting on top of a control
+         put the rect of viewOrCard into oRect
+         set the rect of viewInstance to oRect
+   end switch
+   --
+   if pDontSelect is true then
+      choose browse tool
+   end if
+   unlock screen
+   return viewInstance
+end view_InsertObject
+
+setprop view_Replacement [sendReplace] anotherView
+   if exists (anotherView) is false then return empty
+   put the long id of the target into viewToReplace
+   put the long id of anotherView into anotherView
+   if anotherView = viewToReplace then 
+      return empty
+   else if word 1 of viewToReplace is "stack" then
+      return empty
+   end if
+   put viewToReplace into viewOwner
+   delete word 1 to 4 of viewOwner
+   
+   put the rect of viewToReplace into oRect
+   put the short name of viewToReplace into oName
+   -- put the object_GroupLayer of viewToReplace into oGroupLayer
+   put the view_StyleArray of viewToReplace into viewStyleArray
+   put the view_CustomStyleArray of viewToReplace into bigStyleArray
+   if word 1 of viewToReplace is "group" then set the cantdelete of viewToReplace to false
+   
+   put word 1 of viewOwner = "group" into ownerIsGroup
+   if ownerIsGroup then  -- lock so that copied view does not change owner groups rect
+      put the lockloc of viewOwner into oLock
+      set the lockloc of viewOwner to true
+   end if
+   
+   put revRuggedID (viewToReplace) into viewToReplace
+   put revRuggedID (anotherView) into anotherView
+   
+   lock screen
+   copy anotherView to viewOwner
+   put it into copiedView
+   
+   relayer copiedView before viewToReplace
+   
+   try
+      delete viewToReplace
+   catch e
+      send "delete viewToReplace" to viewToReplace in 2 ticks
+   end try
+   try
+      put word 3 of viewToReplace into previousID
+      set the id of copiedView to previousID
+      put viewToReplace into copiedView
+   catch e
+      -- breakpoint
+   end try
+   set the name of copiedView to oName
+   
+   set the view_StyleArray of copiedView to bigStyleArray
+   -- set the object_GroupLayer of copiedView to oGroupLayer
+   if "view_Rect" is among the lines of the script_SetPropHandlers of copiedView then
+      set the view_Rect of copiedView to oRect  -- this will force a redraw
+   else
+      set the rect of copiedView to oRect
+   end if
+   
+   if ownerIsGroup then set the lockloc of viewOwner to oLock
+   unlock screen
+   -- get the view_UpdateIndex of copiedView
+   put the long id of copiedView into copiedView
+   return copiedView
+end view_Replacement
+
+command view_Insert viewPath, viewOrCard, pRect, pName
+   put view_GetTemplateObject (viewPath) into tObject
+   if exists (tObject) is false then return empty
+   --
+   view_InsertObject tObject, viewOrCard, pRect
+   return the result
+end view_Insert
+
+setprop view_Insert [someRect] viewPath
+   put the long id of the target into groupOrCard
+   view_InsertFromPath viewPath, groupOrCard, someRect
+   put the result into createdView
+   return createdView
+end view_Insert
 
 
 --> View | Update | Props
@@ -118,74 +255,86 @@ setprop control_Type [pClassOrViewName] controlType
    put the rect of targetObject into oRect
    
    put control_ConstructCreateDoScript (controlType, oName, targetOwner, pClassOrViewName) into doScript
-   if doScript is empty then return empty
-   
-   do doScript
-   put it into tempCreatedObject
-   if exists (tempCreatedObject) is false then
+   if doScript is empty then
       breakpoint
-      return empty
+      -- set the rect of targetObject to oRect
+      put control_ConstructCreateDoScript (controlType, oName, targetOwner, pClassOrViewName) into doScript
+      
+      return targetObject
+   else
+      do doScript
+      put it into tempCreatedObject
+      if exists (tempCreatedObject) is false then
+         breakpoint
+         return empty
+      end if
+      
+      set the rect of tempCreatedObject to oRect
+      relayer tempCreatedObject before targetObject
+      
+      switch
+         case controlType is empty
+         case controlType = "View|Layout|Placeholder"
+         case controlType = "placeholder"
+            -- it's a placeholder view
+            if pClassOrViewName is empty then
+               put "random" into someColour
+            else
+               put pClassOrViewName into someColour
+            end if
+            set the view_Colour of tempCreatedObject to someColour
+            set the urip_Type of tempCreatedObject to "view"
+            break
+         case controlType = "view"
+            -- put pClassOrViewName into viewName
+            set the urip_Type of tempCreatedObject to "view"
+            break
+         case controlType contains "|"
+            -- put controlType into viewName
+            set the urip_Type of tempCreatedObject to "view"
+            break
+         default
+            -- it's a standard Livecode control
+            -- here we could look at "pClassOrViewName" and 
+            -- add some customisation to things list list fields
+      end switch
+      
+      try
+         delete targetObject
+      catch e
+         -- probably because we are trying to delete the object with the running code
+         -- here we could give up and delete the createdObject ?
+         breakpoint
+         object_Delete targetObject
+      end try
+      
+      /*
+      if exists (targetObject) then
+         breakpoint
+         object_Delete targetObject
+      end if
+      */
+      set the name of tempCreatedObject to oName
+      show tempCreatedObject
+      
+      try
+         set the id of tempCreatedObject to originalID
+         -- works as setprop automatically sets the target and defaultstack
+         put the long id of control id originalID into createdObject
+      catch e
+         put tempCreatedObject into createdObject
+         breakpoint
+      end try
+      
+      -- dispatch "view_IndexChildren" to targetOwner -- should not be need as the id is the same
+      
+      -- does not seem to work well without sending in 2 ticks
+      dispatch "LayoutControl" to targetOwner
+      -- send "LayoutControl" to targetOwner in 2 ticks
+      
+      unlock screen
+      return createdObject -- shoujd have the same id but may be a different control type
    end if
-   
-   set the rect of tempCreatedObject to oRect
-   relayer tempCreatedObject before targetObject
-   
-   switch
-      case controlType is empty
-      case controlType = "View|Layout|Placeholder"
-      case controlType = "placeholder"
-         -- it's a placeholder view
-         if pClassOrViewName is empty then
-            put "random" into someColour
-         else
-            put pClassOrViewName into someColour
-         end if
-         set the view_Colour of tempCreatedObject to someColour
-         set the urip_Type of tempCreatedObject to "view"
-         break
-      case controlType = "view"
-         -- put pClassOrViewName into viewName
-         set the urip_Type of tempCreatedObject to "view"
-         break
-      case controlType contains "|"
-         -- put controlType into viewName
-         set the urip_Type of tempCreatedObject to "view"
-         break
-      default
-         -- it's a standard Livecode control
-         -- here we could look at "pClassOrViewName" and 
-         -- add some customisation to things list list fields
-   end switch
-   
-   try
-      delete targetObject
-   catch e
-      -- probably because we are trying to delete the object with the running code
-      -- here we could give up and delete the createdObject ?
-      breakpoint
-      object_Delete targetObject
-   end try
-   
-   set the name of tempCreatedObject to oName
-   show tempCreatedObject
-   
-   try
-      set the id of tempCreatedObject to originalID
-      -- works as setprop automatically sets the target and defaultstack
-      put the long id of control id originalID into createdObject
-   catch e
-      put tempCreatedObject into createdObject
-      breakpoint
-   end try
-   
-   -- dispatch "view_IndexChildren" to targetOwner -- should not be need as the id is the same
-   
-   -- does not seem to work well without sending in 2 ticks
-   dispatch "LayoutControl" to targetOwner
-   -- send "LayoutControl" to targetOwner in 2 ticks
-   -- 
-   unlock screen
-   return createdObject -- shoujd have the same id but may be a different control type
 end control_Type
 
 getprop control_Types
@@ -197,193 +346,6 @@ setprop control_Types controlTypes
    put the result into newControls
    return newControls
 end control_Types
-
-setprop view_Replacement [sendReplace] anotherView
-   if exists (anotherView) is false then return empty
-   put the long id of the target into viewToReplace
-   put the long id of anotherView into anotherView
-   if anotherView = viewToReplace then 
-      return empty
-   else if word 1 of viewToReplace is "stack" then
-      return empty
-   end if
-   put viewToReplace into viewOwner
-   delete word 1 to 4 of viewOwner
-   
-   put the rect of viewToReplace into oRect
-   put the short name of viewToReplace into oName
-   -- put the object_GroupLayer of viewToReplace into oGroupLayer
-   put the view_StyleArray of viewToReplace into viewStyleArray
-   put the view_CustomStyleArray of viewToReplace into bigStyleArray
-   if word 1 of viewToReplace is "group" then set the cantdelete of viewToReplace to false
-   
-   put word 1 of viewOwner = "group" into ownerIsGroup
-   if ownerIsGroup then  -- lock so that copied view does not change owner groups rect
-      put the lockloc of viewOwner into oLock
-      set the lockloc of viewOwner to true
-   end if
-   
-   put revRuggedID (viewToReplace) into viewToReplace
-   put revRuggedID (anotherView) into anotherView
-   
-   lock screen
-   copy anotherView to viewOwner
-   put it into copiedView
-   
-   relayer copiedView before viewToReplace
-   
-   try
-      delete viewToReplace
-   catch e
-      send "delete viewToReplace" to viewToReplace in 2 ticks
-   end try
-   try
-      put word 3 of viewToReplace into previousID
-      set the id of copiedView to previousID
-      put viewToReplace into copiedView
-   catch e
-      -- breakpoint
-   end try
-   set the name of copiedView to oName
-   
-   set the view_StyleArray of copiedView to bigStyleArray
-   -- set the object_GroupLayer of copiedView to oGroupLayer
-   if "view_Rect" is among the lines of the script_SetPropHandlers of copiedView then
-      set the view_Rect of copiedView to oRect  -- this will force a redraw
-   else
-      set the rect of copiedView to oRect
-   end if
-   
-   if ownerIsGroup then set the lockloc of viewOwner to oLock
-   unlock screen
-   -- get the view_UpdateIndex of copiedView
-   put the long id of copiedView into copiedView
-   return copiedView
-end view_Replacement
-
-
---> Bottome | Controls
--
-getprop bottom_ControlName
-   put the long id of the target into targetObject
-   
-   put the childcontrolids of targetObject into topIDs
-   if topIDs is empty then return empty
-   
-   put line -1 of topIDs into bottomID
-   put the short name of control id bottomID into bottomName
-   return bottomName
-end bottom_ControlName
-
-setprop bottom_ControlName bottomName
-   put the long id of the target into layoutView
-   
-   put the top_Control [bottomName] of layoutView into someControl
-   if exists (someControl) is false then return empty
-   
-   relayer someControl to front of layoutView
-   dispatch "LayoutControl" to layoutView
-   
-   return someControl
-end bottom_ControlName
-
-
---> Top | Controls
--
-getprop top_Groups
-   put the childControlIDs of the target into someIDs
-   repeat for each line someID in someIDs
-      put the long id of control id someID into topObject
-      if word 1 of topObject = "group" then
-         put topObject & CR after topGroups
-      end if
-   end repeat
-   delete char -1 of topGroups
-   return topGroups
-end top_Groups
-
-getprop top_ControlName
-   put the long id of the target into targetObject
-   
-   put the childcontrolids of targetObject into topIDs
-   if topIDs is empty then return empty
-   
-   put line 1 of topIDs into topID
-   put the short name of control id topID into topName
-   return topName
-end top_ControlName
-
-setprop top_ControlName topName
-   put the long id of the target into layoutView
-   
-   put the top_Control [topName] of layoutView into topControl
-   if exists (topControl) is false then return empty
-   
-   relayer topControl to back of layoutView
-   dispatch "LayoutControl" to layoutView
-   
-   return topControl
-end top_ControlName
-
-getprop top_Control [topName]
-   put the long id of the target into targetObject
-   
-   -- finds or returns the top control
-   put the childcontrolids of targetObject into topIDs
-   if topIDs is empty then return empty
-   if topName is empty then
-      put line 1 of topIDs into topID
-      put the long id of control id topID into topControl
-      return topControl
-   end if
-   
-   -- let's find a top control with the name "topName"
-   repeat for each line someID in topIDs
-      put the long id of control id someID into someControl
-      put the short name of someControl into testName
-      if testName = topName then
-         return someControl
-      end if
-   end repeat
-   return empty
-end top_Control
-
-getprop top_ControlNames
-   put the long id of the target into targetObject
-   
-   put the childcontrolids of targetObject into topIDs
-   repeat for each line someID in topIDs
-      put the short name of control id someID & CR after topNames
-   end repeat
-   delete char -1 of topNames
-   return topNames
-end top_ControlNames
-
-setprop top_ControlNames topNames
-   replace comma with CR in topNames
-   put the long id of the target into layoutView
-   
-   repeat for each line topName in topNames
-      put the top_Control [topName] of layoutView into topControl
-      if exists (topControl) is false then next repeat
-      
-      relayer topControl to front of layoutView
-   end repeat
-   dispatch "LayoutControl" to layoutView
-   return the top_ControlNames of layoutView
-end top_ControlNames
-
-getprop top_Controls
-   get word  1 of the name of the target
-   if it is not among the items of "group,card" then return empty
-   --
-   put the childControlIDs of the target into topIDs
-   repeat for each line someID in topIDs
-      put the long id of control id someID & CR after topControls
-   end repeat
-   delete char -1 of topControls
-   return topControls
-end top_Controls
 
 
 --> Handlers
@@ -503,51 +465,8 @@ command view_Update viewObject, pSendReplace
 end view_Update
 
 
---> View | Insert
+--> Object
 -
-setprop view_Insert [someRect] viewPath
-   put the long id of the target into groupOrCard
-   view_InsertFromPath viewPath, groupOrCard, someRect
-   put the result into createdView
-   return createdView
-end view_Insert
-
-command view_InsertFromPath viewPath, groupOrCard, someRect
-   if word 1 of groupOrCard is not among the items of "group,background,card" then
-      get merge ("Error: trying to insert view into wrong type of object [[name of the target]]!")
-      return the script_Error [it] of me
-   end if
-   
-   put view_NameToFile (viewPath) into viewFile
-   put view_GetTemplateObject (viewPath) into libraryView
-   if exists (libraryView) is false then
-      get merge("Cannot find library object '[[viewPath]]'")
-      return the script_Error [it] of me
-   end if
-   view_InsertObject libraryView, groupOrCard, someRect
-   put the result into createdView
-   return createdView
-end view_InsertFromPath
-
-command view_InsertObject someObject, viewOrCard, someRect
-   lock screen
-   put the loc of viewOrCard into oLoc
-   put the rect of viewOrCard into oRect
-   
-   copy someObject to viewOrCard
-   put it into viewInstance
-   
-   if someRect is not empty then
-      set the rect of viewInstance to someRect
-   else
-      set the loc of viewInstance to oLoc
-   end if
-   
-   set the view_Rect of viewOrCard to oRect
-   unlock screen
-   return viewInstance
-end view_InsertObject
-
 setprop object_Replacement [sendReplace] anotherView
    put the long id of the target into viewToReplace
    put the long id of anotherView into anotherView

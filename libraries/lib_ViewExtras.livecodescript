@@ -10,6 +10,16 @@ version: 0.1
 A place for all the view scripts which we probably no longer need.
 */
 
+--> Working on
+-
+function view_NameToFile viewPath, pFileExt
+   -- put view_PathToShortFile (viewPath, pFileExt) into shortFile
+   -- put library_ViewFolder (shortFile) into viewFile
+   put view_GetTemplateObject(viewPath) into templateObject
+   put the stack_File of templateObject into viewFile
+   return viewFile
+end view_NameToFile
+
 
 --> View | PathIndex
 -
@@ -254,12 +264,6 @@ function view_FilteredPaths vName, pIncludeStem
    filter viewPathIndex with (vName & "*")
    return viewPathIndex
 end view_FilteredPaths
-
-function view_NameToFile viewPath, pFileExt
-   put view_PathToShortFile (viewPath, pFileExt) into shortFile
-   put library_ViewFolder (shortFile) into viewFile
-   return viewFile
-end view_NameToFile
 
 function view_FileToPath someFile, includeStem
    set the itemdelimiter to "/"
@@ -601,7 +605,7 @@ command view_CreateTemplateIconGroup viewTemplate
    if exists (iconView) then return iconView
    
    put the rect of this card into someRect
-   put rect_SubtractMargin ("12,80,12,12", someRect) into someRect
+   put rect_Subtract ("12,80,12,12", someRect) into someRect
    
    set the view_Insert [someRect] of card "View Behavior" to "View|Image|Icons" 
    put the result into createdView
@@ -1133,7 +1137,7 @@ command view_ResizeToCard pMargin, pName
    end if
    
    put the rect of cardObject into someRect
-   if pMargin is not 0 then put rect_SubtractMargin (pMargin, someRect) into someRect
+   if pMargin is not 0 then put rect_Subtract (pMargin, someRect) into someRect
    
    put the long id of control pName of cardObject into someView
    -- set the rect of someView to someRect
@@ -1180,7 +1184,7 @@ getprop view_ChildRect [shortID]
     -- can use the card_margin
     put the card_Margin [shortID] of cardObject into someMargin
     put the rect of cardObject into someRect
-    return rect_SubtractMargin(someMargin, someRect)
+    return rect_Subtract(someMargin, someRect)
 end view_ChildRect
 
 getprop card_ViewRect [someMargin]
@@ -1204,7 +1208,7 @@ getprop card_ViewRect [someMargin]
     end if
     
     put the rect of cardObject into someRect
-    put rect_SubtractMargin(someMargin, someRect) into viewRect
+    put rect_Subtract(someMargin, someRect) into viewRect
     return viewRect
 end card_ViewRect
 
@@ -1532,7 +1536,7 @@ on card_SpaceControls someRect, viewSpacer
    lock screen 
    
    if viewSpacer is empty then put 4 into viewSpacer
-   put rect_SubtractMargin (viewSpacer, someRect) into innerRect
+   put rect_Subtract (viewSpacer, someRect) into innerRect
    
    put item 1 of innerRect into innerLeft
    put item 2 of innerRect into lastTop
@@ -1566,7 +1570,7 @@ on card_SpaceControls someRect, viewSpacer
       put imageRight into item 3 of cRect
       put lastTop + fHeight into lastBottom
       put lastBottom into item 4 of cRect
-      put rect_AddMargin (4, cRect) into cRect
+      put rect_Add (4, cRect) into cRect
         
       set the rect of topControl to cRect
       

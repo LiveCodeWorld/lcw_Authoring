@@ -146,30 +146,14 @@ end submenu_Place
 on _
 end _
 
-on menu_CollectDependencyScript treeView
+on _CollectDependencyScript treeView
+   breakpoint
    local stripObjects, stripProps, stripComponents
    
    set the cursor to watch
    put the displayed_Array of treeView into hKeyArray
    put the displayed_Object of treeView into scriptObject
-   
-   /*
-   put pref_GetValue ("skip_HkeyProps") is not false into stripProps
-   
-   put the include_HandlersFrom of me into includeHandlersFrom
-   if includeHandlersFrom = "none" then
-      put empty into stripObjects
-   else
-      put the script_Hierarchy [includeHandlersFrom] of scriptObject into stripObjects
-   end if
-   
-   put pref_GetValue ("skip_HkeyComponents") is not false into stripComponents
-   if stripComponents is true then
-      put script_ListComponentObjects() into componentObjects
-      line_Add componentObjects, stripObjects
-   end if
-   */
-   
+    
    display_HkeyArrayDependencyScript hkeyArray, scriptObject, stripObjects, stripProps, stripComponents
    put the result into someArray
    
@@ -180,7 +164,7 @@ on menu_CollectDependencyScript treeView
    display_Lines uniqueHkeys, "uniqueHkeys"
    if missingHkeys is not empty then display_Lines missingHkeys, "missingHkeys"
    display_Array duplicateHkeyArray, "duplicateHkeyArray"
-end menu_CollectDependencyScript
+end _CollectDependencyScript
 
 on _
 end _

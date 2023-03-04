@@ -64,7 +64,7 @@ on LayoutControl someRect
    put the view_Spacing of me into someMargin
    put the info_Height of me into infoHeight
    
-   put rect_SubtractMargin(someMargin, someRect) into innerRect
+   put rect_Subtract(someMargin, someRect) into innerRect
    put the title_Height of titleField into headerHeight
    if headerHeight is empty then
       -- put the height of titleField into headerHeight
@@ -79,7 +79,7 @@ on LayoutControl someRect
    put item 3 of headerRect - headerHeight into rightButtonLeft
    put rightButtonLeft into item 1 of rightButtonRect
    
-   put rect_SubtractMargin(3, rightButtonRect) into rightButtonRect
+   put rect_Subtract(3, rightButtonRect) into rightButtonRect
    
    put headerRect into leftButtonRect
    put item 1 of headerRect + headerHeight into leftButtonRight
@@ -514,11 +514,11 @@ function colour_Darken rgbColour, pDarkenPercent
    return newRgbColour
 end colour_Darken
 
-function rect_SubtractMargin someMargin, someRect
+function rect_Subtract someMargin, someRect
    margin_Normalize someMargin, lMargin, tMargin, rMargin, bMargin   
    add lMargin to item 1 of someRect
    add tMargin to item 2 of someRect
    subtract rMargin from item 3 of someRect
    subtract bMargin from item 4 of someRect
    return someRect
-end rect_SubtractMargin
+end rect_Subtract

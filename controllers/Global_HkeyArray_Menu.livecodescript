@@ -180,19 +180,19 @@ on submenu_Dev
 end submenu_Dev
 
 
---> Global | HkeyArray | Menu | Props
+--> Dev | Menu
 -
-on menu_FetchHandler hKey
+on _FetchHandler hKey
    _SetHkeyLine displayView, hKeyLine
    put hkey_FetchHandler (hKeyLine)
-end menu_FetchHandler
+end _FetchHandler
 
-on menu_DisplayHandlerDeps hKey
+on _DisplayHandlerDeps hKey
    _SetHkeyLine displayView, hKeyLine
    display_HandlerDeps hKeyLine
-end menu_DisplayHandlerDeps
+end _DisplayHandlerDeps
 
-on menu_AddToDictionary displayView
+on _AddToDictionary displayView
    breakpoint
    
    put the displayed_Object of displayView into stackObject
@@ -221,16 +221,7 @@ on menu_AddToDictionary displayView
    
    put ide_ListExtraDicTerms()
    script_ExportHandlersAndCalls stackObject, true
-end menu_AddToDictionary
-
-
---> Dev | Menu
--
-on _Test hKey
-   hkeyLine_Deconstruct hKey, hName, hType, hObject
-   put hkey_Find ("M _WalkHkeyRecursive", hObject) into foundCall
-   put foundCall
-end _Test
+end _AddToDictionary
 
 on _
 end _
