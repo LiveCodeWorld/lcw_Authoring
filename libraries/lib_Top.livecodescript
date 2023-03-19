@@ -36,6 +36,21 @@ end top_ViewObjects
 
 --> Top | Controls
 -
+getprop top_GroupArray
+   local oArray
+   put the top_ControlIDs of the target into someIDs
+   put 1 into indexNum
+   repeat for each line someID in someIDs
+      put the long id of control id someID of the target into testObject
+      if word 1 of testObject = "group" then
+         get the properties of testObject
+         put it into oArray [indexNum]
+         add 1 to indexNum
+      end if
+   end repeat
+   return oArray
+end top_GroupArray
+
 getprop top_Groups
    local testObjects
    put the top_ControlIDs of the target into someIDs

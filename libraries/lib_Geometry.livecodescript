@@ -76,7 +76,6 @@ end rect_Add
 
 function rect_FitInside fWidth, fHeight, someRect
    if (fWidth > 0 and fHeight > 0) is false then
-      put the params
       return someRect
    end if 
    

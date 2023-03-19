@@ -100,13 +100,17 @@ end menu_RevealModuleFolder
 private on __
 end __
 
-on subMenu_Frame
-   return "Global | Frame | Menu"
-end subMenu_Frame
+on subMenu_ModuleData
+   return "Global | Module | Model | Menu"
+end subMenu_ModuleData
 
 on submenu_Assets
    return "Global | View | Assets | Menu"
 end submenu_Assets
+
+on subMenu_Frame
+   return "Global | Frame | Menu"
+end subMenu_Frame
 
 private on ___
 end ___

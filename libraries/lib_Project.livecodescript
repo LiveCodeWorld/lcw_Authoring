@@ -13,6 +13,47 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
+getprop stack_IsKnown [projectName]
+   put the stack_Name of the target into stackName
+   put the effective filename of stack stackName into stackPath
+   if stackPath is empty then return false
+   if projectName is empty then put the project_Name of the target into projectName
+   if projectName is empty then return false
+   
+   put project_FindHomeStackPath (stackPath) into homeStackStackPath
+   if homeStackStackPath is empty then
+      put the filename of stack "LCW" into homeStackStackPath
+   end if
+   --
+   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
+   put stackFileArray [stackName] into knownRelativeFile
+   return knownRelativeFile is not empty
+end stack_IsKnown
+
+setprop stack_IsKnown [projectName] boolean
+   put the stack_Name of the target into stackName
+   if projectName is empty then put the project_Name of the target into projectName
+   
+   # Add or remove from the project home stackfiles
+   if boolean is true then
+      project_AddToStackFiles stackName, projectName, false
+   else
+      project_RemoveFromStackFiles stackName, projectName, false
+   end if
+   put the result into stackFileArray
+   
+   # Export Project JSON
+   put the project_Array of the target into projectArray
+   -- put project_FetchArray (projectFolder) into projectArray
+   put stackFileArray into projectArray ["stackFileArray"]
+   set the project_Array of the target to projectArray
+   --
+   return stackFileArray
+end stack_IsKnown
+
+
+--> Ask
+-
 command ask_RenameProjectStack stackName
    put "Renamme model '[[stackName]]'?" into someQuestion
    put ask_Question (someQuestion, stackName, "Rename Model", stackName) into newStackName
@@ -76,38 +117,6 @@ end _RenameKnown
 
 --> Props
 -
-getprop stack_IsKnown [projectName]
-   -- is the stack know by LCW?
-   put the stack_Name of the target into stackName
-   put the effective filename of stack stackName into stackPath
-   if stackPath is empty then return false
-   if projectName is empty then put the project_Name of the target into projectName
-   if projectName is empty then return false
-   
-   put project_FindHomeStackPath (stackPath) into homeStackStackPath
-   if homeStackStackPath is empty then
-      put the filename of stack "LCW" into homeStackStackPath
-   end if
-   --
-   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
-   put stackFileArray [stackName] into knownRelativeFile
-   return knownRelativeFile is not empty
-end stack_IsKnown
-
-setprop stack_IsKnown [projectName] boolean
-   -- adds or removes a stack from the projects stack files
-   put the stack_Name of the target into stackName
-   if projectName is empty then put the project_Name of the target into projectName
-   
-   if boolean is true then
-      project_AddToStackFiles stackName, projectName, false
-   else
-      project_RemoveFromStackFiles stackName, projectName, false
-   end if
-   put the result into stackFileArray
-   return stackFileArray
-end stack_IsKnown
-
 setprop project_Move toProjectName
    -- moves a stack to the same relative location in a new project folder
    -- put the stack_Name of the target into stackName
