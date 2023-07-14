@@ -13,6 +13,43 @@ Now moved to "Global | View | Geometry | Menu" as it is prettier :)
 
 --> Global | View | Test | Geometry | Menu
 -
+on menu_LayoutSquare viewObject
+   put the card_Object of viewObject into cardObject
+   put the view_RectOnCard of cardObject into vCardRect
+   put rect_GetSquare (vCardRect) into squareRect
+   --
+   dispatch "LayoutControl" to viewObject with squareRect
+   
+   if the shiftKey is "Down" then
+      set the rect_Test of cardObject to squareRect
+   end if
+   put the rect of viewObject into realRect
+   rect_ExtractDimensions squareRect, squareW, squareH
+   rect_ExtractDimensions realRect, realW, realH
+   
+   put "Real:" && realRect && "w:" & realW && "h:" & realH & CR into sInfo
+   put "Square:" && squareRect && "w:" & squareW && "h:" & squareH after sInfo
+   put sInfo
+   --
+   _HandleDispatch it, viewObject, cardObject
+end menu_LayoutSquare
+
+on menu_SixLayoutTests someView
+   put the card_Object of someView into cardControl
+   put the view_RectOnCard of cardControl into cardRect
+   
+   repeat 6
+      set the cursor to busy
+      dispatch "LayoutControl" to someView with cardRect
+   end repeat
+   
+   put merge ("Dispatched 'LayoutControl' to [[the name of someView]] 6 times") into someComment
+   lcw_Notify someComment
+end menu_SixLayoutTests
+
+private on ___
+end ___
+
 on menu_DispatchResizeToFit viewObject
    dispatch "ResizeToFit" to viewObject
 end menu_DispatchResizeToFit

@@ -36,6 +36,15 @@ getprop mobile_Name
    return mobileObject
 end mobile_Name
 
+getprop rugged_Name
+   put the long id of the target into tObject
+   put revRuggedId (tObject) into rObject
+   --
+   put the short name of rObject into sName
+   put kwote (sName) into word 2 to 3 of rObject
+   return rObject
+end rugged_Name
+   
 getprop rugged_ID
    -- could also be called "rugged_Object"
    put the long id of the target into pObject
@@ -2422,3 +2431,4 @@ function object_GetLibrariesInUse
    filter activeLibraries without revFilter
    return activeLibraries
 end object_GetLibrariesInUse
+

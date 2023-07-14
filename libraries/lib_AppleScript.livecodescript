@@ -173,29 +173,6 @@ end appleEvent
 
 --> AppleScript
 -
-function appleScript_GetPathEnvironentalVariable
-   put "echo $PATH" into aScript
-   terminal_DoShell aScript
-   put word 6 of the result into wID
-   put "contents of window id" && wID into terminalShell
-   put appleScript_DoLine (terminalShell, "terminal") into echoResult
-   
-   put "close window id" && wID into aScript
-   put appleScript_DoLine (aScript, "terminal") into closeResult
-   
-   return  line 4 of echoResult
-end appleScript_GetPathEnvironentalVariable
-
-function appleScript_GetLiveCodePathEnvironmentalVariable
-   -- totally useless, but shows how shell inherits LiveCodes value for $PATH
-   -- put $PATH = appleScript_GetLiveCodePathEnvironmentalVariable() = true
-   do "do shell script" && kwote ("echo $PATH") as AppleScript
-   put the result into liveCodeInheritedPathVariable
-   if char 1 of liveCodeInheritedPathVariable is quote then delete char 1 of liveCodeInheritedPathVariable
-   if char -1 of liveCodeInheritedPathVariable is quote then delete char -1 of liveCodeInheritedPathVariable
-   return liveCodeInheritedPathVariable
-end appleScript_GetLiveCodePathEnvironmentalVariable
-
 function appleScript_DoShell someShell
    do "do shell script" && kwote (someShell) as AppleScript
    return the result

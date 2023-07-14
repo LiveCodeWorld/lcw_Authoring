@@ -234,6 +234,7 @@ getprop control_Type
          put the kind of targetObject into someKind
          set the itemdelimiter to "."
          return item -1 of someKind
+      case vName is "Layout|Placeholder"
       case vName is "View|Layout|Placeholder"
          return "placeholder"
       case vName is not empty
@@ -253,13 +254,12 @@ setprop control_Type [pClassOrViewName] controlType
    put the short name of targetObject into oName
    put the short id of targetObject into originalID
    put the rect of targetObject into oRect
+   put the backgroundcolor of targetObject into bColour
    
    put control_ConstructCreateDoScript (controlType, oName, targetOwner, pClassOrViewName) into doScript
    if doScript is empty then
       breakpoint
-      -- set the rect of targetObject to oRect
       put control_ConstructCreateDoScript (controlType, oName, targetOwner, pClassOrViewName) into doScript
-      
       return targetObject
    else
       do doScript
@@ -271,26 +271,22 @@ setprop control_Type [pClassOrViewName] controlType
       
       set the rect of tempCreatedObject to oRect
       relayer tempCreatedObject before targetObject
-      
+      --
       switch
          case controlType is empty
+         case controlType = "Layout|Placeholder"
          case controlType = "View|Layout|Placeholder"
          case controlType = "placeholder"
-            -- it's a placeholder view
-            if pClassOrViewName is empty then
-               put "random" into someColour
-            else
-               put pClassOrViewName into someColour
-            end if
-            set the view_Colour of tempCreatedObject to someColour
+            if bColour is empty then put "random" into bColour
+            --
+            set the background_Colour of tempCreatedObject to bColour
+            set the name of tempCreatedObject to oName
             set the urip_Type of tempCreatedObject to "view"
             break
          case controlType = "view"
-            -- put pClassOrViewName into viewName
             set the urip_Type of tempCreatedObject to "view"
             break
          case controlType contains "|"
-            -- put controlType into viewName
             set the urip_Type of tempCreatedObject to "view"
             break
          default
@@ -302,40 +298,34 @@ setprop control_Type [pClassOrViewName] controlType
       try
          delete targetObject
       catch e
-         -- probably because we are trying to delete the object with the running code
-         -- here we could give up and delete the createdObject ?
-         breakpoint
          object_Delete targetObject
       end try
       
-      /*
-      if exists (targetObject) then
-         breakpoint
-         object_Delete targetObject
-      end if
-      */
       set the name of tempCreatedObject to oName
       show tempCreatedObject
       
-      try
-         set the id of tempCreatedObject to originalID
-         -- works as setprop automatically sets the target and defaultstack
-         put the long id of control id originalID into createdObject
-      catch e
-         put tempCreatedObject into createdObject
-         breakpoint
-      end try
+      put "reset_ID" && originalID into pigeon
+      send pigeon to tempCreatedObject in 20 ticks
       
-      -- dispatch "view_IndexChildren" to targetOwner -- should not be need as the id is the same
-      
-      -- does not seem to work well without sending in 2 ticks
       dispatch "LayoutControl" to targetOwner
-      -- send "LayoutControl" to targetOwner in 2 ticks
+      put the result into createdObject
       
       unlock screen
       return createdObject -- shoujd have the same id but may be a different control type
    end if
 end control_Type
+
+on reset_ID originalID
+   put the long id of the target into tempCreatedObject
+   try
+      set the id of tempCreatedObject to originalID
+      put the long id of control id originalID into createdObject
+   catch e
+      put tempCreatedObject into createdObject
+      breakpoint
+   end try
+   return createdObject
+end reset_ID
 
 getprop control_Types
    return the child_ControlTypes of the target
@@ -360,7 +350,8 @@ function control_ConstructCreateDoScript controlType, someName, targetOwner, pCl
    switch
       case controlType is empty
       case controlType = "placeholder"
-         put view_GetTemplateObject ("View|Layout|Placeholder") into templateObject
+         put view_GetTemplateObject ("Layout|Placeholder") into templateObject
+         -- put view_GetTemplateObject ("View|Layout|Placeholder") into templateObject
          if exists (templateObject) is false then return empty
          put "copy" && templateObject && "to" && targetOwner into doScript
          return doScript
@@ -420,9 +411,10 @@ function widget_ConstructCreateDoScript someName, widgetClass, pTargetOwner
    return doScript
 end widget_ConstructCreateDoScript
 
-command object_Delete deadObjects
+command object_Delete pObjects
+   if pObjects is empty then put the long id of the target into pObjects
    lock screen
-   repeat for each line someObject in deadObjects
+   repeat for each line someObject in pObjects
       if exists(someObject) then
          try
             delete someObject

@@ -10,6 +10,24 @@ copyright: David Bovill
 
 --> Working on
 -
+function rect_GetSquare sRect
+   put item 1 of sRect into sLeft
+   put item 2 of sRect into sTop
+   put item 3 of sRect into sRight
+   put item 4 of sRect into sBottom
+   
+   put (sLeft + sRight) / 2 into sCenterX
+   put (sTop + sBottom) / 2 into sCenterY
+   put min (sRight - sLeft, sBottom - sTop) / 2 into sSize
+   
+   put sCenterX - sSize into sNewLeft
+   put sCenterY - sSize into sNewTop
+   put sCenterX + sSize into sNewRight
+   put sCenterY + sSize into sNewBottom
+   --
+   return sNewLeft,sNewTop,sNewRight,sNewBottom
+end rect_GetSquare
+
 function rect_ScaleFromCentre someRect, someMagnification, scaleCentre
    if scaleCentre is empty then put 0,0 into scaleCentre
    
@@ -208,7 +226,7 @@ function rect_ShrinkByVector someRect, scaleVector
    return scaledRect
 end rect_ShrinkByVector
 
-command rect_SetScaleVectors someRect, targetRect, @scaleX, @scaleY
+-- command rect_SetScaleVectors someRect, targetRect, @scaleX, @scaleY
    put item 3 of someRect - item 1 of someRect into someWidth
    put item 3 of targetRect - item 1 of targetRect into targetWidth
    put targetWidth/someWidth into scaleX
@@ -217,6 +235,24 @@ command rect_SetScaleVectors someRect, targetRect, @scaleX, @scaleY
    put item 4 of targetRect - item 2 of targetRect into targetHeight
    put targetHeight/someHeight into scaleY
    
+   return scaleX,scaleY
+end rect_SetScaleVectors
+
+command rect_SetScaleVectors someRect, targetRect, @scaleX, @scaleY, pScaleProportionally
+   put item 3 of someRect - item 1 of someRect into someWidth
+   put item 3 of targetRect - item 1 of targetRect into targetWidth
+   put targetWidth/someWidth into scaleX
+   --
+   put item 4 of someRect - item 2 of someRect into someHeight
+   put item 4 of targetRect - item 2 of targetRect into targetHeight
+   put targetHeight/someHeight into scaleY
+   --
+   if pScaleProportionally is true then
+      put min (scaleX, scaleY) into sFactor
+      put sFactor into scaleX
+      put sFactor into scaleY
+   end if
+   --
    return scaleX,scaleY
 end rect_SetScaleVectors
 
@@ -789,7 +825,7 @@ command rect_SetMinimumWidth @someRect, someWidth
    if item 3 of someRect - someLeft < someWidth then
       put someLeft + someWidth into item 3 of someRect
    end if
-end rect_SetMinimumWidth 
+end rect_SetMinimumWidth
 
 function rect_GetRectBoundary rectIndex
    if the number of lines of rectIndex = 1 then
@@ -1131,3 +1167,4 @@ function number_NormalizeRange someValue, maxValue, minValue
       return someValue
    end if
 end number_NormalizeRange
+

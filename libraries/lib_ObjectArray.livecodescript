@@ -7,26 +7,8 @@ type: library
 version: 0.1
 
 
---> Object | JSON
+--> Stack | JSON
 -
-getprop object_PropertyJSON
-   put the long id of the target into tObject
-   --
-   put the object_PropertyArray of tObject into pArray
-   put json_FromArray (pArray, false, true) into pJSON
-   --
-   return pJSON
-end object_PropertyJSON
-
-getprop stack_PropertyJSON
-   put the long id of the target into tObject
-   --
-   put the stack_Array of tObject into pArray
-   put json_FromArray (pArray, false, true) into pJSON
-   --
-   return pJSON
-end stack_PropertyJSON
-
 setprop stack_PropertyJSON [newStackName] pJSON
    put the long id of the target into tObject
    --
@@ -146,3 +128,148 @@ setprop stack_Array [pRename] stackArray
    unlock screen
    return manifestArray
 end stack_Array
+
+
+--> Object | JSON
+-
+getprop object_PropertyJSON
+   put the long id of the target into tObject
+   --
+   put the object_PropertyArray of tObject into pArray
+   put json_FromArray (pArray, false, true) into pJSON
+   --
+   return pJSON
+end object_PropertyJSON
+
+getprop stack_PropertyJSON
+   put the long id of the target into tObject
+   --
+   put the stack_Array of tObject into pArray
+   put json_FromArray (pArray, false, true) into pJSON
+   --
+   return pJSON
+end stack_PropertyJSON
+
+
+--> Object | Array
+-
+getprop object_PropertyArray [pDontDiff]
+   local objectPropArray, hArray, pExportHandlers, pForceIndexHandlerCalls
+   put the long id of the target into targetObject
+   object_GetPropertyArrays targetObject, objectPropArray, hArray, pExportHandlers, pDontDiff, true, pForceIndexHandlerCalls
+   return objectPropArray
+end object_PropertyArray
+
+setprop object_PropertyArray [stripID] objectPropArray
+   put the long id of the target into targetObject
+   if objectPropArray is not an array then return targetObject
+   
+   lock screen 
+   put objectPropArray ["rev"] into revPropertyArray
+   
+   put objectPropArray ["script"] into someScript
+   if someScript is not empty then set the script of targetObject to someScript
+   put objectPropArray ["custom"] into customArray
+   if customArray is an array then set the custom_PropertyArray of targetObject to customArray
+   
+   switch word 1 of targetObject
+      case "stack" 
+         set the style of targetObject to objectPropArray ["style"]
+         break
+      case "field" 
+         put objectPropArray ["htmlText"] into objectHtml   
+         if objectHtml is not empty then put objectHtml into revPropertyArray ["htmlText"]
+         break
+      case "button" 
+         put objectPropArray ["text"] into objectText
+         if objectText is not empty then put objectText into revPropertyArray ["text"]
+         break
+      case "image"
+         put objectPropArray ["image"] into someImage
+         if someImage is not empty then
+            set the fileName of targetObject to empty
+            set the text of targetObject to someImage
+         end if
+         break
+   end switch
+   
+   if revPropertyArray is an array then
+      set the rev_PropertyArray [stripID] of targetObject to revPropertyArray
+      put the result into targetObject -- id may have changed
+   end if
+   
+   unlock screen
+   return targetObject
+end object_PropertyArray
+
+
+command object_GetPropertyArrays targetObject, @objectPropArray, @hArray, pExportHandlers, pDontDiff, pDontExport, pForceIndexHandlerCalls
+   put the rev_PropertyArray [pDontDiff] of targetObject into revPropertyArray
+   
+   switch word 1 of targetObject
+      case "stack"
+         put the style of targetObject into objectPropArray ["style"]
+         put the stackfiles of targetObject into stackFileTable
+         if stackFileTable is not empty then put stackFileTable into objectPropArray ["stackfiles"]
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "button"
+         get revPropertyArray ["text"]
+         if it is not empty then put it into objectPropArray ["text"]
+         delete local revPropertyArray ["text"]
+         
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "field"
+         get revPropertyArray ["htmlText"]
+         if it is not empty then put it into objectPropArray ["htmlText"]
+         delete local revPropertyArray ["htmlText"]
+         
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "image"
+         if revPropertyArray ["fileName"] is empty then
+            put the text of targetObject into objectPropArray ["image"] -- strange hack to get the full contents of an image
+         end if
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+         break
+      case "videoclip"
+         put the text of targetObject into objectPropArray ["videoclip"] -- strange hack to get the full contents of a videoclip
+         break
+      case "audioclip"
+         -- put the text of targetObject into objectPropArray ["audioclip"] -- RunRev bug!!! No way to export an audoclip
+         copy targetObject
+         put the clipboarddata ["objects"] into objectPropArray ["audioclip"]
+         break
+      default
+         object_AddScriptAndCustomArray objectPropArray, targetObject, hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+   end switch 
+   
+   put revPropertyArray into objectPropArray ["rev"] -- contains id
+end object_GetPropertyArrays
+
+command object_AddScriptAndCustomArray @objectPropArray, targetObject, @hArray, pExportHandlers, pDontExport, pForceIndexHandlerCalls
+   -- this should be updated and changed to not use "lcw_ExportAndAddScriptToHarray"
+   -- but use "script_ExportAndIndexMenus" or similar instead
+   
+   put the custom_PropertyArray of targetObject into customArray
+   if customArray is an array then put customArray into objectPropArray ["custom"]
+   put the script of targetObject into someScript
+   if someScript is not empty then
+      put someScript into objectPropArray ["script"]
+      
+      -- here we can also add object to the hArray (only if there is a script)
+      if pref_GetValue ("Add object to hArray on stack export") is true then
+         -- this can be slow (so turned off by default)
+         put pref_GetValue ("Construct hashArray on stack export") into pCreateHashArray
+         try
+            -- a cheap way of allowing for "lcw_ExportAndAddScriptToHarray" to be missing without the handler failing
+            lcw_ExportAndAddScriptToHarray hArray, targetObject, someScript, pExportHandlers, pCreateHashArray, pForceIndexHandlerCalls, pDontExport
+         catch sError
+            -- and so allowing for the whole comple hArtray handling set up to be in a separate (non-required) library.
+            -- this should fail gracefully
+            -- returning the object array (objectPropArray) without the hArray metadata
+         end try
+      end if
+   end if
+end object_AddScriptAndCustomArray

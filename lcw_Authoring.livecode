@@ -17,7 +17,7 @@ And add menus with ide_SetMenuTitle.
 --> Deps
 -
 getprop project_Deps
-   return "lcw,lcw_Menus,lcw_Script,lcw_Tools,lcw_Display"
+   return "lcw,lcw_Menus,lcw_Script,lcw_Tools,lcw_Display,lcw_Install"
 end project_Deps
 
 
