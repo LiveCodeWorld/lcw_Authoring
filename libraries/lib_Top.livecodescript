@@ -12,6 +12,38 @@ version: 0.1
 
 --> Working on
 -
+getprop top_Views [vParam]
+   local topViews
+   put the top_ControlIDs of the target into topControlIDs
+   repeat for each line cID in topControlIDs
+      put the long id of control id cID into tObject
+      if vParam is empty then
+         if the object_IsView of tObject is true then
+            put tObject & CR after topViews
+         end if
+      else
+         put the vParam of tObject into vObject
+         if exists (vObject) then
+            put vObject & CR after topViews
+         end if
+      end if
+   end repeat
+   delete char -1 of topViews
+   return topViews
+end top_Views
+
+getprop top_Named [sName]
+   put the childcontrolids of the target into topIDs
+   repeat for each line someID in topIDs
+      get the short name of control id someID
+      if it = sName then
+         put the long id of control id someID & CR after topNamed
+      end if
+   end repeat
+   delete char -1 of topNamed
+   return topNamed
+end top_Named
+
 getprop top_View
    -- this is the default value for a view
    -- which is the top (highest) someView in the current layout
@@ -20,18 +52,6 @@ getprop top_View
    put line 1 of groupHierarchy into topView
    return topView
 end top_View
-
--- getprop top_ViewObjects
-local viewObjects
-put the long id of the target into tObject
-put the childControlIDs of tObject into topCardDs
-repeat for each line cID in topCardDs
-   put the long id of control id cID into viewObject
-   put viewObject & CR after viewObjects
-end repeat
-delete char -1 of viewObjects
-return viewObjects
-end top_ViewObjects
 
 
 --> Top | Controls
@@ -80,19 +100,6 @@ end top_GroupNames
 
 --> Top | View
 -
-getprop top_Views
-   local topViews
-   put the top_ControlIDs of the target into topControlIDs
-   repeat for each line cID in topControlIDs
-      put the long id of control id cID into tObject
-      if the object_IsView of tObject is true then
-         put tObject & CR after topViews
-      end if
-   end repeat
-   delete char -1 of topViews
-   return topViews
-end top_Views
-
 getprop top_ViewNames [vName]
    put the top_ControlIDs of the target into someIDs
    repeat for each line someID in someIDs

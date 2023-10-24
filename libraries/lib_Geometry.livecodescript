@@ -163,23 +163,6 @@ function rect_FromWidthAndHeight someRect, sWidth, sHeight
    put rect_GetCentre (someRect) into someLoc
    put rect_LocWidthHeight (someLoc, sWidth, sHeight) into sRect
    return sRect
-   
-   /*
-   if someWidth is not empty then
-      if pMinWidth is not empty then
-         put max (pMinWidth,sWidth) into sWidth
-      end if
-      put item 1 of someRect + sWidth into item 3 of someRect
-   end if
-   
-   if sHeight is not empty then
-      if pMinHeight is not empty then
-         put max (pMinHeight,sHeight) into sHeight
-      end if
-      put item 2 of someRect + sHeight into item 4 of someRect
-   end if
-   return someRect
-   */
 end rect_FromWidthAndHeight
 
 

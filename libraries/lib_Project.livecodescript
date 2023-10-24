@@ -13,6 +13,30 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
+command project_RemoveStacksFromMemory projectName
+   put project_ListAllStackPaths (projectName) into stackPaths
+   stack_Remove stackPaths
+end project_RemoveStacksFromMemory
+
+private command _CheckStackDoesNotAlreadyExist stackName, stackFolder
+   if stackFolder is empty then
+      answer warning merge ("The project folder is empty!")
+      exit to top
+   end if
+   if there is a stack stackName then
+      put the filename of stack stackName
+      go to stack stackName
+      show stack stackName
+      --
+      put stackName
+      put the short name of stack stackName into shortStackName
+      answer warning merge ("Already a stack '[[shortStackName]]' with that name!")
+      edit the script of stack stackName
+      --
+      exit to top
+   end if
+end _CheckStackDoesNotAlreadyExist
+
 getprop stack_IsKnown [projectName]
    put the stack_Name of the target into stackName
    put the effective filename of stack stackName into stackPath
@@ -327,7 +351,7 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
    put metadata_ConstructArray (pStackName, pLibType) into uRipArray
    script_SetMetadataArray pScript, uRipArray
    --
-   put project_Construct (pStackName, projectFolder, pShortFolder, pLibType) into newStackPath
+   put project_ConstructStackPath (pStackName, projectFolder, pShortFolder, pLibType) into newStackPath
    _CheckStackDoesNotAlreadyExist pStackName, projectFolder
    --
    if pNotScriptOnly is true then
@@ -344,7 +368,7 @@ command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, p
    return newStackPath
 end project_CreateStack
 
-function project_Construct stackName, projectFolder, pShortFolder, pLibType
+function project_ConstructStackPath stackName, projectFolder, pShortFolder, pLibType
    if pShortFolder is empty then
       put project_NameToShortFolder (stackName) into pShortFolder
       put "home" into pLibType
@@ -359,7 +383,7 @@ function project_Construct stackName, projectFolder, pShortFolder, pLibType
    end if
    put project_ConstructStandardFile (stackName, projectFolder, pShortFolder, someExtension, true) into newStackPath
    return newStackPath
-end project_Construct
+end project_ConstructStackPath
 
 
 --> Project | Hacks
@@ -400,12 +424,14 @@ function project_ConstructStandardFile stackName, projectFolder, pShortFolder, p
    -- here we normalize short file and folder names (replace "|" with "_")
    if pExtension is empty then put "livecodescript" into pExtension
    put project_NameToShortFolder (stackName) into shortFileBit
-   put project_NameToShortFolder (pShortFolder) into shortFolder
+   put shortFileBit & "." & pExtension into shortFile
    --
+   if pShortFolder is empty then
+      put project_NameToShortFolder (pShortFolder) into pShortFolder
+   end if
    put folder_AddShort (projectFolder, pShortFolder) into standardFolder
    if pCreateFolder is true then folder_CreateNested standardFolder
    --
-   put shortFileBit & "." & pExtension into shortFile
    put standardFolder & shortFile into standardFile
    return standardFile
 end project_ConstructStandardFile
@@ -532,22 +558,3 @@ private command _MoveStack oldStackPath, newStackPath, pLeaveAlias
       create alias oldStackPath to file newStackPath
    end if
 end _MoveStack
-
-private command _CheckStackDoesNotAlreadyExist stackName, stackFolder
-   if stackFolder is empty then
-      answer warning merge ("The project folder is empty!")
-      exit to top
-   end if
-   if there is a stack stackName then
-      put the filename of stack stackName
-      go to stack stackName
-      show stack stackName
-      --
-      put stackName
-      put the short name of stack stackName into shortStackName
-      answer warning merge ("Already a stack '[[shortStackName]]' with that name!")
-      edit the script of stack stackName
-      --
-      exit to top
-   end if
-end _CheckStackDoesNotAlreadyExist

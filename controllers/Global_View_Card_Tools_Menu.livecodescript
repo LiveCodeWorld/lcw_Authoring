@@ -107,6 +107,14 @@ on menu_ViewTools templateView
    display_ViewTools viewName
 end menu_ViewTools
 
+on menu_Refresh templateView
+   put the card_Object of templateView into cardObject
+   dispatch "refresh" to cardObject
+end menu_Refresh
+
+on __
+end __
+
 on menu_ModuleTools templateView
    put the stack_Name of templateView into moduleName
    -- put the module_Name of templateView into moduleName
@@ -117,16 +125,10 @@ on menu_ModuleTools templateView
    display_ModuleTools moduleName
 end menu_ModuleTools
 
-on menu_DisplayModuleProject templateView
-   put the project_Name of templateView into projectName
-   --
-   display_Project projectName
-end menu_DisplayModuleProject
+on submenu_CreateModule
+   return "Global | View | Card | Create | Menu"
+end submenu_CreateModule
 
-on menu_ReIndexMenus templateView
-   module_ReIndexMenus templateView
-end menu_ReIndexMenus
-
-on menu_OpenSubstack someView, substackName
-   go to stack substackName
-end menu_OpenSubstack
+on submenu_Dev
+   return menu_DevTitle ("Global | View | Card | Tools | Menu")
+end submenu_Dev

@@ -28,6 +28,9 @@ getprop project_StackNameArray
    return stackNameArray
 end project_StackNameArray
 
+
+--> Directory | Array
+-
 function directory_NestedStackFileArray someFolder
    if there is not a folder someFolder then return empty
    
@@ -46,23 +49,6 @@ function directory_NestedStackFileArray someFolder
    return sFileArray
 end directory_NestedStackFileArray 
 
-function directory_ListNestedPaths someFolder, pSetRelative
-   local NestedPaths
-   if there is not a folder someFolder then return empty
-   
-   # Walk
-   set the itemdelimiter to slash
-   text_AddTrailing someFolder, slash
-   if pSetRelative is true then
-      put the number of items of someFolder into baseFolderNum
-      _WalkAndList NestedPaths, someFolder, baseFolderNum
-   else
-      _WalkAndList NestedPaths, someFolder, baseFolderNum
-   end if
-   delete char -1 of NestedPaths
-   return NestedPaths
-end directory_ListNestedPaths 
-
 function directory_NestedArray someFolder
    local folderArray
    if there is not a folder someFolder then return empty
@@ -74,31 +60,6 @@ function directory_NestedArray someFolder
    _WalkDirectory folderArray, someFolder, baseFolderNum
    return folderArray [shortFolder]
 end directory_NestedArray
-
-private command _WalkAndList @NestedPaths, someFolder, pBaseFolderNum
-   put files (someFolder) into shortFiles
-   put someFolder into pathFolder
-   if pBaseFolderNum is a number then
-      set the itemdelimiter to slash
-      delete item 1 to pBaseFolderNum of pathFolder
-   end if
-   
-   # Add files (not folders) to NestedPaths
-   filter shortFiles without ".*"
-   repeat for each line shortFile in shortFiles
-      if char 1 of shortFile = "." then next repeat
-      put pathFolder & shortFile into foundPath
-      put foundPath & CR after NestedPaths
-   end repeat
-   
-   # Recurse
-   put folders (someFolder) into shortChildFolders
-   repeat for each line shortChildFolder in shortChildFolders
-      if char 1 of shortChildFolder = "." then next repeat
-      put someFolder & shortChildFolder & slash into childFolder
-      _WalkAndList NestedPaths, childFolder, pBaseFolderNum
-   end repeat
-end _WalkAndList
 
 private command _WalkDirectory @folderArray, someFolder, pBaseFolderNum, pQuick
    put _GetFolderKey (someFolder, pBaseFolderNum) into folderKey
@@ -133,6 +94,65 @@ private function _GetFolderKey someFolder, baseFolderNum
    --
    return someFolder
 end _GetFolderKey
+
+
+--> Directory | Nested | List
+-
+function directory_ListNestedStackFiles someFolder
+   if there is not a folder someFolder then return empty
+   
+   put directory_ListNestedPaths (someFolder) into nPaths
+   repeat for each line sFile in nPaths
+      if exists (stack sFile) then
+         put sFile & CR after sFiles
+      end if
+   end repeat
+   delete char -1 of sFiles
+   return sFiles
+end directory_ListNestedStackFiles 
+
+function directory_ListNestedPaths someFolder, pSetRelative
+   local NestedPaths
+   if there is not a folder someFolder then return empty
+   
+   # Walk
+   set the itemdelimiter to slash
+   text_AddTrailing someFolder, slash
+   if pSetRelative is true then
+      put the number of items of someFolder into baseFolderNum
+      _WalkAndList NestedPaths, someFolder, baseFolderNum
+   else
+      _WalkAndList NestedPaths, someFolder, baseFolderNum
+   end if
+   delete char -1 of NestedPaths
+   return NestedPaths
+end directory_ListNestedPaths 
+
+private command _WalkAndList @NestedPaths, someFolder, pBaseFolderNum
+   -- recursive
+   put files (someFolder) into shortFiles
+   put someFolder into pathFolder
+   if pBaseFolderNum is a number then
+      set the itemdelimiter to slash
+      delete item 1 to pBaseFolderNum of pathFolder
+   end if
+   
+   # Add files (not folders) to NestedPaths
+   filter shortFiles without ".*"
+   repeat for each line shortFile in shortFiles
+      if char 1 of shortFile = "." then next repeat
+      put pathFolder & shortFile into foundPath
+      put foundPath & CR after NestedPaths
+   end repeat
+   
+   # Recurse
+   put folders (someFolder) into shortChildFolders
+   repeat for each line shortChildFolder in shortChildFolders
+      if char 1 of shortChildFolder = "." then next repeat
+      put someFolder & shortChildFolder & slash into childFolder
+      _WalkAndList NestedPaths, childFolder, pBaseFolderNum
+   end repeat
+end _WalkAndList
 
 
 --> Folder | Array
@@ -331,13 +351,13 @@ private command _FilterAndAddStacks shortFiles, someFolder, @stackNameArray, @bi
             put the short name of stack tFilePath into stackName
             put the long name of stack tFilePath into mainStackObject
             
-            array_AddToIndex mainStackObject, stackName, stackNameArray
+            indexArray_Add mainStackObject, stackName, stackNameArray
             
             put the substacks of stack tFilePath into subStackNames
             repeat for each line subStackName in subStackNames
                put the long name of stack subStackName of stack tFilePath into subStackObject
                
-               array_AddToIndex subStackObject, subStackName, stackNameArray
+               indexArray_Add subStackObject, subStackName, stackNameArray
             end repeat
             
             put tFilePath & return after foundFiles

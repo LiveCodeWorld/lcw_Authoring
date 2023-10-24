@@ -19,17 +19,7 @@ but can equally be used directly in the ScriptEditor.
 
 --> Menu | Props
 -
-on menu_Init tObject
-   -- not called unless top menu
-   get mArray_GetActiveTitle()
-end menu_Init
-
-getprop menu_IsSimple
-   return false
-end menu_IsSimple
-
 getprop menu_Target [tObject]
-   get mArray_GetActiveTitle()
    put the display_View of tObject into displayView
    -- 
    switch

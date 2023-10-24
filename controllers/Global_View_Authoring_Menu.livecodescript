@@ -168,9 +168,38 @@ private function _AskMenuTitle projectName
    return globalMenuTitle
 end _AskMenuTitle
 
+getprop disabled_ConvertToModule [dView]
+   put the is_Module of dView into isModule
+   return isModule
+end disabled_ConvertToModule
+
+getprop convertToModule_Param [dView]
+   put the project_Name of dView into projectName
+   return projectName
+end convertToModule_Param
+
+getprop convertToModule_Params
+   put env_ListActiveProjects() into projectNames
+   sort projectNames
+   return projectNames
+end convertToModule_Params
+
 
 --> Global | View | Authoring | Menu
 -
+on menu_ConvertToModule dView, projectName
+   put the view_Name of dView into viewName
+   put lcw_Ask ("Choose a new name for the module", viewName, "Not This Name", dView) into moduleName
+   --
+   module_CreateWithObject moduleName, projectName, dView
+   put the result into resultArray
+   --
+   put resultArray ["moduleHomeStackPath"] into moduleHomeStackPath
+   put resultArray ["moduleBehaviorStackPath"] into moduleBehaviorStackPath
+   put resultArray ["moduleControllerStackPath"] into moduleControllerStackPath
+   
+end menu_ConvertToModule
+
 on menu_ObjectInspector dView
    display_ObjectProperties dView
 end menu_ObjectInspector

@@ -806,7 +806,7 @@ function rev_ListPrefArray
       put item 1 of someLine into someKey
       put item 2 of someLine into someValue
       
-      array_AddToIndex someValue, someKey, prefArray
+      indexArray_Add someValue, someKey, prefArray
    end repeat
    return prefArray
 end rev_ListPrefArray
@@ -823,7 +823,7 @@ function rev_ListPrefOutline
       put item 1 of someLine into someKey
       put item 2 of someLine into someValue
       
-      array_AddToIndex someValue, someKey, prefArray
+      indexArray_Add someValue, someKey, prefArray
       outline_AddTitle someValue, someKey, tabbedOutline
    end repeat
    return tabbedOutline
