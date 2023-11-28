@@ -278,8 +278,8 @@ command project_MoveStackFile toPath, fromProjectFolder, toProjectFolder
    put the short name of stack toPath into stackName
    put the effective filename of stack toPath into stackFile
    
-   put project_ConstructHomeStackPath (fromProjectFolder) into fromHomePath
-   put project_ConstructHomeStackPath (toProjectFolder) into toHomePath
+   put project_PathFromFolder (fromProjectFolder) into fromHomePath
+   put project_PathFromFolder (toProjectFolder) into toHomePath
    
    set the stackFile_AddPaths of stack toHomePath to toPath
    set the stackFile_RemovePaths of stack fromHomePath to toPath
@@ -441,7 +441,7 @@ end project_ConstructStandardFile
 -
 command project_Create projectFolder
    project_CreateStandardFolders projectFolder
-   put project_ConstructHomeStackPath (projectFolder) into homeStackPath
+   put project_PathFromFolder (projectFolder) into homeStackPath
    
    put project_GetShortFolder (projectFolder) into projectName -- a clean default
    create script only stack projectName
@@ -450,7 +450,7 @@ command project_Create projectFolder
    put metadata_ConstructArray (projectName, "project") into uRipArray
    set the script_MetaData of stack projectName to uRipArray
    
-   put scaffold_GetTemplate ("lcw_HomeStackScript") into templateScript
+   put scaffold_Get ("lcw_HomeStackScript") into templateScript
    put merge (templateScript) into lcwHomeStackScript
    set the script of stack projectName to lcwHomeStackScript
    

@@ -24,13 +24,9 @@ end project_Deps
 --> Custom
 -
 command project_CustomInit
-   -- display Environment palette
    set the cursor to watch
    --
-   ide_AddBehaviorHacks true
-   ide_LoadDictionaryTerms
-   --
-   ide_SetScriptEditorTitles "watch"
+   ide_InitLcw
    --
    send "display_Environment" to me in 2 ticks
 end project_CustomInit

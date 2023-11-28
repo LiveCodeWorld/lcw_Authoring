@@ -103,6 +103,7 @@ command finder_Reveal fileOrFolder
 end finder_Reveal
 
 command finder_RevealFileOrFolder fileOrFolder
+   -- will not open hidden folders
    put folder_Above (fileOrFolder) into enclosingFolder
    applescript_ConvertPath fileOrFolder
    applescript_ConvertPath enclosingFolder
@@ -124,7 +125,8 @@ command finder_RevealFileOrFolder fileOrFolder
    put CR & "end tell" after someAppleScript
    --
    do someAppleScript as AppleScript
-   return the result
+   put the result into aResult
+   return aResult
 end finder_RevealFileOrFolder
 
 command folder_Open someFolder

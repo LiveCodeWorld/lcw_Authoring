@@ -15,14 +15,15 @@ local LocalArray
 --> Menu | Props
 -
 getprop menu_Target [tObject]
-   if the stack_IsDisplay of tObject then
+   /*
+   if exists (the display_View of tObject) then
+      -- if the stack_IsDisplay of tObject then -- recurses for some reason on card
       put the display_View of tObject into displayView
       put the displayed_Object of displayView into templateView
       return templateView     
    end if
-   
-   put the card_Object of tObject into cardObject
-   put cardObject into LocalArray ["cardObject"]
+   */
+   put the current_Card of tObject into cardObject
    --
    if exists (control 1 of cardObject) is true then
       put the long id of control 1 of cardObject into templateView
@@ -31,6 +32,18 @@ getprop menu_Target [tObject]
       return cardObject
    end if
 end menu_Target
+
+function stack_NameFromLongTarget longObject
+   put stack_FromLongTarget (longObject) into longStack
+   put the short name of longStack into stackName
+   return stackName
+end stack_NameFromLongTarget
+
+function stack_FromLongTarget longObject
+   # Get stack name
+   put word -2 to -1 of longObject into stackObject
+   return stackObject
+end stack_FromLongTarget
 
 getprop disabled_ModuleTools [templateView]
    put the module_Name of templateView into moduleName

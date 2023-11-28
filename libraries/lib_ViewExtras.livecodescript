@@ -433,7 +433,7 @@ getprop template_DefaultScript [pObjectType]
    put lcw_GetAuthor() into AuthorName
    put the template_ObjectDefScript of scriptObject into DefScript
    
-   put scaffold_GetTemplate ("View Template") into templateScript
+   put scaffold_Get ("View Template") into templateScript
    put merge (templateScript) into someScript
    return someScript
 end template_DefaultScript
