@@ -37,7 +37,6 @@ getprop behavior_Names
 end behavior_Names
 
 setprop behavior_Names bNames
-   -- can use a list as well as an index
    put the long id of the target into targetObject
    behavior_SetNameHierarchy targetObject, bNames
    return the result
@@ -59,7 +58,7 @@ function behavior_GetNameHierarchy targetObject
 end behavior_GetNameHierarchy
 
 command behavior_SetNameHierarchy targetObject, bNames
-   put list_ToIndex (bNames) into bNames  -- can use a list as well as an index
+   replace comma with CR in bNames
    put behavior_GetObjects (bNames) into bObjects
    behavior_SetHierarchy targetObject,  bObjects
    return the result
@@ -687,24 +686,6 @@ function behavior_GetObject bName
    -- new hArray version
    return hArray_GetBehavior (bName)
 end behavior_GetObject
-
-function behavior_GetObjects bNames
-   repeat for each line bName in bNames
-      put behavior_GetObject (bName) into bObject
-      if exists (bObject) is false then
-         -- not sure what to do -- should return an error
-         return empty
-      end if
-      put bObject & CR after bObjects
-   end repeat
-   delete char -1 of bObjects
-   return bObjects
-end behavior_GetObjects
-
--- function behaviorModel_GetObject bName
-   -- old name?
-   return hArray_GetBehavior (bName)
-end behaviorModel_GetObject
 
 function hArray_GetBehaviorArray
    global gLCW

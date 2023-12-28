@@ -2,10 +2,10 @@
 --> MetaData
 -
 name: lib_Geometry
+copyright: David Bovill
 license: GPLv3
 type: library
 version: 0.9
-copyright: David Bovill
 
 
 --> Working on
@@ -1137,9 +1137,6 @@ function loc_Normalise someLoc, someRect
    return someLoc
 end loc_Normalise
 
-
---> Handlers
--
 function number_NormalizeRange someValue, maxValue, minValue
    -- was "number_Normalise"
    if someValue < minValue then
@@ -1150,4 +1147,3 @@ function number_NormalizeRange someValue, maxValue, minValue
       return someValue
    end if
 end number_NormalizeRange
-

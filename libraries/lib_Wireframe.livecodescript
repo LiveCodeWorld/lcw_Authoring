@@ -37,18 +37,6 @@ command wireframe_SnapAndExport pSomeControl, pDisplaySnapShot
    return imageFile
 end wireframe_SnapAndExport
 
-function wireframe_GetSnapPng someControl, newW
-   -- let's scale the export to wiki width
-   put 420 into newW
-   
-   put the rect of someControl into originalRect
-   put scale_Height (originalRect, newW) into newH
-   put newW,newH into exportDimensions
-   
-   export snapshot from someControl at size exportDimensions to someImage as PNG
-   return someImage
-end wireframe_GetSnapPng
-
 
 --> Wireframe | Props
 -
@@ -62,7 +50,7 @@ getprop wireframe_Snap [pDimensions]
    else
       put item 1 of pDimensions into newW
    end if
-   put wireframe_GetSnapPng (someControl, newW) into somePNG
+   put wiki_GetSnapPng (someControl, newW) into somePNG
    return somePNG
 end wireframe_Snap
 

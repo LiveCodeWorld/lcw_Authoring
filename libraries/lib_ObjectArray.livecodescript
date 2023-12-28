@@ -202,7 +202,6 @@ setprop object_PropertyArray [stripID] objectPropArray
    return targetObject
 end object_PropertyArray
 
-
 command object_GetPropertyArrays targetObject, @objectPropArray, @hArray, pExportHandlers, pDontDiff, pDontExport, pForceIndexHandlerCalls
    put the rev_PropertyArray [pDontDiff] of targetObject into revPropertyArray
    

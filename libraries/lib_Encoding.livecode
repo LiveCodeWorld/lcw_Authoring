@@ -815,21 +815,6 @@ function line_BeginsWith startLineChars, someLines, pLinesToSkip
    end if
 end line_BeginsWith
    
-function url_Construct siteRoot, pPath, pShortFile
-   text_AddTrailing siteRoot, "/"
-   put siteRoot into someURL
-   if pPath is empty then return someURL -- could add index
-   
-   text_TopAndTail pPath, "/"
-   put pPath after someURL
-   
-   if pShortFile is empty then return someURL
-   
-   text_AddTrailing someURL, "/"
-   put pShortFile after someURL
-   return someURL
-end url_Construct
-
 command text_TopAndTail @someText, someChar
    if char 1 of someText is someChar then delete char 1 of someText
    if char -1 of someText is someChar then delete char -1 of someText

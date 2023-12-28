@@ -220,6 +220,78 @@ end project_ChangeStackShortFileName
 
 --> Project | Move
 -
+command project_MoveLibraryToModuleBehavior libraryStack, moduleShortFolder
+   if exists (libraryStack) is false then
+      return merge ("Error, [[libraryStack]] does not exist!")
+   end if
+   
+   put the filename of libraryStack into libStackPath
+   put _NewBehaviorName (libraryStack) into newBehaviorStackName
+   put the project_Folder of libraryStack into projectFolder
+   
+   put _BehaviorPathFromLibraryStack (newBehaviorStackName, projectFolder, moduleShortFolder) into newBehaviorPath
+   if item 1 of newBehaviorPath = "Error" then
+      return newBehaviorPath
+   end if
+   
+   # Close script editor tab
+   scriptEditor_CloseTab libraryStack
+   
+   breakpoint
+   
+   # Rename stack
+   set the name of libraryStack to newBehaviorStackName
+   put the script_MetaData of libraryStack into mData
+   put newBehaviorStackName into mData ["name"]
+   put "behavior" into mData ["type"]
+   set the script_MetaData of libraryStack to mData
+   
+   # Move
+   _MoveStack libStackPath, newBehaviorPath
+   
+   # Export project JSON
+   put module_GetFolder (moduleShortFolder, projectFolder) into moduleFolder
+   project_ExportMenusAndStackFiles moduleFolder
+   
+   return newBehaviorPath
+end project_MoveLibraryToModuleBehavior
+
+private function _NewBehaviorName libraryStack
+   put the short name of libraryStack into libStackName
+   set the itemdelimiter to "_"
+   put libStackName into newBehaviorStackName
+   put "behavior" into item 1 of newBehaviorStackName
+   return newBehaviorStackName
+end _NewBehaviorName
+
+private function _BehaviorPathFromLibraryStack newBehaviorStackName, projectFolder, moduleShortFolder
+   # Work out behavior stack path
+   put newBehaviorStackName & ".livecodescript" into behaviorShortFile
+   put _ConstructModuleBehaviorPath (behaviorShortFile, moduleShortFolder, projectFolder) into moduleBehaviorPath
+   
+   # Check standard behavior folder exists
+   if item 1 of moduleBehaviorPath is "Error" then
+      return moduleBehaviorPath
+   end if
+   
+   # Check it does not already exist
+   if exists (stack moduleBehaviorPath) then
+      breakpoint
+      return merge ("Error, behavior stack '[[newBehaviorStackName]]' already exists!")
+   end if
+   return moduleBehaviorPath
+end _BehaviorPathFromLibraryStack
+
+private function _ConstructModuleBehaviorPath behaviorShortFile, moduleShortFolder, projectFolder
+   put module_GetFolder (moduleShortFolder, projectFolder) into moduleFolder
+   put folder_AddShort (moduleFolder, "behaviors") into moduleBehaviorFolder
+   if there is not a folder moduleBehaviorFolder then
+      return merge ("Error, behavior folder '[[moduleBehaviorFolder]]' does not exist!")
+   end if
+   put moduleBehaviorFolder & behaviorShortFile into moduleBehaviorPath
+   return moduleBehaviorPath
+end _ConstructModuleBehaviorPath
+
 command project_MoveStackRelative stackName, toProjectName, pRepoFolder
    -- Powerful but be careful!
    -- Moves a stack to the same relative location in a new project folder
@@ -538,6 +610,10 @@ end project_AddToStackFiles
 --> Private
 -
 private command _MoveStack oldStackPath, newStackPath, pLeaveAlias
+   if exists (stack newStackPath) then
+      return merge ("Error, stack '[[newStackPath]]' already exists!")
+   end if
+   
    put the short name of stack oldStackPath into oldStackName
    set the stack_IsKnown of stack oldStackPath to false
    --
