@@ -416,6 +416,34 @@ end date_Construct8601
 
 --> Date | WC3
 -
+
+function date_Construct7232 pInternetDate
+   if pInternetDate is empty then
+      put the internet date into pInternetDate
+   end if
+   
+   put word -1 of pInternetDate into utcOffset
+   convert pInternetDate to dateItems
+   -- 
+   put char 2 to 3 of utcOffset into extraHours
+   put char 4 to 5 of utcOffset into extraMin
+   if char 1 of utcOffset is "+" then
+      add extraHours to item 4 of pInternetDate
+      add extraMin to item 5 of pInternetDate
+   else
+      subtract extraHours from item 4 of pInternetDate
+      subtract extraMin from item 5 of pInternetDate
+   end if
+   --
+   convert pInternetDate to internet date
+   
+   put "GMT" into word -1 of pInternetDate
+   return pInternetDate
+end date_Construct7232
+
+
+--> Date | WC3
+-
 function date_ConstructWc3Datetime someDate
    -- extended is true:  1981-04-05T14:30:30-05:00
    put date_Construct8601 (someDate, true, true) into someDate
