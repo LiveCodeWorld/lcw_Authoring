@@ -48,7 +48,7 @@ end view_PathIndex
 
 function view_ShortFiles
    put library_ViewFolder() into someFolder
-   put folder_ShortFiles(someFolder) into shortFiles
+   put file_ListShort(someFolder) into shortFiles
    return shortFiles
 end view_ShortFiles
 
@@ -240,7 +240,7 @@ end view_StackNames
 
 function view_ShortFiles
    put library_ViewFolder() into someFolder
-   put folder_ShortFiles(someFolder) into shortFiles
+   put file_ListShort(someFolder) into shortFiles
    return shortFiles
 end view_ShortFiles
 
@@ -279,7 +279,7 @@ end view_FileToPath
 function view_LongFiles
    -- was "view_GetLibraryStackFiles"
    put library_ViewFolder() into someFolder
-   put folder_ShortFiles(someFolder) into shortFiles
+   put file_ListShort(someFolder) into shortFiles
    file_ShortToLong shortFiles, someFolder
    return shortFiles
 end view_LongFiles

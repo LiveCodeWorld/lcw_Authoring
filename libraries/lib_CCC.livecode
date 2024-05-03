@@ -182,7 +182,7 @@ function ccc_ConvertArray cccArray, pSourceArray
    pageArray_AddHtml pageArray, pageTagLinks
    
    put "CCC Transporter" into pageArray ["metadata"]["author"] -- add some metadata so transported pages can be found
-   put pageArray_ConstructJournal (pageTitle, pSourceArray) into pageArray ["journal"]  -- strip journal to minimum
+   put journalArray_Construct (pageTitle, pSourceArray) into pageArray ["journal"]  -- strip journal to minimum
    return pageArray
 end ccc_ConvertArray
 

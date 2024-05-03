@@ -13,6 +13,14 @@ A library for date time and project management stuff like scheduling.
 
 --> Working on
 -
+function date_DaysSinceMonday pDate
+   if pDate is empty then put the seconds into pDate
+   put day_MondayBefore (pDate) into mondayDate
+   convert mondayDate to internet date
+   put date_DaysBetween (mondayDate, pDate) into daysBetween
+   return daysBetween
+end date_DaysSinceMonday
+
 function date_IsEarlier testDate, baseDate
    convert testDate to seconds
    convert baseDate to seconds
@@ -254,9 +262,9 @@ function date_GetWeeksBetween startDate, someDate
    return weekNum
 end date_GetWeeksBetween
 
-on period_WeekStarting someDate, @startDate, @endDate
-   put day_MondayBefore(someDate) into startDate
-   put addDays(7, startDate) into endDate
+command period_WeekStarting someDate, @startDate, @endDate
+   put day_MondayBefore (someDate) into startDate
+   put addDays (7, startDate) into endDate
 end period_WeekStarting
 
 function addWeeks howManyWeeks, someDate
@@ -293,12 +301,12 @@ function day_Suffix dayNum
    end if
 end day_Suffix
 
-function daysBetween startDate, someDate
+function date_DaysBetween startDate, someDate
    convert startDate to seconds
    convert someDate to seconds
    put (someDate - startDate)/(60*60*24) into days
    return days
-end daysBetween
+end date_DaysBetween
 
 function day_Round someDate
    -- not tested
@@ -330,10 +338,12 @@ function day_MondayAfter someDate
    return date_Round(newDate, "d")
 end day_MondayAfter
 
-function day_MondayBefore someDate
-   put day_DaysBefore(someDate, 2) into howManyDays
-   put addDays(- howManyDays, someDate) into newDate
-   return date_Round(newDate, "d")
+function day_MondayBefore pDate
+   if pDate is empty then put the date into pDate
+   --
+   put day_DaysBefore (pDate, 2) into howManyDays
+   put addDays (- howManyDays, pDate) into newDate
+   return date_Round (newDate, "d")
 end day_MondayBefore
 
 function day_DaysBefore someDate, dayNum
