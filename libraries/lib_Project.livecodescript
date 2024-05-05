@@ -68,7 +68,6 @@ setprop stack_IsKnown [projectName] boolean
    
    # Export Project JSON
    put the project_Array of the target into projectArray
-   -- put project_FetchArray (projectFolder) into projectArray
    put stackFileArray into projectArray ["stackFileArray"]
    set the project_Array of the target to projectArray
    --

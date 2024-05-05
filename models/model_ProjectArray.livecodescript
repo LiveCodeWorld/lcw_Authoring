@@ -97,7 +97,7 @@ end project_AddArrayToGlobal
 command project_RestoreGlobals projectName, pDeleteAllGlobals
    global gLCW
    
-   put project_FetchArray (projectName) into projectArray
+   put project_GetArrayFromFolder (projectName) into projectArray
    if pDeleteAllGlobals is true then
       global_DeleteAll
    else
@@ -108,7 +108,7 @@ command project_RestoreGlobals projectName, pDeleteAllGlobals
 end project_RestoreGlobals
 
 command project_AddProjectGlobals projectName
-   put project_FetchArray (projectName) into projectArray
+   put project_GetArrayFromFolder (projectName) into projectArray
    project_AddArrayToGlobal projectArray, true
    return projectGlobalArray
 end project_AddProjectGlobals
