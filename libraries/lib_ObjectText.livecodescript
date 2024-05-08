@@ -913,7 +913,7 @@ function object_FetchCustomArray objectFolder, pUseCustomFolders
    if pUseCustomFolders is not true then
       -- fetch from encoded array
       put meta_GetCustomArrayFile (objectFolder) into someFile
-      put array_Fetch (someFile) into customArray
+      put array_Get (someFile) into customArray
       return customArray
    else
       -- export as folder

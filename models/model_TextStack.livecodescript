@@ -1,5 +1,5 @@
 ﻿script "model_TextStack"
---> MetaData
+s--> MetaData
 -
 license: GPLv3
 name: model_TextStack
@@ -47,14 +47,14 @@ TextStack is a synonym for projectOverlay  metadata folder.
 getprop projectOverlay_Array [pShortFile]
    -- was "textstack_ProcessedHkeyArray" then "textStack_HkeyArray"
    put the projectOverlay_File [pShortFile] of the target into someFile
-   put array_Fetch (someFile) into hkeyArray
+   put array_Get (someFile) into hkeyArray
    return hkeyArray
 end projectOverlay_Array
 
 setprop projectOverlay_Array [pShortFile] hkeyArray
    -- was "textstack_ProcessedHkeyArray"
    put the projectOverlay_File [pShortFile] of the target into someFile
-   array_Save someFile, hkeyArray
+   array_Set someFile, hkeyArray
    return someFile
 end projectOverlay_Array
 

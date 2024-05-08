@@ -329,7 +329,7 @@ command object_ExportCustomArray objectFolder, customArray, pUseCustomFolders
    if pUseCustomFolders is not true then
       -- export as encoded array
       put meta_GetCustomArrayFile (objectFolder) into someFile
-      array_Save someFile, customArray
+      array_Set someFile, customArray
       return someFile
    else
       -- export as folder

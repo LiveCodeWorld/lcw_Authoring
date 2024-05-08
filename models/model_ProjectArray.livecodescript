@@ -20,7 +20,7 @@ Things like defaults, or important stacks to open and provide easy navigation to
 
 The location of the array file can be returned by using either of the folowing forms:
 
-- put project_GetArrayFile (pProjectName) into projectArrayFile
+- put project_ArrayFile (pProjectName) into projectArrayFile
 - the array_File of the target
 
 For now we access and store the data to and from disk using "fetch" and "save"

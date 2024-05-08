@@ -37,6 +37,91 @@ private command _CheckStackDoesNotAlreadyExist stackName, stackFolder
    end if
 end _CheckStackDoesNotAlreadyExist
 
+
+--> Project | Create
+-
+command project_Create projectFolder
+   project_CreateStandardFolders projectFolder
+   put project_PathFromFolder (projectFolder) into homeStackPath
+   
+   put project_GetShortFolder (projectFolder) into projectName -- a clean default
+   create script only stack projectName
+   set the filename of stack projectName to homeStackPath
+   
+   put metadata_ConstructArray (projectName, "project") into uRipArray
+   set the script_MetaData of stack projectName to uRipArray
+   
+   put scaffold_Get ("lcw_HomeStackScript") into templateScript
+   put merge (templateScript) into lcwHomeStackScript
+   set the script of stack projectName to lcwHomeStackScript
+   
+   save stack projectName
+   
+   library_StoreProjectFolder projectName, projectFolder
+   env_SetProjectFolder projectName, projectFolder
+   return homeStackPath
+end project_Create
+
+command library_StoreProjectFolder projectName, projectFolder
+   -- used by "env_AddProject" and "lcw_LoadCustomUserProject" and "project_Create"
+   put library_FetchProjectArray (projectName) into projectArray
+   --
+   put projectFolder into projectArray ["projectFolder"]
+   set the itemdelimiter to slash
+   if item - 2 of projectFolder = "modules" then
+      put "module" into projectArray ["projectType"]
+   else
+      put "project" into projectArray ["projectType"]
+   end if
+   --
+   library_StoreProjectArray projectName, projectArray
+end library_StoreProjectFolder
+
+command env_AddProject homeStackName, pProjectFolder
+   if exists (stack homeStackName) is false then return false
+   if pProjectFolder is empty then
+      put env_ConstructProjectFolder (homeStackName) into pProjectFolder
+   else
+      if there is not a folder pProjectFolder then
+         return false
+      else
+         library_StoreProjectFolder homeStackName, pProjectFolder
+      end if
+   end if
+   if there is not a folder pProjectFolder then return false
+   
+   env_SetProjectFolder homeStackName, pProjectFolder
+   return true
+end env_AddProject
+
+command project_CreateStandardFolders projectFolder, pShortFolders
+   if pShortFolders is empty then put "assets,behaviors,controllers,libraries,models,modules,views" into pShortFolders
+   folder_CreateNested projectFolder
+   repeat for each item shortFolder in pShortFolders
+      put projectFolder & shortFolder & slash into subFolder
+      create folder subFolder
+   end repeat
+end project_CreateStandardFolders
+
+command project_Trash projectName
+   put project_GetFolder (projectName) into projectFolder
+   put project_ListAllStackPaths (projectFolder) into projectStackPaths
+   repeat for each line projectStackPath in projectStackPaths
+      if exists (stack projectStackPath) is false then
+         -- should not be
+         breakpoint
+         next repeat
+      end if
+      
+      delete stack projectStackPath
+   end repeat
+   
+   revDeleteFolder projectFolder
+   library_DeleteProjectArray projectName
+end project_Trash
+
+
+--> Props
 getprop stack_IsKnown [projectName]
    put the stack_Name of the target into stackName
    put the effective filename of stack stackName into stackPath
@@ -506,57 +591,6 @@ function project_ConstructStandardFile stackName, projectFolder, pShortFolder, p
    put standardFolder & shortFile into standardFile
    return standardFile
 end project_ConstructStandardFile
-
-
---> Project | Create
--
-command project_Create projectFolder
-   project_CreateStandardFolders projectFolder
-   put project_PathFromFolder (projectFolder) into homeStackPath
-   
-   put project_GetShortFolder (projectFolder) into projectName -- a clean default
-   create script only stack projectName
-   set the filename of stack projectName to homeStackPath
-   
-   put metadata_ConstructArray (projectName, "project") into uRipArray
-   set the script_MetaData of stack projectName to uRipArray
-   
-   put scaffold_Get ("lcw_HomeStackScript") into templateScript
-   put merge (templateScript) into lcwHomeStackScript
-   set the script of stack projectName to lcwHomeStackScript
-   
-   save stack projectName
-   
-   library_StoreProjectFolder projectName, projectFolder
-   env_SetProjectFolder projectName, projectFolder
-   return homeStackPath
-end project_Create
-
-command project_CreateStandardFolders projectFolder, pShortFolders
-   if pShortFolders is empty then put "assets,behaviors,controllers,libraries,models,modules,views" into pShortFolders
-   folder_CreateNested projectFolder
-   repeat for each item shortFolder in pShortFolders
-      put projectFolder & shortFolder & slash into subFolder
-      create folder subFolder
-   end repeat
-end project_CreateStandardFolders
-
-command project_Trash projectName
-   put project_GetFolder (projectName) into projectFolder
-   put project_ListAllStackPaths (projectFolder) into projectStackPaths
-   repeat for each line projectStackPath in projectStackPaths
-      if exists (stack projectStackPath) is false then
-         -- should not be
-         breakpoint
-         next repeat
-      end if
-      
-      delete stack projectStackPath
-   end repeat
-   
-   revDeleteFolder projectFolder
-   library_DeleteProjectArray projectName
-end project_Trash
 
 
 --> Project | Stackfiles
