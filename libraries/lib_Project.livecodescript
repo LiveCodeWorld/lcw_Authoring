@@ -13,6 +13,49 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
+
+
+--> Ask
+-
+command ask_CreateProjectModel projectName
+   put "Choose a name for your script only model stack...." into someQuestion
+   put "model_XXX" into suggestedAnswer
+   ask_CreateProjectStack "models", projectName, someQuestion, suggestedAnswer
+   put the result into newStackPath
+   return newStackPath
+end ask_CreateProjectModel
+
+command ask_CreateProjectStack shortFolder, projectName, pQuestion, pExample
+   -- this handler creates a script only stack in the corresponding folder of the Livecode World Library
+   if pQuestion is empty then put "Give your library a name" into pQuestion
+   if pExample is empty then put "lib_Example" into pExample
+   put lcw_Ask (pQuestion, pExample) into stackName
+   
+   put project_GetFolder (projectName) into projectFolder
+   project_CreateStack projectFolder, stackName, shortFolder
+   put the result into newStackPath
+   --
+   switch shortFolder
+      case "libraries"
+      case "models"
+         start using stack stackName
+         lcw_Notify ("Stack" && kwote (stackName) && "is now known and used!")
+         break
+   end switch
+   --
+   edit the script of stack stackName
+   return newStackPath
+end ask_CreateProjectStack
+
+command ask_RenameProjectStack stackName
+   put "Renamme model '[[stackName]]'?" into someQuestion
+   put ask_Question (someQuestion, stackName, "Rename Model", stackName) into newStackName
+   --
+   project_RenameStack stackName, newStackName
+   put the result into newStackPath
+   return newStackPath
+end ask_RenameProjectStack
+
 command project_RemoveStacksFromMemory projectName
    put project_ListAllStackPaths (projectName) into stackPaths
    stack_Remove stackPaths
@@ -36,6 +79,78 @@ private command _CheckStackDoesNotAlreadyExist stackName, stackFolder
       exit to top
    end if
 end _CheckStackDoesNotAlreadyExist
+
+command library_StoreProjectFolder projectName, projectFolder
+   -- used by "env_AddProject" and "lcw_LoadCustomUserProject" and "project_Create"
+   put library_FetchProjectArray (projectName) into projectArray
+   --
+   put projectFolder into projectArray ["projectFolder"]
+   set the itemdelimiter to slash
+   if item - 2 of projectFolder = "modules" then
+      put "module" into projectArray ["projectType"]
+   else
+      put "project" into projectArray ["projectType"]
+   end if
+   --
+   library_StoreProjectArray projectName, projectArray
+end library_StoreProjectFolder
+
+
+--> Props
+-
+getprop project_RelativeFile
+   put the stack_Name of the target into stackName
+   put the effective filename of stack stackName into sFile
+   put the project_Folder of stack stackName into pFolder
+   put file_GetRelativePath (sFile, pFolder, commonPath) into rPath
+   return rPath
+end project_RelativeFile
+
+getprop stack_IsKnown [projectName]
+   put the stack_Name of the target into stackName
+   put the effective filename of stack stackName into stackPath
+   if stackPath is empty then return false
+   if projectName is empty then put the project_Name of the target into projectName
+   if projectName is empty then return false
+   
+   put project_FindHomeStackPath (stackPath) into homeStackStackPath
+   if homeStackStackPath is empty then
+      put the filename of stack "LCW" into homeStackStackPath
+   end if
+   --
+   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
+   put stackFileArray [stackName] into knownRelativeFile
+   return knownRelativeFile is not empty
+end stack_IsKnown
+
+setprop stack_IsKnown [projectName] boolean
+   put the stack_Name of the target into stackName
+   if projectName is empty then put the project_Name of the target into projectName
+   
+   # Add or remove from the project home stackfiles
+   if boolean is true then
+      project_AddToStackFiles stackName, projectName, false
+   else
+      project_RemoveFromStackFiles stackName, projectName, false
+   end if
+   put the result into stackFileArray
+   
+   # Export Project JSON
+   put the project_Array of the target into projectArray
+   put stackFileArray into projectArray ["stackFileArray"]
+   set the project_Array of the target to projectArray
+   --
+   return stackFileArray
+end stack_IsKnown
+
+setprop project_Move toProjectName
+   -- moves a stack to the same relative location in a new project folder
+   -- put the stack_Name of the target into stackName
+   put the short name of the defaultStack into stackName
+   project_MoveStackRelative stackName, toProjectName
+   put the result into newPath
+   return newPath
+end project_Move
 
 
 --> Project | Create
@@ -61,21 +176,6 @@ command project_Create projectFolder
    env_SetProjectFolder projectName, projectFolder
    return homeStackPath
 end project_Create
-
-command library_StoreProjectFolder projectName, projectFolder
-   -- used by "env_AddProject" and "lcw_LoadCustomUserProject" and "project_Create"
-   put library_FetchProjectArray (projectName) into projectArray
-   --
-   put projectFolder into projectArray ["projectFolder"]
-   set the itemdelimiter to slash
-   if item - 2 of projectFolder = "modules" then
-      put "module" into projectArray ["projectType"]
-   else
-      put "project" into projectArray ["projectType"]
-   end if
-   --
-   library_StoreProjectArray projectName, projectArray
-end library_StoreProjectFolder
 
 command env_AddProject homeStackName, pProjectFolder
    if exists (stack homeStackName) is false then return false
@@ -121,56 +221,8 @@ command project_Trash projectName
 end project_Trash
 
 
---> Props
-getprop stack_IsKnown [projectName]
-   put the stack_Name of the target into stackName
-   put the effective filename of stack stackName into stackPath
-   if stackPath is empty then return false
-   if projectName is empty then put the project_Name of the target into projectName
-   if projectName is empty then return false
-   
-   put project_FindHomeStackPath (stackPath) into homeStackStackPath
-   if homeStackStackPath is empty then
-      put the filename of stack "LCW" into homeStackStackPath
-   end if
-   --
-   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
-   put stackFileArray [stackName] into knownRelativeFile
-   return knownRelativeFile is not empty
-end stack_IsKnown
-
-setprop stack_IsKnown [projectName] boolean
-   put the stack_Name of the target into stackName
-   if projectName is empty then put the project_Name of the target into projectName
-   
-   # Add or remove from the project home stackfiles
-   if boolean is true then
-      project_AddToStackFiles stackName, projectName, false
-   else
-      project_RemoveFromStackFiles stackName, projectName, false
-   end if
-   put the result into stackFileArray
-   
-   # Export Project JSON
-   put the project_Array of the target into projectArray
-   put stackFileArray into projectArray ["stackFileArray"]
-   set the project_Array of the target to projectArray
-   --
-   return stackFileArray
-end stack_IsKnown
-
-
---> Ask
+--> Project
 -
-command ask_RenameProjectStack stackName
-   put "Renamme model '[[stackName]]'?" into someQuestion
-   put ask_Question (someQuestion, stackName, "Rename Model", stackName) into newStackName
-   --
-   project_RenameStack stackName, newStackName
-   put the result into newStackPath
-   return newStackPath
-end ask_RenameProjectStack
-
 command project_RenameStack stackName, newStackName, pEditScript
    # Checks
    if exists (stack stackName) is false then
@@ -209,71 +261,6 @@ command project_RenameStack stackName, newStackName, pEditScript
    end if
    return newStackPath
 end project_RenameStack
-
-private command _RenameKnown newStackName, oldStackName
-   put the project_Name of stack newStackName into projectName
-   put the project_RelativeFile of stack newStackName into newRelativeFile
-   --
-   put the stackfile_Array of stack projectName into stackFileArray
-   delete variable stackFileArray [oldStackName]
-   put newRelativeFile into stackFileArray [newStackName]
-   set the stackfile_Array of stack projectName to stackFileArray
-   --
-   return stackFileArray
-end _RenameKnown
-
-
---> Props
--
-setprop project_Move toProjectName
-   -- moves a stack to the same relative location in a new project folder
-   -- put the stack_Name of the target into stackName
-   put the short name of the defaultStack into stackName
-   project_MoveStackRelative stackName, toProjectName
-   put the result into newPath
-   return newPath
-end project_Move
-
-getprop project_RelativeFile
-   put the stack_Name of the target into stackName
-   put the effective filename of stack stackName into sFile
-   put the project_Folder of stack stackName into pFolder
-   put file_GetRelativePath (sFile, pFolder, commonPath) into rPath
-   return rPath
-end project_RelativeFile
-
-
---> Ask
--
-command ask_CreateProjectModel projectName
-   put "Choose a name for your script only model stack...." into someQuestion
-   put "model_XXX" into suggestedAnswer
-   ask_CreateProjectStack "models", projectName, someQuestion, suggestedAnswer
-   put the result into newStackPath
-   return newStackPath
-end ask_CreateProjectModel
-
-command ask_CreateProjectStack shortFolder, projectName, pQuestion, pExample
-   -- this handler creates a script only stack in the corresponding folder of the Livecode World Library
-   if pQuestion is empty then put "Give your library a name" into pQuestion
-   if pExample is empty then put "lib_Example" into pExample
-   put lcw_Ask (pQuestion, pExample) into stackName
-   
-   put project_GetFolder (projectName) into projectFolder
-   project_CreateStack projectFolder, stackName, shortFolder
-   put the result into newStackPath
-   --
-   switch shortFolder
-      case "libraries"
-      case "models"
-         start using stack stackName
-         lcw_Notify ("Stack" && kwote (stackName) && "is now known and used!")
-         break
-   end switch
-   --
-   edit the script of stack stackName
-   return newStackPath
-end ask_CreateProjectStack
 
 
 --> Project | Rename
@@ -339,42 +326,6 @@ command project_MoveLibraryToModuleBehavior libraryStack, moduleShortFolder
    
    return newBehaviorPath
 end project_MoveLibraryToModuleBehavior
-
-private function _NewBehaviorName libraryStack
-   put the short name of libraryStack into libStackName
-   set the itemdelimiter to "_"
-   put libStackName into newBehaviorStackName
-   put "behavior" into item 1 of newBehaviorStackName
-   return newBehaviorStackName
-end _NewBehaviorName
-
-private function _BehaviorPathFromLibraryStack newBehaviorStackName, projectFolder, moduleShortFolder
-   # Work out behavior stack path
-   put newBehaviorStackName & ".livecodescript" into behaviorShortFile
-   put _ConstructModuleBehaviorPath (behaviorShortFile, moduleShortFolder, projectFolder) into moduleBehaviorPath
-   
-   # Check standard behavior folder exists
-   if item 1 of moduleBehaviorPath is "Error" then
-      return moduleBehaviorPath
-   end if
-   
-   # Check it does not already exist
-   if exists (stack moduleBehaviorPath) then
-      breakpoint
-      return merge ("Error, behavior stack '[[newBehaviorStackName]]' already exists!")
-   end if
-   return moduleBehaviorPath
-end _BehaviorPathFromLibraryStack
-
-private function _ConstructModuleBehaviorPath behaviorShortFile, moduleShortFolder, projectFolder
-   put module_GetFolder (moduleShortFolder, projectFolder) into moduleFolder
-   put folder_AddShort (moduleFolder, "behaviors") into moduleBehaviorFolder
-   if there is not a folder moduleBehaviorFolder then
-      return merge ("Error, behavior folder '[[moduleBehaviorFolder]]' does not exist!")
-   end if
-   put moduleBehaviorFolder & behaviorShortFile into moduleBehaviorPath
-   return moduleBehaviorPath
-end _ConstructModuleBehaviorPath
 
 command project_MoveStackRelative stackName, toProjectName, pRepoFolder
    -- Powerful but be careful!
@@ -642,6 +593,54 @@ end project_AddToStackFiles
 
 --> Private
 -
+private function _NewBehaviorName libraryStack
+   put the short name of libraryStack into libStackName
+   set the itemdelimiter to "_"
+   put libStackName into newBehaviorStackName
+   put "behavior" into item 1 of newBehaviorStackName
+   return newBehaviorStackName
+end _NewBehaviorName
+
+private function _BehaviorPathFromLibraryStack newBehaviorStackName, projectFolder, moduleShortFolder
+   # Work out behavior stack path
+   put newBehaviorStackName & ".livecodescript" into behaviorShortFile
+   put _ConstructModuleBehaviorPath (behaviorShortFile, moduleShortFolder, projectFolder) into moduleBehaviorPath
+   
+   # Check standard behavior folder exists
+   if item 1 of moduleBehaviorPath is "Error" then
+      return moduleBehaviorPath
+   end if
+   
+   # Check it does not already exist
+   if exists (stack moduleBehaviorPath) then
+      breakpoint
+      return merge ("Error, behavior stack '[[newBehaviorStackName]]' already exists!")
+   end if
+   return moduleBehaviorPath
+end _BehaviorPathFromLibraryStack
+
+private function _ConstructModuleBehaviorPath behaviorShortFile, moduleShortFolder, projectFolder
+   put module_GetFolder (moduleShortFolder, projectFolder) into moduleFolder
+   put folder_AddShort (moduleFolder, "behaviors") into moduleBehaviorFolder
+   if there is not a folder moduleBehaviorFolder then
+      return merge ("Error, behavior folder '[[moduleBehaviorFolder]]' does not exist!")
+   end if
+   put moduleBehaviorFolder & behaviorShortFile into moduleBehaviorPath
+   return moduleBehaviorPath
+end _ConstructModuleBehaviorPath
+
+private command _RenameKnown newStackName, oldStackName
+   put the project_Name of stack newStackName into projectName
+   put the project_RelativeFile of stack newStackName into newRelativeFile
+   --
+   put the stackfile_Array of stack projectName into stackFileArray
+   delete variable stackFileArray [oldStackName]
+   put newRelativeFile into stackFileArray [newStackName]
+   set the stackfile_Array of stack projectName to stackFileArray
+   --
+   return stackFileArray
+end _RenameKnown
+
 private command _MoveStack oldStackPath, newStackPath, pLeaveAlias
    if exists (stack newStackPath) then
       return merge ("Error, stack '[[newStackPath]]' already exists!")
