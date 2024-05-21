@@ -515,7 +515,7 @@ command stack_GetPropertArrays stackObject, @stackArray, @hArray, pLinkToViews, 
    put stackName into stackArray ["manifest"]["name"]
    put revRuggedID (stackObject) into stackArray ["manifest"]["object"]
    put the effective filename of stackObject into someFile
-   file_SetHomeRelative someFile
+   file_SetHome someFile
    put someFile into stackArray ["manifest"]["filename"]
    
    object_GetPropertyArrays stackObject, stackPropertyArray, hArray, pExportHandlers, pDontDiff, pDontExport, pForceIndexHandlerCalls
