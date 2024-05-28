@@ -105,18 +105,20 @@ function hkey_FindShortHkey shortHkey, pObject, pSearchObjects
    if char 1 of shortHkey = "P" then delete char 1 of shortHkey
    
    if exists (pObject) then
-      -- search for private handlers in pObject if it is provided
+      # Search for private handlers
       put the hkey_Either [shortHkey] of pObject into foundHkey
-      if foundHkey is not empty then return foundHkey
+      if foundHkey is not empty then
+         return foundHkey
+      end if
       
-      -- so we dont search it again later
-      line_Delete pSearchObjects, pObject
+      line_Delete pSearchObjects, pObject -- so we dont search it again later
    end if
    
-   -- now search for public handlers in pSearchObjects
+   # Search for public handlers in pSearchObjects
    repeat for each line foundObject in pSearchObjects
       if exists (foundObject) is false then next repeat
-      put the hkey_Exact [shortHkey] of foundObject into foundHkey
+      
+      put the hkey_Or [shortHkey] of foundObject into foundHkey
       if foundHkey is not empty then
          return foundHkey
       end if

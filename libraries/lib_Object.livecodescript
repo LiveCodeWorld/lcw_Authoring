@@ -1910,7 +1910,7 @@ end object_ConstructPropertiesOutline
 
 function object_OutlineFromIndex objectIndex
    local tabbedOutline
-   put numToChar(28) into pathDelim
+   put numToNativeChar (28) into pathDelim
    repeat for each line someObject in objectIndex
       put object_OutlinePath (someObject, pathDelim) into objectPath
       put outline_AddPath (objectPath, tabbedOutline, pathDelim) into tabbedOutline
@@ -1920,7 +1920,7 @@ end object_OutlineFromIndex
 
 function object_OutlinePath someObject, someDelim
    object_SetHierarchy someObject, shortObjects, longObjects, objectOutline, namePath
-   if someDelim is empty then put numToChar(28) into someDelim
+   if someDelim is empty then put numToNativeChar (28) into someDelim
    replace CR with someDelim in shortObjects
    return shortObjects
 end object_OutlinePath
