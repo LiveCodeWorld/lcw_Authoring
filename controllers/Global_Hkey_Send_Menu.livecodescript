@@ -19,6 +19,7 @@ end menu_Target
 getprop disabled_SendCommand [hKeyLine]
    hkeyLine_Deconstruct hKeyLine, hName, hType, hObject
    switch hType
+      case "C"
       case "M"
          return false
       case "PF"
@@ -33,6 +34,7 @@ getprop disabled_EvaluateFunction [hKeyLine]
    switch hType
       case "F"
          return false
+      case "C"
       case "M"
          return "delete"
       default

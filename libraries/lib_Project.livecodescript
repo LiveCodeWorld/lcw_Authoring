@@ -14,7 +14,6 @@ Here we define handlers that create projects and project specific stacks (librar
 --> Working on
 -
 
-
 --> Ask
 -
 command ask_CreateProjectModel projectName
@@ -477,7 +476,7 @@ end project_CreateStack
 
 function project_ConstructStackPath stackName, projectFolder, pShortFolder, pLibType
    if pShortFolder is empty then
-      put project_NameToShortFolder (stackName) into pShortFolder
+      put lcw_PipesToUnderscore (stackName) into pShortFolder
       put "home" into pLibType
       put "livecode" into someExtension
    else
@@ -508,33 +507,18 @@ function project_ConstructHomePath projectOrModuleFolder, pExtension
 end project_ConstructHomePath
 
 function project_ConstructShortFile stackName
-   put project_NameToShortFolder (stackName) & ".livecodescript" into stackName
+   put lcw_PipesToUnderscore (stackName) & ".livecodescript" into stackName
    return stackName
 end project_ConstructShortFile
-
-function project_NameToShortFolder moduleName
-   -- factor this out. This is only a hack for menu naming
-   set the itemdelimiter to "|"
-   repeat for each item someItem in moduleName
-      put word 1 to -1 of someItem & "_" after shortFolder
-   end repeat
-   delete char -1 of shortFolder
-   return shortFolder
-end project_NameToShortFolder
-
-function project_ShortFolderToName moduleFolderName
-   replace "_" with "|" in moduleFolderName
-   return moduleFolderName
-end project_ShortFolderToName
 
 function project_ConstructStandardFile stackName, projectFolder, pShortFolder, pExtension, pCreateFolder
    -- here we normalize short file and folder names (replace "|" with "_")
    if pExtension is empty then put "livecodescript" into pExtension
-   put project_NameToShortFolder (stackName) into shortFileBit
+   put lcw_PipesToUnderscore (stackName) into shortFileBit
    put shortFileBit & "." & pExtension into shortFile
    --
    if pShortFolder is empty then
-      put project_NameToShortFolder (pShortFolder) into pShortFolder
+      put lcw_PipesToUnderscore (pShortFolder) into pShortFolder
    end if
    put folder_AddShort (projectFolder, pShortFolder) into standardFolder
    if pCreateFolder is true then folder_CreateNested standardFolder
