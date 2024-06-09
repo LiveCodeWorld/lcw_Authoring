@@ -128,6 +128,21 @@ end object_GetGroupControls
 A lot of the handlers here should be renamed to "group_" as it is more intuitive and the name space is pretty crowded.
 */
 
+getprop group_ControlNum
+   put the long id of the target into tObject
+   put the owner of tObject into sGroup
+   if word 1 of sGroup is not "group" then return empty
+   --
+   put the short id of tObject into targetID
+   repeat with cNum = 1 to the number of controls of sGroup
+      put the short id of control cNum of sGroup into btnID
+      if btnID = targetID then
+         return cNum
+      end if
+   end repeat
+   return 0
+end group_ControlNum
+
 getprop group_Buttons
    local btnNames
    put the long id of the target into someGroup

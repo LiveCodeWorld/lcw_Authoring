@@ -11,10 +11,11 @@ version: 0.3
 -
 local LocalArray
 
+
 --> Menu | Props
 -
 getprop menu_Target [tObject]
-   return display_MenuTarget(tObject)
+   return display_MenuTarget (tObject)
    -- return the display_View of tObject
 end menu_Target
 
@@ -31,10 +32,15 @@ end disabled_EditBehavior
 --> Global | Behavior | Menu
 -
 on menu_Refresh scriptObject
-   put display_MenuDisplayView() into displayView
+   put display_View() into displayView
    put the behavior_Objects of scriptObject into bObjects
    set the displayed_Data of displayView to bObjects
 end menu_Refresh
+
+on menu_Hilite scriptObject
+   put display_View() into dView
+   set the hilited_Lines of dView to empty
+end menu_Hilite
 
 private on _
 end _

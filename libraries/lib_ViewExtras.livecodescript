@@ -908,29 +908,6 @@ command view_DoParamProp someView, publicProp, publicParam
    set the cProp of someView to publicValue
 end view_DoParamProp
 
-function view_AskPublicValue someProp, someView, pQuestion
-   if pQuestion is empty then put merge ("Change public property '[[someProp]]'?") into pQuestion
-   switch
-      case someProp contains "file"
-         answer file "Choose a file..."
-         return it
-      case someProp contains "colour" or someProp contains "color"
-         put the someProp of someView into oldColour
-         answer color with oldColour
-         return it
-      default
-         put the someProp of someView into oldValue
-         if oldValue is a boolean then
-            return oldValue
-         end if
-         
-         ask pQuestion with oldValue
-         if the result is "Cancel" then exit to top
-         put it into publicValue
-   end switch
-   return publicValue
-end view_AskPublicValue
-
 
 --> View | Hierarchy | Class
 -
