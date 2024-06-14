@@ -4,18 +4,30 @@
 license: GPLv3
 name: Global | HkeyArray | Line | Menu
 type: controller
-version: 0.1
+version: 0.2
+
+
+--> Menu | Events
+-
+command mDoubleUp_HkeyArray dView, someValue, sPath
+   if the optionKey is "Down" then breakpoint
+   --
+   switch 
+      case line 1 of sPath = "Missing"
+         --  put line 4 of sPath into hKey
+         put someValue into hKey
+         break
+      default
+         put line 3 of sPath into hKey
+   end switch
+   --
+   hkey_Edit hKey
+end mDoubleUp_HkeyArray
 
 
 --> Menu | Props
 -
 local LocalArray
-
-private command _AddGraphHeader
-   -- put graphHeader into dotText
-   line_Insert nodeSection, dotText
-   
-end _AddGraphHeader
 
 private command _SetArrays dView, @hkeyArray, @depKey
    put the displayed_HkeyArray of dView into hkeyArray
@@ -36,7 +48,7 @@ on menu_CreateSvgGraph dView
    --
    put adata_GetMarkovArray (depKey, hkeyArray) into markovArray
    
-   graph_CreateScriptObjectHkeyArray markovArray, scriptObject, "fast undirected spring"
+   graph_CreateFromScriptHkeyArray markovArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    
    display_SVG imageFile, scriptObject
@@ -84,10 +96,8 @@ on menu_SimpleGraph dView
    -- display_Text dotText
 end menu_SimpleGraph
 
-
---> Deev | Menu
--
 on menu_CollectPrivateHandlers scriptObject
+   breakpoint
    put LocalArray ["arrayVew"] into arrayVew
    put the diplayed_Array of arrayVew into objectHkeyArray
    put the selected_Path of arrayVew into pathItems

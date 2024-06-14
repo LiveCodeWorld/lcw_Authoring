@@ -130,7 +130,7 @@ on menu_CreateSvgGraph sObject, graphStyle
    put LocalArray ["hkeyArray"] into hkeyArray
    put LocalArray ["dView"] into dView
    
-   graph_CreateScriptObjectHkeyArray hKeyArray, sObject, graphStyle
+   graph_CreateFromScriptHkeyArray hKeyArray, sObject, graphStyle
    put the result into svgFile
    --
    put the title_Text of dView into stackLabel

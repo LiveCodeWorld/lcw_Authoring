@@ -578,7 +578,7 @@ end displayed_ImageFile
 
 function hkey_ProjectImageFile hKey, pOverlayName
    -- could be "project_HkeyImageFile"
-   -- see "script_GraphImageFile" "scriptObject_ImageFile"
+   -- see "script_GraphImageFile" "scriptFile_ConstructImage"
    put project_HandlerMetadataFolder (hKey, true) into overlayFolder
    put overlay_GetImageFile (overlayFolder, pOverlayName) into imageFile
    return imageFile

@@ -27,15 +27,15 @@ getprop menu_Target [tObject]
    put the display_View of tObject into displayView
    put displayView into LocalArray ["displayView"]
    --
-   -- put the displayed_Object of displayView into hObject
    put the displayed_Hkey of displayView into hKey
-   -- put the title_Text of displayView into hKey
+   --
+   put the displayed_Data of displayView into hkeyArray
+   put hkeyArray into LocalArray ["hkeyArray"]
+   
    hkeyLine_Deconstruct hKey, hName, hType, hObject
    put the overlay_Folder of hObject into overlayFolder
-   put the displayed_Data of displayView into hkeyArray
-   --
-   put hkeyArray into LocalArray ["hkeyArray"]
    put overlayFolder into LocalArray ["overlayFolder"]
+   
    put hKey into LocalArray ["hKey"]
    put hObject into LocalArray ["scriptObject"]
    --

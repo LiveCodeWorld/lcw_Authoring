@@ -16,6 +16,8 @@ and they may want to be examined before they are saved!
 -
 local LocalArray
 
+--> Menu | Props
+-
 on menu_Init tObject
    put the tree_View of tObject into treeView
    put treeView into LocalArray ["tree_View"]
@@ -25,11 +27,75 @@ on menu_Init tObject
    put displayedArray ["Handlers"] into LocalArray ["hkeyShortArray"]
 end menu_Init
 
+function script_ListComponentObjects
+   -- stub for now
+   put the name of stack "View|Menu|Button" into componentObjects
+   put CR & the behavior of stack "View|Menu|Button" after componentObjects
+   return componentObjects
+end script_ListComponentObjects
+
+function stack_ListUsed
+   put the stacksinuse into stackNames
+   repeat for each line stackName in stackNames
+      put the name of stack stackName & CR after stackObjects
+   end repeat
+   delete char -1 of stackObjects
+   return stackObjects
+end stack_ListUsed
+
 command _DisplaySVG imageFile, scriptObject
    display_SVG imageFile, scriptObject
    put the result into displayView
    set the displayed_Object of displayView to scriptObject
 end _DisplaySVG
+
+getprop call_ProjectNames [treeView]
+   put LocalArray ["tree_View"] into treeView
+   
+   put the displayed_Array of treeView into  displayedArray
+   put displayedArray ["Calls"] into callProjectArray
+   return keys (callProjectArray)
+end call_ProjectNames
+
+getprop new_ProjectName [treeView]
+   put the displayed_Object of treeView into stackObject
+   put the project_Name of stackObject into projectName
+   return projectName
+end new_ProjectName
+
+getprop new_ProjectNames
+   return library_ListProjectNames()
+end new_ProjectNames
+
+getprop active_Projects
+   put env_ListProjects() into activeProjects
+end active_Projects
+
+getprop include_HandlersFrom
+   lock messages
+   put the include_HandlersFrom of me into includeHandlersFrom
+   unlock messages
+   if includeHandlersFrom is empty then return "stack"
+   return includeHandlersFrom
+end include_HandlersFrom
+
+setprop include_HandlersFrom includeHandlersFrom
+   lock messages
+   set the include_HandlersFrom of me to includeHandlersFrom
+   unlock messages
+end include_HandlersFrom
+
+getprop include_HandlersFroms
+   get "none,-,stack,application,development,-,full"
+   replace comma with CR in it
+   return it
+end include_HandlersFroms
+
+getprop disabled_CreateLongHkeyArray [treeView]
+   put the displayed_Hkey of treeView into hKey
+   return hKey is empty
+end disabled_CreateLongHkeyArray
+
 
 
 --> Global | HkeyArray | Tree | Deps | Menu
@@ -92,7 +158,7 @@ end _
 on menu_ExternalCallGraph scriptObject
    put LocalArray ["hkeyShortArray"] into hkeyShortArray
    --
-   graph_CreateScriptObjectHkeyArray hkeyShortArray, scriptObject, "fast undirected spring"
+   graph_CreateFromScriptHkeyArray hkeyShortArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    _DisplaySVG imageFile, scriptObject
 end menu_ExternalCallGraph
@@ -101,19 +167,10 @@ on menu_ObjectDependencyGraph scriptObject
    put LocalArray ["hkeyShortArray"] into hkeyShortArray
    put hkeyArray_ShortToLong (hkeyShortArray) into hKeyArray
    --
-   graph_CreateScriptObjectHkeyArray hKeyArray, scriptObject, "fast undirected spring"
+   graph_CreateFromScriptHkeyArray hKeyArray, scriptObject, "fast undirected spring"
    put the result into imageFile
    _DisplaySVG imageFile, scriptObject
 end menu_ObjectDependencyGraph
-
-function stack_ListUsed
-   put the stacksinuse into stackNames
-   repeat for each line stackName in stackNames
-      put the name of stack stackName & CR after stackObjects
-   end repeat
-   delete char -1 of stackObjects
-   return stackObjects
-end stack_ListUsed
 
 on _
 end _
@@ -199,61 +256,8 @@ on _
 end _
 
 on submenu_Dev
-   return "Dev | Menu"
+   return menu_DevTitle ("Global | HkeyArray | Tree | Deps | Menu")
 end submenu_Dev
-
-
---> HkeyArray | Tree | Deps | Menu | Props
--
-getprop call_ProjectNames [treeView]
-   put LocalArray ["tree_View"] into treeView
-   
-   put the displayed_Array of treeView into  displayedArray
-   put displayedArray ["Calls"] into callProjectArray
-   return keys (callProjectArray)
-end call_ProjectNames
-
-getprop new_ProjectName [treeView]
-   put the displayed_Object of treeView into stackObject
-   put the project_Name of stackObject into projectName
-   return projectName
-end new_ProjectName
-
-getprop new_ProjectNames
-   return library_ListProjectNames()
-end new_ProjectNames
-
-getprop active_Projects
-   put env_ListProjects() into activeProjects
-end active_Projects
-
-getprop include_HandlersFrom
-   lock messages
-   put the include_HandlersFrom of me into includeHandlersFrom
-   unlock messages
-   if includeHandlersFrom is empty then return "stack"
-   return includeHandlersFrom
-end include_HandlersFrom
-
-setprop include_HandlersFrom includeHandlersFrom
-   lock messages
-   set the include_HandlersFrom of me to includeHandlersFrom
-   unlock messages
-end include_HandlersFrom
-
-getprop include_HandlersFroms
-   get "none,-,stack,application,development,-,full"
-   replace comma with CR in it
-   return it
-end include_HandlersFroms
-
-
---> HkeyArray | Tree | Deps | Menu | Disabled
--
-getprop disabled_CreateLongHkeyArray [treeView]
-   put the displayed_Hkey of treeView into hKey
-   return hKey is empty
-end disabled_CreateLongHkeyArray
 
 
 --> Dev | Menu
@@ -313,13 +317,3 @@ on menu_ConstructMenuLibraryHandlers treeView
    display_HkeyArrayDependencyScript hkeyArray, scriptObject, false, stripProps
    put the result into missingKeys
 end menu_ConstructMenuLibraryHandlers
-
-
---> Deps
--
-function script_ListComponentObjects
-   -- stub for now
-   put the name of stack "View|Menu|Button" into componentObjects
-   put CR & the behavior of stack "View|Menu|Button" after componentObjects
-   return componentObjects
-end script_ListComponentObjects

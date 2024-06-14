@@ -613,7 +613,20 @@ command text_StripReg @wikiText, someReg, pReplaceText
    return stripResultArray
 end text_StripReg
 
+command text_AddTrailing @someText, someChar
+   if char -1 of someText is not someChar then
+      put someChar after someText
+   end if
+end text_AddTrailing
+
+command text_TopAndTail @someText, pChar
+   if pChar is empty then put quote into pChar
+   if char 1 of someText is pChar then delete char 1 of someText
+   if char -1 of someText is pChar then delete char -1 of someText
+end text_TopAndTail
+
 command text_StipQuoted @someText
+   -- see "text_TopAndTail"
    put "(" & quote & "[^" & quote & "]*" & quote & ")" into quoteReg
    text_StripReg someText, quoteReg, "•••"
 end text_StipQuoted
@@ -815,17 +828,6 @@ function line_BeginsWith startLineChars, someLines, pLinesToSkip
    end if
 end line_BeginsWith
    
-command text_TopAndTail @someText, someChar
-   if char 1 of someText is someChar then delete char 1 of someText
-   if char -1 of someText is someChar then delete char -1 of someText
-end text_TopAndTail
-
-command text_AddTrailing @someText, someChar
-   if char -1 of someText is not someChar then
-      put someChar after someText
-   end if
-end text_AddTrailing
-
 function date_ConstructWc3Datetime someDate
    -- extended is true:  1981-04-05T14:30:30-05:00
    put date_Construct8601 (someDate, true, true) into someDate

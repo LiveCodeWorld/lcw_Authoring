@@ -1,10 +1,11 @@
-﻿script "Global_Stack_Menu"
+﻿script "Global | Stack | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_Stack_Menu
+name: Global | Stack | Menu
 type: controller
 version: 0.3
+
 
 --> Variables
 -
@@ -14,195 +15,35 @@ local LocalArray
 Some basic tools for manipulating stacks, and windows. 
 */
 
---> Currently working On
+--> Menu | Props
 -
+getprop menu_Target [tObject]
+   put the displayed_Object of tObject into sObject
+   put the stack_Object of sObject into stackObject
+   return stackObject
+end menu_Target
 
---> Global | Stack | Menu
--
-on menu_TextstackHkeyObjectArray scriptObject
-   put the stack_Object of scriptObject into stackObject
-   put the textstack_HkeyObjectArray of stackObject into depObjectArray
-   display_Array depObjectArray
-end menu_TextstackHkeyObjectArray
+getprop menu_CheckTarget [stackObject]
+   return exists (stackObject)
+end menu_CheckTarget
 
-on menu_ScriptLibraryDependencies scriptObject
-   put the stack_Object of scriptObject into stackObject
-   put the script_DepLibs of stackObject -- into dependencyStacks
-end menu_ScriptLibraryDependencies
-
-on menu_StackProperties scriptObject
-   revIDEInspectObjects scriptObject
-end menu_StackProperties
-         
-on _
-end _
-
-on menu_EditOpenStack scriptObject, openStackName
-   put the name of stack openStackName into stackObject
-   display_ObjectProperties stackObject
-   edit the script of stack openStackName
-end menu_EditOpenStack
-
-on menu_StackIsUsed stackObject, someBoolean
-   if someBoolean is true then
-      start using stackObject 
-   else
-      stop using stackObject
-   end if
-end menu_StackIsUsed
-
-on _
-end _
-
-on menu_GatherStacks
-   screen_GatherStacks
-end menu_GatherStacks
-
-on menu_PlaceOnScreen scriptObject, whichScreen
-   put the stack_Name of scriptObject into stackName
-   put system_GetScreenRect (whichScreen) into pScreenRect
-   stack_SetToMainScreen stackName, pScreenRect
-end menu_PlaceOnScreen
-
-on menu_PlaceOnMainScreen mTarget, openStackName
-   switch openStackName
-      case "LiveCode Dictionary"
-         stack_SetToMainScreen "revDictionary"
-         go to stack "revDictionary"
-         break
-      case "Script Editors"
-         put the openstacks into stackNames
-         filter stackNames with "revNewScriptEditor *"
-         repeat for each line stackName in stackNames
-            stack_SetToMainScreen stackName
-         end repeat
-         break
-      case "All open stacks"
-         put the openstacks into stackNames
-         stack_SetToMainScreen stackNames
-         break
-      default
-         stack_SetToMainScreen openStackName
-         show stack openStackName
-   end switch
-end menu_PlaceOnMainScreen
-
-on _
-end _
-
-on menu_RevealStack mTarget
-   put the stack_Name of mTarget into stackName
-   stack_RevealInFinder stackName
-end menu_RevealStack
-
-on menu_Shrink scriptObject
-   if the shiftKey is down then
-      put lcw_Ask ("What scalefactor do you want to use?", 0.75) into someFactor
-   else
-      put 0.75 into someFactor
-   end if
-   stack_Shrink scriptObject, someFactor
-end menu_Shrink
-
-on menu_Unshrink scriptObject
-   if the shiftKey is down then
-      put the stack_Name of scriptObject into stackName
-      put the scalefactor of stack stackName into oFactor
-      put lcw_Ask ("What scalefactor do you want to use?", oFactor) into someFactor
-   else
-      put 1 into someFactor
-   end if
-   stack_Shrink scriptObject, someFactor
-end menu_Unshrink
-
-on _
-end _
-
-on menu_StackStyle scriptObject, stackStyle
-   put the stack_Object of scriptObject into stackObject
-   set the style of stackObject to stackStyle
-end menu_StackStyle
-
-on menu_StackResizable scriptObject, someBoolean
-   put the stack_Object of scriptObject into stackObject
-   set the resizable of stackObject to someBoolean
-end menu_StackResizable
-
-on menu_StackTitleStyle scriptObject, stackTitleStyle
-   put the stack_Object of scriptObject into stackObject
-   set the stack_TitleStyle of stackObject to stackTitleStyle
-end menu_StackTitleStyle
-
-on _
-end _
-
-on submenu_ViewSnapshot
-   return "Global | View | Wireframe | Menu"
-end submenu_ViewSnapshot
-
-on submenu_Snapshot
-   return "Global | Stack | Snapshot | Menu"
-end submenu_Snapshot
-
-on submenu_Tidy
-   return "Global | Stack | Tidy | Menu"
-end submenu_Tidy
-
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
-
-
---> Global | Stack | Menu | Props
--
-getprop stack_IsUsed [stackObject]
-   put the short name of stackObject into stackName
-   put stackName is among the lines of the stacksinuse into someBoolean
-   return someBoolean
-end stack_IsUsed
-
-getprop which_Screens
-   put system_ListScreenNames() into screenNames
-   return screenNames
-end which_Screens
-
-getprop record_Card
-   return LocalArray ["isRecoring"] is true
-end record_Card
-
-getprop stack_Resizable [scriptObject]
-   put the stack_Object of scriptObject into stackObject
-   put the resizable of stackObject into someBoolean
-   return someBoolean
-end stack_Resizable
-
-getprop open_StackName [mTarget]
-   put the stack_Name of mTarget into openStackName
+getprop editOpenStack_Param [stackObject]
+   put the stack_Name of stackObject into openStackName
    return openStackName
-end open_StackName
+end editOpenStack_Param
 
-getprop open_StackNames [mTarget]
+getprop editOpenStack_Params
    put the openstacks into stackNames
    -- filter stackNames without "rev*"
    sort stackNames
    return stackNames
-end open_StackNames
-
-getprop stack_Style [mTarget]
-   if exists(mTarget) is false then return empty
-   put the stack_Object of mTarget into stackObject
-   return the style of stackObject
-end stack_Style
-
-getprop stack_Styles
-   return "topLevel,modeless,modal,palette"
-end stack_Styles
+end editOpenStack_Params
 
 
---> Global | Stack | Menu | Disabled
+--> Old
 -
-getprop disabled_Shrink [scriptObject]
-   put the stack_Name of scriptObject into stackName
+getprop disabled_Shrink [sObject]
+   put the stack_Name of sObject into stackName
    put the scaleFactor of stack stackName into someFactor
    if someFactor = 1 then
       return false
@@ -211,10 +52,10 @@ getprop disabled_Shrink [scriptObject]
    end if
 end disabled_Shrink
 
-getprop disabled_UnShrink [scriptObject]
-   put the stack_Name of scriptObject into stackName
+getprop disabled_UnShrink [sObject]
+   put the stack_Name of sObject into stackName
    put the scaleFactor of stack stackName into someFactor
-     if someFactor = 1 then
+   if someFactor = 1 then
       return "delete"
    else
       return false
@@ -222,10 +63,114 @@ getprop disabled_UnShrink [scriptObject]
 end disabled_UnShrink
 
 
---> Dev | Menu
+--> Global | Stack | Menu
 -
-on menu_GoToStack scriptObject
-   put the stack_Object of scriptObject into stackObject
-   go to stackObject
-   if the result is not empty then beep
-end menu_GoToStack
+on menu_SaveStack stackObject
+   put the stack_Name of stackObject into sName
+   --
+   ide_SaveStack sName
+end menu_SaveStack
+
+on menu_StackProperties stackObject
+   revIDEInspectObjects stackObject
+end menu_StackProperties
+
+private command _
+end _
+
+on menu_EditOpenStack stackObject, openStackName
+   put the name of stack openStackName into oStackObject
+   --
+   display_ObjectProperties oStackObject
+   edit the script of stack openStackName
+end menu_EditOpenStack
+
+on menu_StackIsUsed stackObject
+   if _IsUsed (stackObject) is false then
+      start using stackObject 
+   else
+      stop using stackObject
+   end if
+end menu_StackIsUsed
+
+getprop checked_StackIsUsed [stackObject]
+   return _IsUsed (stackObject)
+end checked_StackIsUsed
+
+private function _IsUsed stackObject
+   put the stack_Name of stackObject into stackName
+   set the wholematches to true 
+   return stackName is among the lines of the stacksinuse 
+end _IsUsed
+
+private command __
+end __
+
+on menu_GatherStacks
+   screen_GatherStacks
+end menu_GatherStacks
+
+on menu_PlaceOnScreen stackObject, whichScreen
+   put the stack_Name of stackObject into stackName
+   put system_GetScreenRect (whichScreen) into pScreenRect
+   stack_SetToMainScreen stackName, pScreenRect
+end menu_PlaceOnScreen
+
+getprop placeOnScreen_Params
+   put system_ListScreenNames() into screenNames
+   return screenNames
+end placeOnScreen_Params
+
+private command ___
+end ___
+
+on menu_RevealStack stackObject
+   put the stack_Name of stackObject into stackName
+   stack_RevealInFinder stackName
+end menu_RevealStack
+
+on menu_StackStyle stackObject, stackStyle
+   set the style of stackObject to stackStyle
+end menu_StackStyle
+
+getprop stackStyle_Param [stackObject]
+   if exists (stackObject) is false then return empty
+   return the style of stackObject
+end stackStyle_Param
+
+getprop stackStyle_Params
+   return "topLevel,modeless,modal,palette"
+end stackStyle_Params
+
+on menu_StackTitleStyle stackObject, stackTitleStyle
+   set the stack_TitleStyle of stackObject to stackTitleStyle
+end menu_StackTitleStyle
+
+getprop stackTitleStyle_Param [stackObject]
+   return the stack_TitleStyle of stackObject
+end stackTitleStyle_Param
+
+getprop stackTitleStyle_Params [stackObject]
+   return the stack_TitleStyles of stackObject
+end stackTitleStyle_Params
+
+on menu_StackResizable stackObject
+   put the resizable of stackObject into sBoolean
+   set the resizable of stackObject to (sBoolean is false)
+end menu_StackResizable
+
+getprop checked_StackResizable [stackObject]
+   put the resizable of stackObject into sBoolean
+   return sBoolean
+end checked_StackResizable
+
+private on ____
+end ____
+
+on submenu_Dev
+   return menu_DevTitle ("Global | Stack | Menu")
+end submenu_Dev
+
+-- on submenu_Tidy
+return "Global | Stack | Tidy | Menu"
+end submenu_Tidy
