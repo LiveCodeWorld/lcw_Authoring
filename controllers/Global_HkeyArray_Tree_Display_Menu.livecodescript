@@ -38,7 +38,7 @@ on menu_DisplayDependencies treeView
    put the displayed_Array of treeView into hKeyArray
    put the displayed_Object of treeView into scriptObject
    
-   put array_AllNodes (hkeyArray) into allCalls
+   put array_ListKeys (hkeyArray) into allCalls
    put the rugged_ID of scriptObject into scriptObject
    filter allCalls without ("*," & scriptObject & ",*")
    sort allCalls by item 1 of each
@@ -90,7 +90,7 @@ setprop display_Style [treeView] someStyle
          break
       case "index"
          -- set the title_Text of treeView to hKey
-         put array_AllNodes (hkeyArray) into allCalls
+         put array_ListKeys (hkeyArray) into allCalls
          sort allCalls by item 1 of each
          set the tree_Outline of treeView to allCalls
          break

@@ -44,23 +44,6 @@ function directory_ListNestedStackFiles someFolder
    return sFiles
 end directory_ListNestedStackFiles
 
-function directory_ListNestedPaths someFolder, pSetRelative
-   local NestedPaths
-   if there is not a folder someFolder then return empty
-   
-   # Walk
-   set the itemdelimiter to slash
-   text_AddTrailing someFolder, slash
-   if pSetRelative is true then
-      put the number of items of someFolder into baseFolderNum
-      _WalkAndList NestedPaths, someFolder, baseFolderNum
-   else
-      _WalkAndList NestedPaths, someFolder, baseFolderNum
-   end if
-   delete char -1 of NestedPaths
-   return NestedPaths
-end directory_ListNestedPaths
-
 
 --> Directory | Array
 -

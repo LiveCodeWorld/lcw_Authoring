@@ -17,6 +17,293 @@ See also hkey_GetPlace(hTableLine) in model_Place for memory resident array sear
 Consider using a database.
 */
 
+--> Working on
+-
+getprop walk_Hierarchy
+   put the long id of the target into tObject
+   put revRuggedID (tObject) into tObject
+   --
+   if the module_Name of the target is empty then
+      put hierarchy_Construct (tObject) into walkHierarchy
+      hierarchy_AddEnv walkHierarchy
+   else
+      put the module_BehaviorHierarchy of tObject into walkHierarchy
+   end if
+   return walkHierarchy
+end walk_Hierarchy
+
+getprop hierarchy_ObjectAndBehaviors [pPretty]
+   local objectHierarchy
+   put pPretty is not false into pPretty
+   put the long id of the target into tObject
+   
+   _AddObjectAndBehaviors objectHierarchy, tObject, pPretty
+   return word 1 to -1 of objectHierarchy
+end hierarchy_ObjectAndBehaviors
+
+function hierarchy_Construct tObject, pPretty
+   -- was "object_GetHierarchy"
+   local objectHierarchy
+   put the long id of tObject into tObject
+   put pPretty is not false into pPretty
+   
+   put the hierarchy_ObjectAndBehaviors [pPretty] of tObject into objectHierarchy
+   hierachy_AddEverything objectHierarchy, tObject, pPretty
+   return word 1 to -1 of objectHierarchy
+end hierarchy_Construct
+
+private command hierachy_AddEverything @objectHierarchy, tObject, pPretty
+   if exists (tObject) is false then return false
+   put tObject into objectOwner
+   put empty into skipThisBackgroundID
+   
+   repeat
+      switch word 1 of objectOwner
+         case "stack"
+            -- previously added a stack, check if it was a substack
+            put objectOwner into stackObject
+            put the owner of stackObject into mainStackObject
+            if exists (mainStackObject) then
+               _AddObjectAndBehaviors objectHierarchy, mainStackObject, pPretty
+            end if
+            
+            delete word 1 to 3 of objectOwner
+            if exists (objectOwner) is false then exit repeat
+            break
+         case "card"
+            -- previously added a card, so check for backgrounds
+            put objectOwner into cardObject
+            put the backgroundIDs of cardObject into bgIDs
+            -- need to add in reverse to mirror message path
+            repeat with bgNum = the number of lines of bgIDs down to 1
+               put line bgNum of bgIDs into someID
+               if someID = skipThisBackgroundID then next repeat
+               put the long ID of bg ID someID of cardObject into backgroundObject
+               _AddObjectAndBehaviors objectHierarchy, backgroundObject
+            end repeat
+            
+            # Above a card must be a stack
+            put objectOwner into stackObject
+            delete word 1 to 4 of stackObject
+            _AddObjectAndBehaviors objectHierarchy, stackObject
+            
+            exit repeat
+            break
+         case "group"
+            -- previously added a group, check to see if was a bg
+            if the backgroundbehavior of objectOwner is true then
+               -- will need to skip it's own "card" background
+               put the short ID of objectOwner into skipThisBackgroundID
+            end if
+            --
+            delete word 1 to 4 of objectOwner
+            if exists (objectOwner) is false then exit repeat
+            --
+            _AddObjectAndBehaviors objectHierarchy, objectOwner
+            break
+         default
+            -- previously added a normal control
+            delete word 1 to 4 of objectOwner
+            if exists (objectOwner) is false then exit repeat
+            --
+            _AddObjectAndBehaviors objectHierarchy, objectOwner
+      end switch
+   end repeat
+   put word 1 to -1 of objectHierarchy into objectHierarchy
+   return true
+end hierachy_AddEverything
+
+private command _AddObjectAndBehaviors @objectHierarchy, tObject, pPretty
+   if exists (tObject) is false then return empty
+   
+   if pPretty is not false then
+      -- put the long id of tObject into tObject
+      put CR & the name of tObject after objectHierarchy
+   else
+      put CR & revRuggedId (tObject) after objectHierarchy
+   end if
+   
+   put the behavior_Objects of tObject into bObjects
+   if bObjects is empty then return false
+   put CR & bObjects after objectHierarchy
+   return true
+end _AddObjectAndBehaviors
+
+getprop module_Hierarchy [fromFolder]
+   local oHierarchy, bHierarchy
+   --
+   put the module_Name of the target into moduleName
+   if moduleName is empty then return empty
+   put view_GetTemplateObject (moduleName) into mObject
+   
+   # Behaviors and object hieararchy
+   if fromFolder is not false then
+      put the module_Behaviors of mObject into oHierarchy
+   else
+      put the behavior_Objects of mObject into oHierarchy
+   end if
+   
+   put word 1 to -1 of oHierarchy into oHierarchy
+   
+   # Rest of object hierarchy
+   hierachy_AddEverything bHierarchy, mObject
+   put oHierarchy & CR & word 1 to -1 of bHierarchy into moduleHierarchy
+   --
+   return moduleHierarchy
+end module_Hierarchy
+
+getprop module_BehaviorHierarchy [fromFolder]
+   local oHierarchy, bHierarchy
+   put the long id of the target into tObject
+   put revRuggedId (tObject) into rObject
+   --
+   put the module_Name of tObject into moduleName
+   put view_GetTemplateObject (moduleName) into mObject
+   
+   # Behaviors and object hieararchy
+   if fromFolder is not false then
+      put the module_Behaviors of mObject into oHierarchy
+   else
+      put the behavior_Objects of mObject into oHierarchy
+   end if
+   --
+   line_Delete rObject, oHierarchy
+   put rObject & CR before oHierarchy
+   put word 1 to -1 of oHierarchy into oHierarchy
+   
+   # Rest of object hierarchy
+   hierachy_AddEverything bHierarchy, mObject
+   put oHierarchy & CR & word 1 to -1 of bHierarchy into walkHierarchy
+   
+   # Is this missing stack object?
+   
+   # Add Env hierarchy
+   hierarchy_AddEnv walkHierarchy
+   return walkHierarchy
+end module_BehaviorHierarchy
+
+command hierarchy_AddEnv @objectHierarchy
+   put env_ScriptHierarchy (true) into externalObjects
+   if externalObjects is empty then return false
+   
+   set the wholematches to true
+   repeat for each line sObject in objectHierarchy
+      put lineOffset (sObject, externalObjects) into lineNum
+      delete line lineNum of externalObjects
+   end repeat
+   if externalObjects is empty then return false
+   
+   put CR & word 1 to -1 of externalObjects after objectHierarchy
+   put word 1 to -1 of objectHierarchy into objectHierarchy
+   return true
+end hierarchy_AddEnv
+
+getprop hkey_FindAll [shortHkey]
+   if the module_Name of the target is empty then
+      put the walk_Hierarchy of the target into sObjects
+   else
+      put the module_BehaviorHierarchy [true] of the target into sObjects
+   end if
+   
+   # Search for Private and public handlers
+   repeat for each line foundObject in sObjects
+      if exists (foundObject) is false then next repeat
+      
+      put the hkey_Either [shortHkey] of foundObject into foundHkey
+      if foundHkey is not empty then
+         put foundHkey & CR after foundHkeys
+      end if
+   end repeat
+   delete char -1 of foundHkeys
+   return foundHkeys  
+end hkey_FindAll
+
+getprop found_Hkey [shortHkey]
+   # Private and non-private handlers in targetObject
+   -- and non-private handlers in hkey_ScriptHierarchy
+   put the long id of the target into tObject
+   --
+   put the walk_Hierarchy of tObject into searchObjects
+   put hkey_FindShortHkey (shortHkey, tObject, searchObjects) into foundHkey
+   return foundHkey
+end found_Hkey
+
+getprop found_HandlerLine [shortHkey]
+   put the long id of the target into targetObject
+   put true into matchPrivate
+   put stack_PathsToObjects (the stacksinUse) into externalObjects
+   put hkey_FindHandlerLine (shortHkey, targetObject, externalObjects, matchPrivate) into hLine
+   return hLine
+end found_HandlerLine
+
+function hkey_FindShortHkey shortHkey, pObject, pSearchObjects
+   put word 1 to 2 of shortHkey into shortHkey
+   
+   # Make shortHkey public
+   if char 1 of shortHkey = "P" then delete char 1 of shortHkey
+   
+   if exists (pObject) then
+      # Search for private handlers
+      put the hkey_Either [shortHkey] of pObject into foundHkey
+      if foundHkey is not empty then
+         return foundHkey
+      end if
+      line_Delete pSearchObjects, pObject -- so we dont search it again later
+   end if
+   
+   # Search for public handlers in pSearchObjects
+   repeat for each line foundObject in pSearchObjects
+      if exists (foundObject) is false then next repeat
+      
+      put the hkey_Or [shortHkey] of foundObject into foundHkey
+      if foundHkey is not empty then
+         return foundHkey
+      end if
+   end repeat
+   return empty  
+end hkey_FindShortHkey
+
+function hkey_Find hKey, pSearchObjects
+   hkeyLine_Deconstruct hKey, hName, hType, hObject
+   put the result into shortHkey
+   
+   if pSearchObjects is empty then
+      if exists (hObject) then
+         put the walk_Hierarchy of hObject into pSearchObjects
+      else
+         put env_ScriptHierarchy (true) into pSearchObjects
+      end if
+   end if
+   --
+   put hkey_FindShortHkey (shortHkey, hObject, pSearchObjects) into foundHkey
+   return foundHkey
+end hkey_Find
+
+function hkey_FindPublicOrPrivate shortHkey, pSearchObjects
+   # Search for public handlers in pSearchObjects
+   repeat for each line foundObject in pSearchObjects
+      if exists (foundObject) is false then next repeat
+      
+      put the hkey_Either [shortHkey] of foundObject into foundHkey
+      if foundHkey is not empty then
+         return foundHkey
+      end if
+   end repeat
+   return empty 
+end hkey_FindPublicOrPrivate
+
+function hkey_ListShort hKeys
+   -- unique short hkeys
+   repeat for each line hKey in hKeys
+      put word 1 to 2 of hKey into shortHkey
+      put empty into shortArray [shortHkey]
+   end repeat
+   put keys (shortArray) into shortHkeys
+   sort shortHkeys
+   return shortHkeys
+end hkey_ListShort
+
+              
 --> Display | Find
 -
 command ask_FindHkey pShortHkey
@@ -60,72 +347,9 @@ getprop hkey_StartLine [hkeyLine]
    return 0
 end hkey_StartLine
 
-getprop found_HandlerLine [shortHkey]
-   put the long id of the target into targetObject
-   put true into matchPrivate
-   put stack_PathsToObjects (the stacksinUse) into externalObjects
-   put hkey_FindHandlerLine (shortHkey, targetObject, externalObjects, matchPrivate) into hLine
-   return hLine
-end found_HandlerLine
-
-getprop found_Hkey [shortHkey]
-   -- finds private and non-private handlers in targetObject
-   -- and non-private handlers in hkey_ScriptHierarchy
-   put the long id of the target into tObject
-   --
-   -- put the hkey_ScriptHierarchy of tObject into searchObjects
-   put the walk_Hierarchy of tObject into searchObjects
-   put hkey_FindShortHkey (shortHkey, tObject, searchObjects) into foundHkey
-   return foundHkey
-end found_Hkey
-
 
 --> Hkey | Find
 -
-function hkey_Find hKey, pSearchObjects
-   hkeyLine_Deconstruct hKey, hName, hType, hObject
-   put the result into shortHkey
-   
-   if pSearchObjects is empty then
-      if exists (hObject) then
-         put the walk_Hierarchy of hObject into pSearchObjects
-      else
-         put env_ScriptHierarchy (true) into pSearchObjects
-      end if
-   end if
-   --
-   put hkey_FindShortHkey (shortHkey, hObject, pSearchObjects) into foundHkey
-   return foundHkey
-end hkey_Find
-
-function hkey_FindShortHkey shortHkey, pObject, pSearchObjects
-   put word 1 to 2 of shortHkey into shortHkey
-   
-   -- let's make shortHkey public
-   if char 1 of shortHkey = "P" then delete char 1 of shortHkey
-   
-   if exists (pObject) then
-      # Search for private handlers
-      put the hkey_Either [shortHkey] of pObject into foundHkey
-      if foundHkey is not empty then
-         return foundHkey
-      end if
-      
-      line_Delete pSearchObjects, pObject -- so we dont search it again later
-   end if
-   
-   # Search for public handlers in pSearchObjects
-   repeat for each line foundObject in pSearchObjects
-      if exists (foundObject) is false then next repeat
-      
-      put the hkey_Or [shortHkey] of foundObject into foundHkey
-      if foundHkey is not empty then
-         return foundHkey
-      end if
-   end repeat
-   return empty  
-end hkey_FindShortHkey
-
 function hkey_PublicFind shortHKey, pSearchObjectHierarchy
    if pSearchObjectHierarchy is empty then
       -- put stack_PathsToObjects (the stacksinUse) into pSearchObjectHierarchy

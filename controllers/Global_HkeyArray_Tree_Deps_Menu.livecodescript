@@ -283,7 +283,7 @@ end set_Names
 on menu_DisplayCollectedDependencies treeView
    put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
    put dependencyWalkArray ["hKeyArray"] into dependencyHkeyArray
-   put array_AllNodes (dependencyHkeyArray) into allDeps
+   put array_ListKeys (dependencyHkeyArray) into allDeps
    
    put the displayed_Object of treeView into mainStackObject
    put "Nested Deps for" && mainStackObject into someTitle

@@ -76,7 +76,7 @@ end menu_RemoveObjectLinks
 on menu_CheckNestedDeps treeView
    put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
    
-   put array_AllNodes (dependencyWalkArray) into allDeps
+   put array_ListKeys (dependencyWalkArray) into allDeps
    put hkey_ConstructShortKeyArray (allDeps) into depShortHkeyArray
    
    put _HkeysInMainstack (treeView) into mainStackHkeys
@@ -101,7 +101,7 @@ on menu_ConstructNestedDependencies treeView
    set the displayed_DependencyWalkArray of treeView to dependencyWalkArray
    
    put dependencyWalkArray ["hKeyArray"] into dependencyHkeyArray
-   put array_AllNodes (dependencyHkeyArray) into allDeps
+   put array_ListKeys (dependencyHkeyArray) into allDeps
    
    put the displayed_Object of treeView into mainStackObject
    put "Nested Deps for" && mainStackObject into someTitle
@@ -115,7 +115,7 @@ on menu_FilterDependencies treeView
    put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
    put dependencyWalkArray ["hkeyArray"] into hkeyArray
    hArray_FilterHkeyArray hkeyArray
-   put array_AllNodes (hKeyArray) into hKeys
+   put array_ListKeys (hKeyArray) into hKeys
    sort hKeys by item 1 of each
    
    -- _DisplayArray treeView, hkeyArray, "Filtered dependencyHkeyArray", 1
@@ -133,7 +133,7 @@ end submenu_Dev
 -
 on menu_CheckAllKeyArray treeView
    put the displayed_Array of treeView into hkeyArray
-   put array_AllNodes (hkeyArray) = keys (hkeyArray) into someBoolean
+   put array_ListKeys (hkeyArray) = keys (hkeyArray) into someBoolean
    if someBoolean is true then
       answer "Great, the keys of this array are all the nodes!"
    else
@@ -144,7 +144,7 @@ end menu_CheckAllKeyArray
 on menu_CompareWith treeView
    set the cursor to watch
    put the displayed_Array of treeView into hKeyArray
-   put array_AllNodes (hkeyArray) into theseHkeys
+   put array_ListKeys (hkeyArray) into theseHkeys
    
    put the script_Hkeys of stack "View|Menu|Button" into thoseHkeys
    put hkey_ConstructCompareArray (theseHkeys, thoseHkeys) into compareArray
@@ -206,7 +206,7 @@ end firstLevelExternalCalls
 private function _HkeysInMainstack treeView
    put the displayed_MainStackWalkArray of treeView into mainStackWalkArray
    put mainStackWalkArray ["hKeyArray"] into hKeyArray
-   put array_AllNodes (hKeyArray) into hKeys
+   put array_ListKeys (hKeyArray) into hKeys
    sort hKeys by item 1 of each
    return hKeys
 end _HkeysInMainstack
