@@ -19,19 +19,6 @@ Consider using a database.
 
 --> Working on
 -
-getprop walk_Hierarchy
-   put the long id of the target into tObject
-   put revRuggedID (tObject) into tObject
-   --
-   if the module_Name of the target is empty then
-      put hierarchy_Construct (tObject) into walkHierarchy
-      hierarchy_AddEnv walkHierarchy
-   else
-      put the module_BehaviorHierarchy of tObject into walkHierarchy
-   end if
-   return walkHierarchy
-end walk_Hierarchy
-
 getprop hierarchy_ObjectAndBehaviors [pPretty]
    local objectHierarchy
    put pPretty is not false into pPretty
@@ -48,11 +35,11 @@ function hierarchy_Construct tObject, pPretty
    put pPretty is not false into pPretty
    
    put the hierarchy_ObjectAndBehaviors [pPretty] of tObject into objectHierarchy
-   hierachy_AddEverything objectHierarchy, tObject, pPretty
+   hierachy_AddStackObjects objectHierarchy, tObject, pPretty
    return word 1 to -1 of objectHierarchy
 end hierarchy_Construct
 
-private command hierachy_AddEverything @objectHierarchy, tObject, pPretty
+command hierachy_AddStackObjects @objectHierarchy, tObject, pPretty
    if exists (tObject) is false then return false
    put tObject into objectOwner
    put empty into skipThisBackgroundID
@@ -111,7 +98,7 @@ private command hierachy_AddEverything @objectHierarchy, tObject, pPretty
    end repeat
    put word 1 to -1 of objectHierarchy into objectHierarchy
    return true
-end hierachy_AddEverything
+end hierachy_AddStackObjects
 
 private command _AddObjectAndBehaviors @objectHierarchy, tObject, pPretty
    if exists (tObject) is false then return empty
@@ -128,59 +115,6 @@ private command _AddObjectAndBehaviors @objectHierarchy, tObject, pPretty
    put CR & bObjects after objectHierarchy
    return true
 end _AddObjectAndBehaviors
-
-getprop module_Hierarchy [fromFolder]
-   local oHierarchy, bHierarchy
-   --
-   put the module_Name of the target into moduleName
-   if moduleName is empty then return empty
-   put view_GetTemplateObject (moduleName) into mObject
-   
-   # Behaviors and object hieararchy
-   if fromFolder is not false then
-      put the module_Behaviors of mObject into oHierarchy
-   else
-      put the behavior_Objects of mObject into oHierarchy
-   end if
-   
-   put word 1 to -1 of oHierarchy into oHierarchy
-   
-   # Rest of object hierarchy
-   hierachy_AddEverything bHierarchy, mObject
-   put oHierarchy & CR & word 1 to -1 of bHierarchy into moduleHierarchy
-   --
-   return moduleHierarchy
-end module_Hierarchy
-
-getprop module_BehaviorHierarchy [fromFolder]
-   local oHierarchy, bHierarchy
-   put the long id of the target into tObject
-   put revRuggedId (tObject) into rObject
-   --
-   put the module_Name of tObject into moduleName
-   put view_GetTemplateObject (moduleName) into mObject
-   
-   # Behaviors and object hieararchy
-   if fromFolder is not false then
-      put the module_Behaviors of mObject into oHierarchy
-   else
-      put the behavior_Objects of mObject into oHierarchy
-   end if
-   --
-   line_Delete rObject, oHierarchy
-   put rObject & CR before oHierarchy
-   put word 1 to -1 of oHierarchy into oHierarchy
-   
-   # Rest of object hierarchy
-   hierachy_AddEverything bHierarchy, mObject
-   put oHierarchy & CR & word 1 to -1 of bHierarchy into walkHierarchy
-   
-   # Is this missing stack object?
-   
-   # Add Env hierarchy
-   hierarchy_AddEnv walkHierarchy
-   return walkHierarchy
-end module_BehaviorHierarchy
 
 command hierarchy_AddEnv @objectHierarchy
    put env_ScriptHierarchy (true) into externalObjects

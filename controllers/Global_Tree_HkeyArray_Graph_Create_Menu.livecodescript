@@ -27,7 +27,8 @@ getprop menu_Target [tObject]
    --
    put the displayed_Object of dView into scriptObject
    if exists (scriptObject) is false then
-      put the title_Text of dView into hKey
+      -- put the title_Text of dView into hKey
+      put the displayed_Hkey of dView into hKey
       hkey_Deconstruct hKey, hName, hType, hObject, hNum
       put hObject into scriptObject
    end if
@@ -45,6 +46,10 @@ getprop menu_Target [tObject]
    put hkeyArray into LocalArray ["hkeyArray"]
    return scriptObject
 end menu_Target
+
+getprop menu_CheckTarget [scriptObject]
+   return exists (scriptObject)
+end menu_CheckTarget
 
 command deconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
    put LocalArray ["overlayFolder"] into overlayFolder

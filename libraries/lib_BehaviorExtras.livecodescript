@@ -224,15 +224,6 @@ end view_Behavior
 
 --> Old | Behavior | Hierarchy
 -
-getprop behavior_Hierarchy
-   return the behavior_Objects of the target
-end behavior_Hierarchy
-
-setprop behavior_Hierarchy bObjects
-   set the behavior_Objects of the target to bObjects
-   return the result
-end behavior_Hierarchy
-
 getprop behavior_NameHierarchy
    return the behavior_Names of the target
 end behavior_NameHierarchy

@@ -20,6 +20,33 @@ non-OOP file for speed optimisation or other reasons.
 
 --> Working on
 -
+command object_GoTo someObject, pMakeVisible
+   if exists (someObject) is false then return merge("Error, [[someObject]] does not exist")
+   
+   put the stack_Name of someObject into stackName
+   put the card_Object of someObject into cardObject
+   if exists(cardObject) is false then
+      go to stack stackName
+   else
+      put the short id of cardObject into cardID
+      go to card id cardID of stack stackName
+   end if
+   --
+   put the result into goResult
+   if goResult is not empty then
+      breakpoint
+   end if
+   --
+   if pMakeVisible is true then
+      stack_SetToMainScreen stackName
+      show stack stackName
+   end if
+   return the result
+end object_GoTo
+
+
+--> Props
+-
 getprop mobile_Name
    put the long id of the target into tObject
    --
@@ -44,7 +71,7 @@ getprop rugged_Name
    put kwote (sName) into word 2 to 3 of rObject
    return rObject
 end rugged_Name
-   
+
 getprop rugged_ID
    -- could also be called "rugged_Object"
    put the long id of the target into pObject
@@ -1444,30 +1471,6 @@ function object_FolderOfStack someObject,  localPath
    end if
    return someFolder
 end object_FolderOfStack
-
-command object_GoTo someObject, pMakeVisible
-   if exists (someObject) is false then return merge("Error, [[someObject]] does not exist")
-   
-   put the stack_Name of someObject into stackName
-   put the card_Object of someObject into cardObject
-   if exists(cardObject) is false then
-      go to stack stackName
-   else
-      put the short id of cardObject into cardID
-      go to card id cardID of stack stackName
-   end if
-   --
-   put the result into goResult
-   if goResult is not empty then
-      breakpoint
-   end if
-   --
-   if pMakeVisible is true then
-      stack_SetToMainScreen stackName
-      show stack stackName
-   end if
-   return the result
-end object_GoTo
 
 command object_MakeLabelGroup
    -- called by newGroup

@@ -105,41 +105,41 @@ getprop project_RelativeFile
    return rPath
 end project_RelativeFile
 
-getprop stack_IsKnown [projectName]
-   put the stack_Name of the target into stackName
-   put the effective filename of stack stackName into stackPath
-   if stackPath is empty then return false
-   if projectName is empty then put the project_Name of the target into projectName
-   if projectName is empty then return false
+getprop stack_IsKnown [pName]
+   put the defaultstack into sObject
+   put the effective filename of sObject into sPath
+   if sPath is empty then return false
    
-   put project_FindHomeStackPath (stackPath) into homeStackStackPath
-   if homeStackStackPath is empty then
-      put the filename of stack "LCW" into homeStackStackPath
+   put project_FindHomeStackPath (sPath) into hPath
+   if hPath is empty then
+      if exists (stack "LCW") is false then return empty
+      put the filename of stack "LCW" into hPath
    end if
+   if exists (stack hPath) is false then return empty
    --
-   put the stackfile_Array of stack homeStackStackPath into stackFileArray  
-   put stackFileArray [stackName] into knownRelativeFile
-   return knownRelativeFile is not empty
+   put the stackfile_Array of stack hPath into sfArray  
+   put sfArray [sName] into relFile
+   return relFile is not empty
 end stack_IsKnown
 
-setprop stack_IsKnown [projectName] boolean
-   put the stack_Name of the target into stackName
-   if projectName is empty then put the project_Name of the target into projectName
+setprop stack_IsKnown [pName] boolean
+   put the stack_Name of the target into sName
+   if pName is empty then put the project_Name of the target into pName
    
    # Add or remove from the project home stackfiles
    if boolean is true then
-      project_AddToStackFiles stackName, projectName, false
+      project_AddToStackFiles sName, pName, false
    else
-      project_RemoveFromStackFiles stackName, projectName, false
+      project_RemoveFromStackFiles sName, pName, false
    end if
-   put the result into stackFileArray
+   put the result into sfArray
    
    # Export Project JSON
    put the project_Array of the target into projectArray
-   put stackFileArray into projectArray ["stackFileArray"]
+   put sfArray into projectArray ["stackFileArray"]
    set the project_Array of the target to projectArray
    --
-   return stackFileArray
+   return sfArray
 end stack_IsKnown
 
 setprop project_Move toProjectName
