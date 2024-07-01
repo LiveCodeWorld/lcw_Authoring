@@ -1,16 +1,70 @@
-﻿script "Global_HkeyArray_Tree_Filter_Menu"
+﻿script "Global | HkeyArray | Tree | Filter | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_HkeyArray_Tree_Filter_Menu
+name: Global | HkeyArray | Tree | Filter | Menu
 type: controller
 version: 0.1
 
-/*
-This menu is for checking, comparing and filtering hKeyArrays
-*/
+/*This menu is for checking, comparing and filtering hKeyArrays*/
 
-local LocalArray
+
+getprop dep_Objects [treeView]
+   put the displayed_Array of treeView into hKeyArray
+   put hkeyArray_GetDepArray (hkeyArray) into objectArray
+   return keys (objectArray)
+end dep_Objects
+
+getprop disabled_CheckNestedDeps [treeView]
+   put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
+   if dependencyWalkArray is an array then
+      return false
+   else
+      return true
+   end if
+end disabled_CheckNestedDeps
+
+getprop disabled_DisplayCollectedDependencies [treeView]
+   put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
+   if dependencyWalkArray is an array then
+      return false
+   else
+      return true
+   end if
+end disabled_DisplayCollectedDependencies
+
+
+--> Deps
+-
+private function firstLevelExternalCalls externalArray
+   repeat for each key shortHkey in externalArray
+      put externalArray [shortHkey] into hkeyArray
+      repeat for each key parentHkey in hkeyArray
+         put hkeyArray [parentHkey] into externalHkeyCall
+         put parentHkey into allExternalCallArray [externalHkeyCall]
+      end repeat
+   end repeat
+   put keys (allExternalCallArray) into allFirstlevelCalls
+   sort allFirstlevelCalls
+   return allFirstlevelCalls
+end firstLevelExternalCalls
+
+private function _HkeysInMainstack treeView
+   put the displayed_MainStackWalkArray of treeView into mainStackWalkArray
+   put mainStackWalkArray ["hKeyArray"] into hKeyArray
+   put array_ListKeys (hKeyArray) into hKeys
+   sort hKeys by item 1 of each
+   return hKeys
+end _HkeysInMainstack
+
+command display_ObjectOutline hkeyArray, someTitle, treeView
+   put hkeyArray_GetDepArray (hkeyArray) into objectArray
+   
+   lock screen
+   set the tree_Array [1] of the tree_Field of treeView to objectArray
+   set the title_Text of treeView to someTitle
+   unlock screen
+end display_ObjectOutline
 
 
 --> Global | HkeyArray | Tree | Filter | Menu
@@ -30,7 +84,7 @@ on menu_RemoveStandaloneHandlers treeView, whichStack
    put the script_Hkeys of stackObject
 end menu_RemoveStandaloneHandlers
 
-on _
+private on _
 end _
 
 on menu_RemoveObject treeView, depObject
@@ -108,8 +162,8 @@ on menu_ConstructNestedDependencies treeView
    set the tree_Display [someTitle] of treeView to allDeps
 end menu_ConstructNestedDependencies
 
-on _
-end _
+private on __
+end __
 
 on menu_FilterDependencies treeView
    put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
@@ -124,13 +178,9 @@ on menu_FilterDependencies treeView
    display_HkeyArrayGraph hkeyArray, "undirected spring"
 end menu_FilterDependencies
 
-on submenu_Dev
-   return "Dev | Menu"
-end submenu_Dev
+private on ___
+end ___
 
-
---> Dev | Menu
--
 on menu_CheckAllKeyArray treeView
    put the displayed_Array of treeView into hkeyArray
    put array_ListKeys (hkeyArray) = keys (hkeyArray) into someBoolean
@@ -152,71 +202,3 @@ on menu_CompareWith treeView
    set the cursor to watch
    display_Array compareArray
 end menu_CompareWith
-
-on submenu_Filter
-   return "Global | Dependency | Filter | Menu"
-end submenu_Filter
-
-
---> HkeyArray | Tree | Filter | Menu | Props
--
-getprop dep_Objects [treeView]
-   put the displayed_Array of treeView into hKeyArray
-   put hkeyArray_GetDepArray (hkeyArray) into objectArray
-   return keys (objectArray)
-end dep_Objects
-
-
---> HkeyArray | Tree | Filter | Menu | Disabled
--
-getprop disabled_CheckNestedDeps [treeView]
-   put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
-   if dependencyWalkArray is an array then
-      return false
-   else
-      return true
-   end if
-end disabled_CheckNestedDeps
-
-getprop disabled_DisplayCollectedDependencies [treeView]
-   put the displayed_DependencyWalkArray of treeView into dependencyWalkArray
-   if dependencyWalkArray is an array then
-      return false
-   else
-      return true
-   end if
-end disabled_DisplayCollectedDependencies
-
-
---> Deps
--
-private function firstLevelExternalCalls externalArray
-   repeat for each key shortHkey in externalArray
-      put externalArray [shortHkey] into hkeyArray
-      repeat for each key parentHkey in hkeyArray
-         put hkeyArray [parentHkey] into externalHkeyCall
-         put parentHkey into allExternalCallArray [externalHkeyCall]
-      end repeat
-   end repeat
-   put keys (allExternalCallArray) into allFirstlevelCalls
-   sort allFirstlevelCalls
-   return allFirstlevelCalls
-end firstLevelExternalCalls
-
-private function _HkeysInMainstack treeView
-   put the displayed_MainStackWalkArray of treeView into mainStackWalkArray
-   put mainStackWalkArray ["hKeyArray"] into hKeyArray
-   put array_ListKeys (hKeyArray) into hKeys
-   sort hKeys by item 1 of each
-   return hKeys
-end _HkeysInMainstack
-
-command display_ObjectOutline hkeyArray, someTitle, treeView
-   put hkeyArray_GetDepArray (hkeyArray) into objectArray
-   
-   lock screen
-   set the tree_Array [1] of the tree_Field of treeView to objectArray
-   set the title_Text of treeView to someTitle
-   unlock screen
-end display_ObjectOutline
-

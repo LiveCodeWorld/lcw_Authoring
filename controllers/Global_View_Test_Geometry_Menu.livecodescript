@@ -1,72 +1,13 @@
-﻿script "Global_View_Test_Geometry_Menu"
+﻿script "Global | View | Test | Geometry | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_View_Test_Geometry_Menu
+name: Global | View | Test | Geometry | Menu
 type: controller
 version: 0.2
 
-/*
-Now moved to "Global | View | Geometry | Menu" as it is prettier :)
-*/
-
-
--- getprop disabled_DispatchResizeControl [viewObject]
-   return the behavior_HandlerExists ["M resizeControl"] of viewObject is false
-end disabled_DispatchResizeControl
-
-getprop disabled_DispatchPreopenControl [viewObject]
-   return the behavior_HandlerExists ["M preOpenControl"] of viewObject is false
-end disabled_DispatchPreopenControl
-
-getprop disabled_DispatchPreopenCard [viewObject]
-   return the behavior_HandlerExists ["M preOpenCard"] of viewObject is false
-end disabled_DispatchPreopenCard
-
-getprop disabled_DispatchResizeToFit [viewObject]
-   switch
-      case exists (the dvControl of viewObject )
-         return false
-      default
-         return true
-   end switch
-end disabled_DispatchResizeToFit
-
-getprop disabled_RestoreGeometry [vObject]
-   put the rect_Array of vObject into rectArray
-   if rectArray is an array then
-      return false
-   else
-      return true
-   end if
-end disabled_RestoreGeometry
-
-private command _HandleDispatch dispatchResult, viewObject, cardObject
-   switch dispatchResult
-      case "unhandled"
-         breakpoint  
-         lcw_Notify merge ("'Layoutcontrol' unhandled by view [[the name of viewObject]]!")
-         
-         put the behavior of viewObject into bObject
-         if exists (bObject) then
-            edit the script of bObject
-         end if
-         
-         put the card_Object of viewObject into cardObject
-         display_BrokenBehaviors cardObject, true
-         break
-      default
-         put the rect of viewObject into vRect
-         if vRect = vCardRect then
-            lcw_Notify merge ("Dispatched 'Layoutcontrol' to view [[the name of viewObject]]!")
-         else
-            /*
-            set the rect_Test ["red"] of cardObject to vCardRect
-            set the rect_Test ["yellow"] of cardObject to vRect
-            */
-         end if
-   end switch
-end _HandleDispatch
+/*            set the rect_Test ["red"] of cardObject to vCardRect
+            set the rect_Test ["yellow"] of cardObject to vRect*/
 
 
 --> Global | View | Test | Geometry | Menu

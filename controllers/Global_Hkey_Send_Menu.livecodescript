@@ -1,12 +1,10 @@
-﻿script "Global_Hkey_Send_Menu"
+﻿script "Global | Hkey | Send | Menu"
 --> MetaData
 -
 license: GPLv3
-name: Global_Hkey_Send_Menu
+name: Global | Hkey | Send | Menu
 type: controller
 version: 0.3
-
-local LocalArray
 
 
 --> Menu | Init
