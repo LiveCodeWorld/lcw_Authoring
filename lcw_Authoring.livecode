@@ -24,9 +24,10 @@ end project_Deps
 --> Custom
 -
 command project_PostInit
-   set the cursor to watch
+   -- set the cursor to watch
    --
-   ide_InitLcw
+   -- breakpoint
+   -- ide_InitLcw
    --
    send "display_Environment" to me in 2 ticks
 end project_PostInit
