@@ -88,10 +88,6 @@ end disabled_DisplaySubstack
 
 --> Global | Project | Stack | Menu
 -
-on submenu_Index
-   return "Global | Project | Stack | Tree | Menu"
-end submenu_Index
-
 on menu_GraphProject stackObject
    graph_Project stackObject
 end menu_GraphProject
@@ -100,6 +96,10 @@ on menu_GraphScript stackObject
    breakpoint
    graph_Project stackObject
 end menu_GraphScript
+
+on submenu_Index
+   return "Global | Project | Stack | Tree | Menu"
+end submenu_Index
 
 on _
 end _
@@ -112,8 +112,8 @@ on menu_EditStackScript stackObject
    edit the script of stackObject
 end menu_EditStackScript
 
-on menu_UseStack stackObject, someBoolean
-   if someBoolean is true then
+on menu_UseStack stackObject
+   if the stack_IsUsed of  stackObject is false then
       start using stackObject
       lcw_Notify merge ("Started using [[stackObject]]")
    else
@@ -121,6 +121,10 @@ on menu_UseStack stackObject, someBoolean
       lcw_Notify merge ("Stopped using [[stackObject]]")
    end if
 end menu_UseStack
+
+getprop checked_UseStack [stackObject]
+   return the stack_IsUsed of  stackObject
+end checked_UseStack
 
 on _
 end _
@@ -137,20 +141,9 @@ end menu_TrashStack
 on _
 end _
 
-on submenu_Image
-   return "Global | Image | SVG | Menu"
-end submenu_Image
-
--- on submenu_Deps
-   return "Deps | Menu"
-end submenu_Deps
-
-
---> Deps | Menu
--
-on menu_StackDeps stackObject
+on menu_DisplayStackDeps stackObject
    display_StackDeps stackObject
-end menu_StackDeps
+end menu_DisplayStackDeps
 
 on _
 end _
@@ -170,3 +163,4 @@ on menu_ScriptLibraryDependencies stackObject
    -- in "lib_DisplayGraph" (depends on hArray based walk and "deps_SaveMainstackAndExportArrays")
    put the script_DepLibs of stackObject -- into dependencyStacks
 end menu_ScriptLibraryDependencies
+*/
