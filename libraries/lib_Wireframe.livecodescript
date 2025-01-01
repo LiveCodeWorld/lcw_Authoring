@@ -101,7 +101,7 @@ end wireframe_ImageShortFile
 -
 function lcw_ConstructImageURL shortFile
    put "note/" into imageFolderPathbit
-   put "http://livecode.world/" & imageFolderPathbit & urlencode(shortFile) into imageURL 
+   put "http://livecode.wiki/" & imageFolderPathbit & urlencode(shortFile) into imageURL 
    return imageURL
 end lcw_ConstructImageURL
 
