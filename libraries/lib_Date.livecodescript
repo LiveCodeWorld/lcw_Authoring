@@ -18,6 +18,9 @@ See also:
 
 --> Working on
 -
+
+--> Date | Standard
+-
 function test_8601ToInternet
    -- https://en.wikipedia.org/wiki/ISO_8601
    -- converts to "internet date"
@@ -61,6 +64,9 @@ function test_8601ToInternet
 end test_8601ToInternet
 
 function date_8601ToInternet rfc8601Date
+   -- convert rfc8601Date to standard date
+   -- return rfc8601Date
+   
    if rfc8601Date contains "T" then
       get rfc8601Date
       replace "T" with CR in it
@@ -167,41 +173,53 @@ function date_8601ToInternet rfc8601Date
    return someDateItems
 end date_8601ToInternet
 
--- function date_8601ToInternet rfc8601Date
--- https://en.wikipedia.org/wiki/ISO_8601
--- converts to "internet date"
--- 1994-11-05T08:15:30-05:00 corresponds to November 5, 1994, 8:15:30 am, US Eastern Standard Time.
--- 1994-11-05T13:15:30Z corresponds to the same instant.
--- 2018-09-15T05:53:00+00:00
--- 2018-09-15T05:53:00-07:00
--- 2018-09-14T22:53:00-07:00
--- 2019-09-07T-15:50+00
--- 2019-09-07T15:50+00Z
--- 2019-09-07T15:50-04:00
--- 2020-12-08 03:23:50.765525487 -0500
-
-replace "T" with return in rfc8601Date
-put line 1 of rfc8601Date into someDate
-
-put line 2 of rfc8601Date into someTime
-put last char of someTime into timeZoneThing
-delete last char of someTime
-
-replace "-" with comma in someDate
-
-set the itemdelimiter to "."
-put item 1 of someTime into colonTime
-put item 2 of someTime into colonSeconds
-replace ":" with comma in colonTime
-
-set the itemdelimiter to comma
-put someDate into someDateItems
-put colonTime into item 4 of someDateItems
-
-put 0 into item 7 of someDateItems
-convert someDateItems to internet date
-return someDateItems
-end date_8601ToInternet
+--> Date | 8601
+-
+function date_Construct8601 someDate, extended, convertToUTC
+   -- extended is true:  1981-04-05T14:30:30-05:00
+   -- extended is false: 19810405T14:30:30-05 00
+   
+   convert someDate to internet date
+   put word -1 of someDate into utcOffset
+   
+   convert someDate to dateItems
+   put item 1 of someDate into y
+   put item 2 of someDate into mons
+   put item 3 of someDate into d
+   put item 4 of someDate into h
+   put item 5 of someDate into mins
+   put item 6 of someDate into s
+   
+   if convertToUTC is true then
+      put char 2 to 3 of utcOffset into extraHours
+      put char 4 to 5 of utcOffset into extraMin
+      
+      if char 1 of utcOffset is "+" then
+         add extraHours to h
+         add extraMin to m
+      else
+         subtract extraHours from h
+         subtract extraMin from m
+      end if
+      
+      if extended is true then
+         put "%04d-%02d-%02dT%02d:%02d:%02d" into baseString
+      else
+         put "%04d%02d%02dT%02d:%02d:%02d" into baseString
+      end if
+      put format(baseString, y, mons, d, h, mins, s) into fDate
+      if char -3 to -1 of fDate = ":00" then delete char -3 to -1 of fDate
+      return fDate & " Z"
+   else
+      if extended is true then
+         put "%04d-%02d-%02dT%02d:%02d:%02d %s" into baseString
+      else
+         put "%04d%02d%02dT%02d:%02d:%02d %s" into baseString
+      end if
+      put format(baseString, y, mons, d, h, mins, s, utcOffset) into fDate
+      return fDate
+   end if
+end date_Construct8601
 
 command date_Convert8601 @rfc8601Date
    put date_8601ToInternet (rfc8601Date) into rfc8601Date
@@ -363,55 +381,6 @@ function date_TimeZoneDictionary
    put "-0700" into rfc822Array ["PDT"]
    return rfc822Array
 end date_TimeZoneDictionary
-
-
---> Date | 8601
--
-function date_Construct8601 someDate, extended, convertToUTC
-   -- extended is true:  1981-04-05T14:30:30-05:00
-   -- extended is false: 19810405T14:30:30-05 00
-   
-   convert someDate to internet date
-   put word -1 of someDate into utcOffset
-   
-   convert someDate to dateItems
-   put item 1 of someDate into y
-   put item 2 of someDate into mons
-   put item 3 of someDate into d
-   put item 4 of someDate into h
-   put item 5 of someDate into mins
-   put item 6 of someDate into s
-   
-   if convertToUTC is true then
-      put char 2 to 3 of utcOffset into extraHours
-      put char 4 to 5 of utcOffset into extraMin
-      
-      if char 1 of utcOffset is "+" then
-         add extraHours to h
-         add extraMin to m
-      else
-         subtract extraHours from h
-         subtract extraMin from m
-      end if
-      
-      if extended is true then
-         put "%04d-%02d-%02dT%02d:%02d:%02d" into baseString
-      else
-         put "%04d%02d%02dT%02d:%02d:%02d" into baseString
-      end if
-      put format(baseString, y, mons, d, h, mins, s) into fDate
-      if char -3 to -1 of fDate = ":00" then delete char -3 to -1 of fDate
-      return fDate & " Z"
-   else
-      if extended is true then
-         put "%04d-%02d-%02dT%02d:%02d:%02d %s" into baseString
-      else
-         put "%04d%02d%02dT%02d:%02d:%02d %s" into baseString
-      end if
-      put format(baseString, y, mons, d, h, mins, s, utcOffset) into fDate
-      return fDate
-   end if
-end date_Construct8601
 
 
 --> Date | WC3
