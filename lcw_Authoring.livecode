@@ -17,6 +17,7 @@ And add menus with ide_SetMenuTitle.
 --> Deps
 -
 getprop project_Deps
+   return "lcw,lcw_Menus,lcw_Script,lcw_Tools,lcw_Display"
    return "lcw,lcw_Menus,lcw_Script,lcw_Tools,lcw_Display,lcw_Install"
 end project_Deps
 
@@ -24,11 +25,6 @@ end project_Deps
 --> Custom
 -
 command project_PostInit
-   -- set the cursor to watch
-   --
-   -- breakpoint
-   -- ide_InitLcw
-   --
    send "display_Environment" to me in 2 ticks
 end project_PostInit
 

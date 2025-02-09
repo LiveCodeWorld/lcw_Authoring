@@ -13,6 +13,43 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
+getprop stack_IsKnown [pName]
+   put the defaultstack into sObject
+   put the effective filename of sObject into sPath
+   if sPath is empty then return false
+   
+   put project_FindHomeStackPath (sPath) into hPath
+   if hPath is empty then
+      if exists (stack "LCW") is false then return empty
+      put the filename of stack "LCW" into hPath
+   end if
+   if exists (stack hPath) is false then return empty
+   --
+   put the stackfile_Array of stack hPath into sfArray  
+   put sfArray [sName] into relFile
+   return relFile is not empty
+end stack_IsKnown
+
+setprop stack_IsKnown [pName] boolean
+   put the stack_Name of the target into sName
+   if pName is empty then put the project_Name of the target into pName
+   
+   # Add or remove from the project home stackfiles
+   if boolean is true then
+      project_AddToStackFiles sName, pName, false
+   else
+      project_RemoveFromStackFiles sName, pName, false
+   end if
+   put the result into sfArray
+   
+   # Export Project JSON
+   put the project_Array of the target into projectArray
+   put sfArray into projectArray ["stackFileArray"]
+   set the project_Array of the target to projectArray
+   --
+   return sfArray
+end stack_IsKnown
+
 
 --> Ask
 -
@@ -104,43 +141,6 @@ getprop project_RelativeFile
    put file_GetRelativePath (sFile, pFolder, commonPath) into rPath
    return rPath
 end project_RelativeFile
-
-getprop stack_IsKnown [pName]
-   put the defaultstack into sObject
-   put the effective filename of sObject into sPath
-   if sPath is empty then return false
-   
-   put project_FindHomeStackPath (sPath) into hPath
-   if hPath is empty then
-      if exists (stack "LCW") is false then return empty
-      put the filename of stack "LCW" into hPath
-   end if
-   if exists (stack hPath) is false then return empty
-   --
-   put the stackfile_Array of stack hPath into sfArray  
-   put sfArray [sName] into relFile
-   return relFile is not empty
-end stack_IsKnown
-
-setprop stack_IsKnown [pName] boolean
-   put the stack_Name of the target into sName
-   if pName is empty then put the project_Name of the target into pName
-   
-   # Add or remove from the project home stackfiles
-   if boolean is true then
-      project_AddToStackFiles sName, pName, false
-   else
-      project_RemoveFromStackFiles sName, pName, false
-   end if
-   put the result into sfArray
-   
-   # Export Project JSON
-   put the project_Array of the target into projectArray
-   put sfArray into projectArray ["stackFileArray"]
-   set the project_Array of the target to projectArray
-   --
-   return sfArray
-end stack_IsKnown
 
 setprop project_Move toProjectName
    -- moves a stack to the same relative location in a new project folder

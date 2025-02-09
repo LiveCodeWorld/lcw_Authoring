@@ -21,6 +21,21 @@ getprop menu_CheckTarget [mTarget]
    return exists (mTarget)
 end menu_CheckTarget
 
+-- private command _SetChoice menuChoice, @mainChoice, @secondChoice
+   -- bug - needs to take account of quoted things like stack names with "|" in their name.
+   text_StarQuoted menuChoice
+   put the result into replacedArray
+   put replacedArray ["original text"] into oText
+   
+   put line 1 of menuChoice into menuChoice
+   set the itemdelimiter to "|"
+   put the number of chars of item 1 of menuChoice into firstLength
+   put char 1 to firstLength of oText into mainChoice
+   
+   put firstLength + 2 into secondStart
+   put char secondStart to -1 of oText into secondChoice
+end _SetChoice
+
 
 --> Global | View | Property | Menu
 -
@@ -62,6 +77,17 @@ end menu_GoToTemplate
 private on __
 end __
 
+on menu_SetCardMargin dView
+   put the view_Name of dView into viewName
+   put the card_Margin of dView into cMargin
+   put lcw_Ask ("Set the card_Margin of [[viewName]]", cMargin, dView, viewName) into cMargin
+   --
+   set the card_Margin of dView to cMargin
+end menu_SetCardMargin
+
+private on ___
+end ___
+
 on menu_ViewOutline someView
    display_ViewOutline someView
 end menu_ViewOutline
@@ -78,9 +104,6 @@ on menu_ViewStyle mTarget, styleName
       set the view_Style of mTarget to styleName
    end if
 end menu_ViewStyle
-
-private on ___
-end ___
 
 on submenu_Dev
    return menu_DevTitle ("Global | View | Property | Menu")

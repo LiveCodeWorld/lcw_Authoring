@@ -12,6 +12,39 @@ A place for all the view scripts which we probably no longer need.
 
 --> Working on
 -
+getprop module_BehaviorScript
+   -- similar to view_BehaviorScript, but for behavior_Objects
+   -- combines, the view, behavior and library scripts (if they exist)
+   put the long id of the target into someView
+   
+   put the script of someView into someScript
+   put the behavior_Objects of someView into bObjects
+   repeat for each line bObject in bObjects
+      get word 1 to -1 of the script of bObject
+      if it is not empty then
+         put CR & CR & it after someScript
+      end if
+   end repeat
+   return word 1 to -1 of someScript
+end module_BehaviorScript
+
+getprop view_BehaviorScript [whichScripts]
+   -- combines, the view, behavior and library scripts (if they exist)
+   put the long id of the target into someView
+   
+   put the script of someView into someScript
+   if whichScripts is not "view" then
+      put the behavior of someView into someBehavior
+      if exists(someBehavior) then put CR & CR & the script of someBehavior after someScript
+   end if
+   
+   if whichScripts is not among the items of "view,behavior" then
+      put the view_TemplateStack of someView into someLibrary
+      if exists(someLibrary) then put CR & CR & the script of someLibrary after someScript
+   end if
+   return someScript
+end view_BehaviorScript
+
 function view_NameToFile viewPath, pFileExt
    -- put view_PathToShortFile (viewPath, pFileExt) into shortFile
    -- put library_ViewFolder (shortFile) into viewFile
@@ -1376,23 +1409,6 @@ function view_ListBehaviors vName
    put the object_Behaviors of templateObject into vBehaviors
    return vBehaviors
 end view_ListBehaviors
-
-getprop view_BehaviorScript [whichScripts]
-   -- combines, the view, behavior and library scripts (if they exist)
-   put the long id of the target into someView
-   
-   put the script of someView into someScript
-   if whichScripts is not "view" then
-      put the behavior of someView into someBehavior
-      if exists(someBehavior) then put CR & CR & the script of someBehavior after someScript
-   end if
-   
-   if whichScripts is not among the items of "view,behavior" then
-      put the view_TemplateStack of someView into someLibrary
-      if exists(someLibrary) then put CR & CR & the script of someLibrary after someScript
-   end if
-   return someScript
-end view_BehaviorScript
 
 
 --> View | Tests

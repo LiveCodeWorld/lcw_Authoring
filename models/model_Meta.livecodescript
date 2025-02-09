@@ -21,8 +21,14 @@ not nested, but in a flat namespace, derived from the rugged_ID
 */
 
 
---> Currently Working On | Metadata | Missing
+--> Working On
 -
+getprop script_MetaTable
+   put the script_MetaData of the target into ripArray
+   combine ripArray with CR and tab
+   return ripArray
+end script_MetaTable
+
 function object_FetchScript objectScriptFolder
    folder_Format objectScriptFolder
    put objectScriptFolder & "script.txt" into someFile
@@ -327,12 +333,6 @@ end meta_ImageFile
 /*
 Not sure about these....
 */
-
-getprop script_MetaTable
-   put the script_MetaArray of the target into ripArray
-   combine ripArray with CR and tab
-   return ripArray
-end script_MetaTable
 
 getprop script_MetaXML
    put the script_MetaTable of the target into ripTable

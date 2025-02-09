@@ -24,6 +24,24 @@ getprop menu_CheckTarget [scriptObject]
    return viewOrViewBehavior is true
 end menu_CheckTarget
 
+getprop disabled_SetViewCardBehavior [someView]
+   put the card_Object of someView into templateCardObject
+   put the behavior of templateCardObject into bObject
+   put bObject = the name of stack "behavior_ViewTemplateCard" into behaviorIsSet
+   return behaviorIsSet
+end disabled_SetViewCardBehavior
+
+getprop disabled_SetModuleBehaviors [viewObject]
+   put the behavior_Objects of viewObject into bObjects
+   put the module_Behaviors of viewObject into mObjects
+   return bObjects = mObjects
+end disabled_SetModuleBehaviors
+
+getprop disabled_GoToView [scriptObject]
+   put the object_MetaData ["type"] of scriptObject into mObectType
+   put mObectType contains "view" into viewOrViewBehavior
+   return viewOrViewBehavior is false
+end disabled_GoToView
 
 --> Global | Behavior | View | Menu
 -
@@ -96,33 +114,3 @@ on menu_EditModuleBehaviors scriptObject
       edit the script of moduleBehavior
    end repeat
 end menu_EditModuleBehaviors
-
-
---> Global | Behavior | View | Menu | Props
--
-
-
---> Global | Behavior | View | Menu | Disabled
--
-getprop disabled_SetViewCardBehavior [someView]
-   put the card_Object of someView into templateCardObject
-   put the behavior of templateCardObject into bObject
-   put bObject = the name of stack "behavior_ViewTemplateCard" into behaviorIsSet
-   return behaviorIsSet
-end disabled_SetViewCardBehavior
-
-getprop disabled_SetModuleBehaviors [viewObject]
-   put the behavior_Objects of viewObject into bObjects
-   put the module_Behaviors of viewObject into mObjects
-   return bObjects = mObjects
-end disabled_SetModuleBehaviors
-
-getprop disabled_GoToView [scriptObject]
-   put the object_MetaData ["type"] of scriptObject into mObectType
-   put mObectType contains "view" into viewOrViewBehavior
-   return viewOrViewBehavior is false
-end disabled_GoToView
-
-
---> Dev | Menu
--

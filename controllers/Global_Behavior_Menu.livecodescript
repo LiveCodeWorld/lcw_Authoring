@@ -36,15 +36,10 @@ end disabled_EditBehavior
 
 --> Global | Behavior | Menu
 -
-on menu_Refresh sObject
-   put the behavior_Objects of sObject into bObjects
-   set the displayed_Data of _dView() to bObjects
-end menu_Refresh
-
-on menu_Hilite sObject
-   put display_View() into dView
-   set the hilited_Lines of dView to empty
-end menu_Hilite
+on menu_Test sObject
+   put the view_BehaviorStackNames of sObject into sNames
+   put sNames
+end menu_Test
 
 private on _
 end _
