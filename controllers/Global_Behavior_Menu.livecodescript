@@ -36,10 +36,33 @@ end disabled_EditBehavior
 
 --> Global | Behavior | Menu
 -
-on menu_Test sObject
-   put the view_BehaviorStackNames of sObject into sNames
-   put sNames
-end menu_Test
+on menu_BehaviorStackNames mView
+   put _dView() into dView
+   put the view_BehaviorStackNames of mView into sNames
+   --
+   set the displayed_Data ["the view_BehaviorStackNames"] of dView to sNames
+   put the view_Name of mView into vName
+   set the stack_Label of dView to vName
+end menu_BehaviorStackNames
+
+getprop checked_BehaviorStackNames
+   put _dView() into dView
+   return the title_Text of dView = "the view_BehaviorStackNames"
+end checked_BehaviorStackNames
+
+on menu_BehaviorObjects mView
+   put _dView() into dView
+   put the behavior_Objects of mView into bObjets
+   --
+   set the displayed_Data ["the behavior_Objects"] of dView to bObjets
+   put the view_Name of mView into vName
+   set the stack_Label of dView to vName
+end menu_BehaviorObjects
+
+getprop checked_BehaviorObjects
+   put _dView() into dView
+   return the title_Text of dView = "the behavior_Objects"
+end checked_BehaviorObjects
 
 private on _
 end _
