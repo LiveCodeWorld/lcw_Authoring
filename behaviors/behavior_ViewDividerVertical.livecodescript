@@ -27,11 +27,11 @@ It should be updated to use one LocalArray, and maybe dispatch?
 */
 
 getprop view_Object
-    return the long id of me
+   return the long id of me
 end view_Object
 
 getprop vertical_Divider
-    return the long id of me
+   return the long id of me
 end vertical_Divider
 
 
@@ -40,16 +40,16 @@ end vertical_Divider
 local localStartH, localStartV, localOriginalRect, localMouseIsDown, localLeftView, localRightView, localOwnerRect
 
 private command clearLocals
-    -- occassional bug where local seems to get wrong initial settin
-    -- this hack is supposed to clear them all before moving.
-    
-    put empty into localStartH
-    put empty into localStartV
-    put empty into localOriginalRect
-    put empty into localMouseIsDown
-    put empty into localLeftView
-    put empty into localRightView
-    put empty into localOwnerRect
+   -- occassional bug where local seems to get wrong initial settin
+   -- this hack is supposed to clear them all before moving.
+   
+   put empty into localStartH
+   put empty into localStartV
+   put empty into localOriginalRect
+   put empty into localMouseIsDown
+   put empty into localLeftView
+   put empty into localRightView
+   put empty into localOwnerRect
 end clearLocals
 
 
@@ -71,14 +71,14 @@ on mouseDown pMouseBtnNum
 end mouseDown
 
 on mouseEnter
-    set the lockcursor to true
-    set the cursor to 65
-    pass mouseEnter
+   set the lockcursor to true
+   set the cursor to 65
+   pass mouseEnter
 end mouseEnter
 
 on mouseLeave
-    set the lockcursor to false
-    pass mouseLeave
+   set the lockcursor to false
+   pass mouseLeave
 end mouseLeave
 
 on mouseMove newMouseH, newMouseV
@@ -113,13 +113,15 @@ on mouseMove newMouseH, newMouseV
 end mouseMove
 
 on mouseUp
-    clear_Move
-    pass mouseUp
+   clear_Move
+   dispatch "layout_SetLastLeftViewWidth" 
+   pass mouseUp
 end mouseUp
 
 on mouseRelease
    clear_Move
-    pass mouseRelease
+   dispatch "layout_SetLastLeftViewWidth" 
+   pass mouseRelease
 end mouseRelease
 
 command LayoutControl pRect
@@ -145,12 +147,12 @@ on initialise_Move
 end initialise_Move
 
 on clear_Move
-    put empty into localStartH
-    put empty into localStartV
-    put empty into localOriginalRect
-    put empty into localOwnerRect
-    put empty into localLeftView
-    put empty into localRightView
+   put empty into localStartH
+   put empty into localStartV
+   put empty into localOriginalRect
+   put empty into localOwnerRect
+   put empty into localLeftView
+   put empty into localRightView
 end clear_Move
 
 
@@ -193,7 +195,7 @@ setprop divider_Style someStyle
 end divider_Style
 
 getprop divider_Styles
-    return "invisible,transparent,opaque,icon"
+   return "invisible,transparent,opaque,icon"
 end divider_Styles
 
 

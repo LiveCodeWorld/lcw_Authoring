@@ -67,19 +67,42 @@ end checked_BehaviorObjects
 private on _
 end _
 
-on menu_EditBehavior sObject
-   put the behavior of sObject into bObject
-   if exists (bObject) then
-      edit the script of bObject
+on menu_SetBehaviorStackNames mView
+   put the view_CardBehaviorStackNames of mView into bNames
+   set the view_BehaviorStackNames of mView to bNames
+   --
+   if there is a stack "Display ViewData" then
+      put the long id of control 1 of cd 1 of stack "Display ViewData" into dView
    else
-      answer warning "Unable to find referenced behavior [[bObject]]!"
-      put bObject
+      display_NestedViewArray viewObject
+      put the result into dView
    end if
-end menu_EditBehavior
+   
+   set the displayed_Data ["the view_BehaviorStackNames"] of dView to bNames
+end menu_SetBehaviorStackNames
 
-private on __
-end __
+on menu_AddMenuBehaviors sObject
+   put _dView() into dView
+   --
+   put the menubar_View of sObject into menubarView
+   put the template_Behaviors of menubarView into templateBehaviors
+   --
+   set the displayed_Data ["template_Behaviors of menubarView"] of dView to templateBehaviors
+   put the view_Name of menubarView into vName
+   set the stack_Label of dView to vName
+end menu_AddMenuBehaviors
 
+getprop checked_AddMenuBehaviors
+   put _dView() into dView
+   return the title_Text of dView = "template_Behaviors of menubarView"
+end checked_AddMenuBehaviors
+
+getprop disabled_AddMenuBehaviors [sObject]
+   put the menubar_View of sObject into menubarView
+   put exists (menubarView) is fale into notThere
+   return notThere
+end disabled_AddMenuBehaviors
+   
 on menu_AddBehavior sObject
    put lcw_Ask ("Add behavior...", "View|Browser", sObject) into vName
    --
@@ -87,6 +110,9 @@ on menu_AddBehavior sObject
    --
    menu_Refresh sObject
 end menu_AddBehavior
+
+private on __
+end __
 
 on menu_ViewBehaviorStackNames sObject
    put the view_BehaviorStackNames of sObject into sNames
@@ -133,6 +159,16 @@ end ____
 -- on submenu_ViewBehavior
    return "Global | Behavior | View | Menu"
 end submenu_ViewBehavior
+
+on menu_EditBehavior sObject
+   put the behavior of sObject into bObject
+   if exists (bObject) then
+      edit the script of bObject
+   else
+      answer warning "Unable to find referenced behavior [[bObject]]!"
+      put bObject
+   end if
+end menu_EditBehavior
 
 on submenu_Dev
    return menu_DevTitle()
