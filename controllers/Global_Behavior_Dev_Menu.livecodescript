@@ -23,7 +23,7 @@ getprop menu_Target [tObject]
    return the display_View of tObject
 end menu_Target
 
-getprop layout_BehaviorNames [scriptObject]
+getprop layoutBehaviorName_Params [scriptObject]
    put env_ListBehaviorStackNames() into behaviorStackNames
    put behaviorStackNames into layoutBehaviorNames
    filter layoutBehaviorNames with "behavior_Layout*"
@@ -31,7 +31,7 @@ getprop layout_BehaviorNames [scriptObject]
    put CR & behaviorStackNames after layoutBehaviorNames
    sort layoutBehaviorNames
    return layoutBehaviorNames
-end layout_BehaviorNames
+end layoutBehaviorName_Params
 
 getprop behavior_StackNames [scriptObject]
    put the behavior_Objects of scriptObject into bObjects
@@ -57,28 +57,6 @@ getprop layout_BehaviorNames [scriptObject]
    sort layoutBehaviorNames
    return layoutBehaviorNames
 end layout_BehaviorNames
-
-getprop standard_BehaviorStackName [scriptObject]
-   put the behavior of scriptObject into bObject
-   switch
-      case bObject is empty
-         return "None"
-      case exists (bObject) is false
-         return empty
-      case word 1 of bObject is not "stack"
-         return empty
-      default
-         put the short name of bObject into stackName
-         return stackName
-   end switch
-end standard_BehaviorStackName
-
-getprop standard_BehaviorStackNames
-   put env_ListBehaviorStackNames() into bNames
-   --  put project_ListBehaviorStackNames ("all") into bNames
-   put "None,-" & CR before bNames
-   return bNames
-end standard_BehaviorStackNames
 
 getprop disabled_EditBehavior [scriptObject]
    put the behavior of scriptObject into bObject

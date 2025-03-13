@@ -13,6 +13,14 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
+function project_ConstructShortFile stackName
+   put lcw_PipesToUnderscore (stackName) & ".livecodescript" into stackName
+   return stackName
+end project_ConstructShortFile
+
+
+--> Props
+-
 getprop stack_IsKnown [pName]
    put the defaultstack into sObject
    put the effective filename of sObject into sPath
@@ -505,11 +513,6 @@ function project_ConstructHomePath projectOrModuleFolder, pExtension
    put projectOrModuleFolder & shortFileBit & "." & pExtension into homePath
    return homePath
 end project_ConstructHomePath
-
-function project_ConstructShortFile stackName
-   put lcw_PipesToUnderscore (stackName) & ".livecodescript" into stackName
-   return stackName
-end project_ConstructShortFile
 
 function project_ConstructStandardFile stackName, projectFolder, pShortFolder, pExtension, pCreateFolder
    -- here we normalize short file and folder names (replace "|" with "_")
