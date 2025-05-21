@@ -37,7 +37,7 @@ end vertical_Divider
 
 --> Local Variables
 -
-local localStartH, localStartV, localOriginalRect, localMouseIsDown, localLeftView, localRightView, localOwnerRect
+local localStartH, localStartV, localOriginalRect, localMouseIsDown, localOwner, localLeftView, localRightView, localOwnerRect, OwnerInnerRect
 
 private command clearLocals
    -- occassional bug where local seems to get wrong initial settin
@@ -85,32 +85,32 @@ on mouseMove newMouseH, newMouseV
    if the mouse is "Down" and localMouseIsDown then
       if localStartH is empty then initialise_Move
       
-      put newMouseH - localStartH into movedH
-      
-      put localOriginalRect into dividerRect
-      put movedH + item 1 of dividerRect into leftViewRight
-      put leftViewRight into item 1 of dividerRect
-      put movedH + item 3 of dividerRect into rightViewLeft
-      put rightViewLeft into item 3 of dividerRect
-      
-      put the long id of me into myOwner
-      delete word 1 to 4 of myOwner
-      put the inner_Rect of myOwner into innerRect
-      
-      put innerRect into leftViewRect
-      put leftViewRight into item 3 of leftViewRect
-      
-      put innerRect into rightViewRect
-      put rightViewLeft into item 1 of rightViewRect
-      
-      lock screen
-      set the rect of me to dividerRect
-      if exists (localLeftView) then set the rect of localLeftView to leftViewRect
-      if exists (localRightView) then set the rect of localRightView to rightViewRect
-      unlock screen
+      LayoutControl newMouseH
    end if
    pass mouseMove
 end mouseMove
+
+command LayoutControl newMouseH
+   put newMouseH - localStartH into movedH
+   
+   put localOriginalRect into dividerRect
+   put movedH + item 1 of dividerRect into leftViewRight
+   put leftViewRight into item 1 of dividerRect
+   put movedH + item 3 of dividerRect into rightViewLeft
+   put rightViewLeft into item 3 of dividerRect
+   
+   put OwnerInnerRect into leftViewRect
+   put leftViewRight into item 3 of leftViewRect
+   
+   put OwnerInnerRect into rightViewRect
+   put rightViewLeft into item 1 of rightViewRect
+   
+   lock screen
+   set the rect of me to dividerRect
+   if exists (localLeftView) then set the rect of localLeftView to leftViewRect
+   if exists (localRightView) then set the rect of localRightView to rightViewRect
+   unlock screen
+end LayoutControl
 
 on mouseUp
    clear_Move
@@ -138,9 +138,10 @@ on initialise_Move
    put the mousev into localStartV
    put the rect of me into localOriginalRect
    
-   put the long id of me into myOwner
-   delete word 1 to 4 of myOwner
-   put the rect of myOwner into localOwnerRect
+   put the long id of me into localOwner
+   delete word 1 to 4 of localOwner
+   put the inner_Rect of localOwner into OwnerInnerRect
+   put the rect of localOwner into localOwnerRect
    
    put the left_View of me into localLeftView
    put the right_View of me into localRightView

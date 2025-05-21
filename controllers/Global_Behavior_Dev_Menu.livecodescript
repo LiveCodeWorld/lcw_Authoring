@@ -20,8 +20,27 @@ local LocalArray
 -
 getprop menu_Target [tObject]
    -- return display_MenuTarget(tObject)
+   _SetBehaviorMenu
    return the display_View of tObject
 end menu_Target
+
+private command _SetBehaviorMenu
+   put env_ListBehaviorStackNames() into bNames
+   put "None,-" & CR before bNames
+   put bNames into LocalArray ["sBehaviorNames"]
+   
+   put the behavior of sObject into bObject
+   switch
+      case bObject is empty
+         put "None" into LocalArray ["sBehaviorName"]
+      case exists (bObject) is false
+      case word 1 of bObject is not "stack"
+         put empty into LocalArray ["sBehaviorName"]
+      default
+         put the short name of bObject into stackName
+         put stackName into LocalArray ["sBehaviorName"]
+   end switch
+end _SetBehaviorMenu
 
 getprop layoutBehaviorName_Params [scriptObject]
    put env_ListBehaviorStackNames() into behaviorStackNames
@@ -204,9 +223,51 @@ end menu_AddLayoutBehavior
 private on _
 end _
 
-on menu_DisplayBehaviorHierarchy scriptObject, bhName
-   put behavior_GetObject (bhName) into bObject
+on menu_SetStandardBehavior sObject, standardBehaviorStackName
+   put the name of sObject into someName
+   if standardBehaviorStackName = "None" then
+      answer merge ("Set the named script-only behavior of [[someName]] to '[[standardBehaviorStackName]]'.") with "Cancel" or "OK"
+      if it is "Cancel" then exit to top
+      
+      set the behavior of sObject to empty
+   else    
+      answer merge ("Set the named script-only behavior of [[someName]] to '[[standardBehaviorStackName]]'.") with "Cancel" or "OK"
+      if it is "Cancel" then exit to top
+      
+      put the name of stack standardBehaviorStackName into bObject
+      set the behavior of sObject to bObject
+      edit the script of stack standardBehaviorStackName
+   end if
+end menu_SetStandardBehavior
+
+on menu_EditStandardBehavior sObject, standardBehaviorStackName
+   if bName is "Clear" then return false
+   put name of stack standardBehaviorStackName into bObject
    edit the script of bObject
+end menu_EditStandardBehavior
+
+private on ____
+end ____
+
+getprop setStandardBehavior_Param [scriptObject]
+   return LocalArray ["sBehaviorName"]
+end setStandardBehavior_Param
+
+getprop setStandardBehavior_Params
+   return LocalArray ["sBehaviorNames"]
+end setStandardBehavior_Params
+
+getprop editStandardBehavior_Param [scriptObject]
+   return LocalArray ["sBehaviorName"]
+end editStandardBehavior_Param
+
+getprop editStandardBehavior_Params
+   return LocalArray ["sBehaviorNames"]
+end editStandardBehavior_Params
+
+on menu_DisplayBehaviorHierarchy scriptObject, bhName
+put behavior_GetObject (bhName) into bObject
+edit the script of bObject
 end menu_DisplayBehaviorHierarchy
 
 on menu_AddBehaviorToEnd scriptObject, bName

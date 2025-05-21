@@ -461,7 +461,7 @@ end project_CreateHomeStack
 command project_CreateStack projectFolder, pStackName, pShortFolder, pLibType, pScript, pNotScriptOnly
    if pStackName is empty then put project_GetShortFolder (projectFolder) into pStackName -- for creating a homeStack with folder and name the same
    
-   -- let's set the default values of the scripts metadata
+   # Set the default values of the scripts metadata
    put metadata_ConstructArray (pStackName, pLibType) into uRipArray
    script_SetMetadataArray pScript, uRipArray
    --

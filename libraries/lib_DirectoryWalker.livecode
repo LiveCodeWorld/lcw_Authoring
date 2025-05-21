@@ -47,6 +47,25 @@ end directory_ListNestedStackFiles
 
 --> Directory | Array
 -
+function directory_NestedStackFileArray someFolder, pWithoutFolder
+   if there is not a folder someFolder then return empty
+   --
+   set the itemdelimiter to slash
+   put the number of items of someFolder into baseFolderNum
+   --
+   -- put directory_ListNestedPaths (someFolder) into nPaths
+   put directory_ListStackPaths (someFolder, pWithoutFolder) into nPaths
+   --
+   repeat for each line sFile in nPaths
+      if exists (stack sFile) then
+         put the short name of stack sFile into stackName
+         delete item 1 to baseFolderNum of sFile
+         put sFile into sFileArray [stackName]
+      end if
+   end repeat
+   return sFileArray
+end directory_NestedStackFileArray
+
 function directory_NestedStackFileArray someFolder
    if there is not a folder someFolder then return empty
    
@@ -76,6 +95,23 @@ function directory_NestedArray someFolder
    _WalkDirectory folderArray, someFolder, baseFolderNum
    return folderArray [shortFolder]
 end directory_NestedArray
+
+function directory_ListNestedPaths someFolder, pSetRelative
+   local NestedPaths
+   if there is not a folder someFolder then return empty
+   
+   # Walk
+   set the itemdelimiter to slash
+   text_AddTrailing someFolder, slash
+   if pSetRelative is true then
+      put the number of items of someFolder into baseFolderNum
+      _WalkAndList NestedPaths, someFolder, baseFolderNum
+   else
+      _WalkAndList NestedPaths, someFolder, baseFolderNum
+   end if
+   delete char -1 of NestedPaths
+   return NestedPaths
+end directory_ListNestedPaths
 
 private command _WalkAndList @NestedPaths, someFolder, pBaseFolderNum
    -- recursive

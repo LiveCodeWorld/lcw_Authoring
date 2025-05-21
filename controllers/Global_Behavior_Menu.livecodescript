@@ -16,26 +16,13 @@ local LocalArray
 -
 getprop menu_Target [tObject]
    put the display_View of tObject into LocalArray ["dView"]
-   put the displayed_Object of tObject into sObject
+   put the displayed_Object of tObject into mView
    
-   --  put project_ListBehaviorStackNames ("all") into bNames
-   put env_ListBehaviorStackNames() into bNames
-   put "None,-" & CR before bNames
-   put bNames into LocalArray ["sBehaviorNames"]
+   put the module_BehaviorStackNames of mView into LocalArray ["mBehaviorStackNames"] 
+   put the view_BehaviorStackNames of mView into LocalArray ["vStackNames"] 
+   put the behavior_StackNames of mView into LocalArray ["bStackNames"]
    
-   put the behavior of sObject into bObject
-   switch
-      case bObject is empty
-         put "None" into LocalArray ["sBehaviorName"]
-      case exists (bObject) is false
-      case word 1 of bObject is not "stack"
-         put empty into LocalArray ["sBehaviorName"]
-      default
-         put the short name of bObject into stackName
-         put stackName into LocalArray ["sBehaviorName"]
-   end switch
-   
-   return sObject
+   return mView
 end menu_Target
 
 private function _dView
@@ -72,29 +59,137 @@ getprop disabled_AddMenuBehaviors [sObject]
    return notThere
 end disabled_AddMenuBehaviors
 
-getprop setStandardBehavior_Param [scriptObject]
-   return LocalArray ["sBehaviorName"]
-end setStandardBehavior_Param
-
-getprop setStandardBehavior_Params
-   return LocalArray ["sBehaviorNames"]
-end setStandardBehavior_Params
-
-getprop editStandardBehavior_Param [scriptObject]
-   return LocalArray ["sBehaviorName"]
-end editStandardBehavior_Param
-
-getprop editStandardBehavior_Params
-   return LocalArray ["sBehaviorNames"]
-end editStandardBehavior_Params
-
--- on submenu_ViewBehavior
-return "Global | Behavior | View | Menu"
-end submenu_ViewBehavior
-
 
 --> Global | Behavior | Menu
 -
+on menu_SetViewBehaviorStackNames mView
+   put the uOPN ["view_BehaviorStackNames"] of mView into vStackNames
+   --
+   behavior_SetStackNames vStackNames, mView
+   put the result into bObjects
+   put bObjects
+end menu_SetViewBehaviorStackNames
+
+on menu_ClearBehaviors mView
+   -- set the view_BehaviorStackNames of sObject to empty
+   -- set the behavior_Objects of sObject to empty
+   
+   behavior_SafeClear mView
+end menu_ClearBehaviors
+
+getprop checked_ClearBehaviors [sObject]
+   get the behavior_Objects of sObject
+   return it is empty
+end checked_ClearBehaviors
+
+on menu_DispatchPreopenControl viewObject
+   if the shiftKey is "Down" then breakpoint
+   dispatch "preOpenControl" to viewObject
+   switch it
+      case "unhandled"
+         put the card_Object of viewObject into cardObject
+         display_BrokenBehaviors cardObject, true
+         break
+      default
+         -- all is fine
+   end switch
+end menu_DispatchPreopenControl
+
+private on ____
+end ____
+
+on menu_ModuleBehavior mView, bStackName
+   put the module_Name of mView into mName
+   put the module_BehaviorStackNames of mView into mBehaviorStackNames
+   put the view_BehaviorStackNames of mView into vStackNames
+   put the behavior_StackNames of mView into bStackNames
+   
+   if bStackName is among the lines of bStackNames then
+      set the behavior_Remove of mView to bStackName
+      lcw_Notify "Removed behavior from module", mName
+   else
+      set the behavior_Add of mView to bStackName
+      lcw_Notify "Added behavior from module", mName, bStackName
+   end if
+end menu_ModuleBehavior
+
+getprop moduleBehavior_Param [mView]
+   put LocalArray ["bStackNames"] into bStackNames
+   -- put the behavior_StackNames of mView into bStackNames
+   return bStackNames
+end moduleBehavior_Param
+
+getprop moduleBehavior_Params [mView]
+   put LocalArray ["mBehaviorStackNames"] into mBehaviorStackNames
+   -- put the module_BehaviorStackNames of mView into mBehaviorStackNames
+   return mBehaviorStackNames
+end moduleBehavior_Params
+
+on menu_ViewBehaviorStackNames mView, bStackName
+   put the module_Name of mView into mName
+   put the view_BehaviorStackNames of mView into vStackNames
+   
+   if bStackName is among the lines of vStackNames then
+      line_Delete bStackName, vStackNames
+      lcw_Notify "Removed behavior from stored view_BehaviorStackNames!", mName, bStackName
+   else
+      line_Add bStackName, vStackNames
+      lcw_Notify "Added behavior to stored view_BehaviorStackNames!", mName, bStackName
+   end if
+   set the view_BehaviorStackNames of mView to vStackNames
+end menu_ViewBehaviorStackNames
+
+getprop viewBehaviorStackNames_Param [mView]
+   put LocalArray ["vStackNames"] into vStackNames
+   -- put the view_BehaviorStackNames of mView into vStackNames
+   return vStackNames
+end viewBehaviorStackNames_Param
+
+getprop viewBehaviorStackNames_Params [mView]
+   put LocalArray ["mBehaviorStackNames"] into mBehaviorStackNames
+   -- put the module_BehaviorStackNames of mView into mBehaviorStackNames
+   return mBehaviorStackNames
+end viewBehaviorStackNames_Params
+
+on menu_AskEditViewBehaviorStackNames sObject
+   put the view_BehaviorStackNames of sObject into sNames
+   if sNames is empty then
+      put the behavior_StackNames of sObject into sNames
+   end if
+   replace CR with comma in sNames
+   put lcw_Ask ("Add behavior...", sNames, sObject) into sNames
+   replace comma with CR in sNames
+   --
+   set the view_BehaviorStackNames of sObject to sNames
+   --
+   menu_Refresh sObject
+end menu_AskEditViewBehaviorStackNames
+
+private on _
+end _
+
+on menu_StoreDefaultBehaviorStackNames mView
+   put the module_Name of mView into mName
+   if mName is empty then
+      breakpoint
+      --  put project_ListBehaviorStackNames ("all") into bNames
+   end if
+   put module_ListBehaviorStackNames (mName) into mBehaviorStackNames
+   
+   # Store
+   set the view_BehaviorStackNames of mView to mBehaviorStackNames
+end menu_StoreDefaultBehaviorStackNames
+
+on menu_ClearModuleBehaviors mView
+   put the module_Name of mView into mName
+   if mName is empty then
+      breakpoint
+   end if
+   
+   # Clear
+   module_ClearBehaviors mName
+end menu_ClearModuleBehaviors
+
 on menu_DisplayBehaviorStackNames mView
    put _dView() into dView
    put the view_BehaviorStackNames of mView into sData ["view_BehaviorStackNames"]
@@ -104,16 +199,7 @@ on menu_DisplayBehaviorStackNames mView
    display_Data sData, pTitle, "BehaviorStackNames"
 end menu_DisplayBehaviorStackNames
 
-on menu_EditBehaviorStack mView, bStackName
-   edit the script of stack bStackName
-end menu_EditBehaviorStack
-
-getprop editBehaviorStack_Params [mView]
-   put the view_BehaviorStackNames of mView into sNames
-   return sNames
-end editBehaviorStack_Params
-
-on menu_SetBehaviorStackNames mView
+on menu_SetViewBehaviorStackNames mView
    lcw_Answer "Automatically set the view_BehaviorStackNames of this view to the view_CardBehaviorStackNames of this card?", mView
    ---
    put the view_CardBehaviorStackNames of mView into bNames
@@ -127,23 +213,10 @@ on menu_SetBehaviorStackNames mView
    end if
    
    set the displayed_Data ["the view_BehaviorStackNames"] of dView to bNames
-end menu_SetBehaviorStackNames
+end menu_SetViewBehaviorStackNames
 
-on menu_EditViewBehaviorStackNames sObject
-   put the view_BehaviorStackNames of sObject into sNames
-   if sNames is empty then
-      put the behavior_StackNames of sObject into sNames
-   end if
-   replace CR with comma in sNames
-   put lcw_Ask ("Add behavior...", sNames, sObject) into sNames
-   --
-   set the view_BehaviorStackNames of sObject to sNames
-   --
-   menu_Refresh sObject
-end menu_EditViewBehaviorStackNames
-
-private on _
-end _
+private on __
+end __
 
 on menu_DisplyBehaviorObjects mView
    put _dView() into dView
@@ -154,8 +227,8 @@ on menu_DisplyBehaviorObjects mView
    set the stack_Label of dView to vName
 end menu_DisplyBehaviorObjects
 
-private on __
-end __
+private on ___
+end ___
 
 on menu_AddMenuBehaviors sObject
    put _dView() into dView
@@ -176,35 +249,6 @@ on menu_AddBehavior sObject
    menu_Refresh sObject
 end menu_AddBehavior
 
-private on ___
-end ___
-
-on menu_SetStandardBehavior sObject, standardBehaviorStackName
-   put the name of sObject into someName
-   if standardBehaviorStackName = "None" then
-      answer merge ("Set the named script-only behavior of [[someName]] to '[[standardBehaviorStackName]]'.") with "Cancel" or "OK"
-      if it is "Cancel" then exit to top
-      
-      set the behavior of sObject to empty
-   else    
-      answer merge ("Set the named script-only behavior of [[someName]] to '[[standardBehaviorStackName]]'.") with "Cancel" or "OK"
-      if it is "Cancel" then exit to top
-      
-      put the name of stack standardBehaviorStackName into bObject
-      set the behavior of sObject to bObject
-      edit the script of stack standardBehaviorStackName
-   end if
-end menu_SetStandardBehavior
-
-on menu_EditStandardBehavior sObject, standardBehaviorStackName
-   if bName is "Clear" then return false
-   put name of stack standardBehaviorStackName into bObject
-   edit the script of bObject
-end menu_EditStandardBehavior
-
-private on ____
-end ____
-
 on menu_EditBehavior sObject
    put the behavior of sObject into bObject
    if exists (bObject) then
@@ -214,6 +258,31 @@ on menu_EditBehavior sObject
       put bObject
    end if
 end menu_EditBehavior
+
+-- on menu_CreateBehavior mView
+put the module_CreateBehaviorName of mView into bName
+
+end menu_CreateBehavior
+
+-- getprop checked_CreateBehavior [mView]
+   put the behavior_StackNames of mView into bStackNames
+   put the module_CreateBehaviorName of mView into bName
+   put bName is among the lines of bStackNames into sBoolean
+   return sBoolean
+end checked_CreateBehavior
+
+-- on menu_DevBehavior mView
+   put the module_DevBehaviorName of mView into bName
+   
+end menu_DevBehavior
+
+-- getprop checked_DevBehavior [mView]
+   -- put module_ListBehaviorStackNames (mName) into mBehaviorStackNames
+   put the behavior_StackNames of mView into bStackNames
+   put the module_DevBehaviorName of mView into bName
+   put bName is among the lines of bStackNames into sBoolean
+   return sBoolean
+end checked_DevBehavior
 
 on submenu_Dev
    return menu_DevTitle()
