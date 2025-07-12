@@ -13,6 +13,105 @@ Here we define handlers that create projects and project specific stacks (librar
 
 --> Working on
 -
+command project_TrashStack stackObject
+   # Do some checks. This handler is dangerous as it deletes a stack!
+   switch
+      case word 1 of stackObject is not "stack"
+         return "Errror, not a stack" && stackObject
+      case exists (stackObject) is false
+         return "Error, stack does not exist!" && stackObject
+      default
+         -- good stackObject
+   end switch
+   
+   put the filename of stackObject into longStackFile
+   --
+   stop using stack longStackFile
+   set the stack_IsKnow of stack longStackFile to false -- do this for all projects ?
+   
+   # Trash stack and delete File
+   delete stack longStackFile -- remove from memory
+   -- delete file longStackFile
+   revDeleteFile longStackFile -- bug: not in the dictionary
+   --
+   return longStackFile
+end project_TrashStack
+
+function module_ConstructControllerPath moduleName, moduleFolder, pShortFile
+   if pShortFile is empty then
+      put moduleName & ".livecodescript" into pShortFile
+   end if
+   put folder_AddShort (moduleFolder, "controllers") into moduleControllerFolder
+   put pShortFile & pShortFile into moduleControllerPath
+   return moduleControllerPath
+end module_ConstructControllerPath
+
+command project_MoveControllerToModule gMenutitle, toModuleName, toProjectName
+   # Get menu path
+   put menu_GetGlobalPath (gMenutitle) into mPath
+   if mPath is empty then
+      return "Error, cannot local global menu:" && gMenutitle
+   end if
+   
+   # Get fromProjectFolder (we need it later)
+   put the project_Folder of stack gMenutitle into fromProjectFolder
+   
+   # Check it is a menu
+   put the script_Type of stack gMenutitle into sType
+   if sType is not "controller" then
+      return "Error, gMenutitle is not a menu:" && gMenutitle
+   end if
+   
+   # Module Folder
+   put project_GetFolder (toProjectName) into toProjectFolder
+   if toProjectFolder is empty then
+      return "Error, cannot project folder for" && toProjectName
+   end if
+   put lcw_PipesToUnderscore (toModuleName) into toModuleShortFolder
+   put module_GetFolder (toModuleShortFolder, toProjectFolder) into toModuleFolder
+   --
+   if there is not a folder toModuleFolder then
+      return "Error, problem finding module folder:" && toModuleShortFolder && "for project" && toProjectName
+   end if
+   
+   # Module Path
+   put module_GetHomeStackPath (toModuleShortFolder, toProjectName) into toModulePath
+   if there is not a stack toModulePath then 
+      return "Error, problem finding module path:" && toModuleShortFolder && "for project" && toProjectName
+   end if
+   
+   
+   # From Path
+   put the filename of stack gMenutitle into fromControllerPath
+   
+   # To Path
+   set the itemdelimiter to slash
+   put item -1 of fromControllerPath into shortFile
+   put module_ConstructControllerPath (toModuleName, toModuleFolder, shortFile) into toControllerPath
+   --
+   if there is a file toControllerPath then
+      return "Error, there is already a file:" && toControllerPath
+   end if
+   
+   # Start moving!
+   breakpoint
+   
+   # Remove old menu stack from memory
+   delete stack gMenutitle
+   
+   # Move Controller
+   rename file fromControllerPath to toControllerPath
+   
+   # Fix project stackfiles
+   project_MoveStackFile toControllerPath, fromProjectFolder, toProjectFolder
+   
+   breakpoint
+   # Fix Module Paths
+   set the stackFile_AddPaths of stack toModulePath to toControllerPath
+   
+   return toPath
+end project_MoveControllerToModule
+
 function project_ConstructShortFile stackName
    put lcw_PipesToUnderscore (stackName) & ".livecodescript" into stackName
    return stackName
@@ -228,7 +327,7 @@ command project_Trash projectName
 end project_Trash
 
 
---> Project
+--> Project | Stack
 -
 command project_RenameStack stackName, newStackName, pEditScript
    # Checks
@@ -397,6 +496,7 @@ command project_MoveStackFile toPath, fromProjectFolder, toProjectFolder
    
    set the stackFile_AddPaths of stack toHomePath to toPath
    set the stackFile_RemovePaths of stack fromHomePath to toPath
+   return toPath
 end project_MoveStackFile
 
 command project_MoveStack oldStackPath, newStackPath, pLeaveAlias

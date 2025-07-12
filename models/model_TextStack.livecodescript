@@ -1,5 +1,5 @@
 ﻿script "model_TextStack"
-s--> MetaData
+--> MetaData
 -
 license: GPLv3
 name: model_TextStack
@@ -27,15 +27,6 @@ getprop projectOverlay_SvgFile [projectName]
    put overlayFolder & shortFile & ".svg" into svgFile
    return svgFile
 end projectOverlay_SvgFile
-
-
---> TextStack | HkeyObject | Array
--
-getprop textstack_HkeyObjectArray
-   put the projectOverlay_Array ["processedHkey.array"] of the target into processedHkeyArray  
-   put hkeyArray_GetStackDepArray (processedHkeyArray) into hkeyObjectArray
-   return hkeyObjectArray
-end textstack_HkeyObjectArray
 
 
 --> ProjectOverlay | Array
@@ -66,6 +57,15 @@ getprop projectOverlay_File [pShortFile]
    put projectOverlayFolder & pShortFile into someFile
    return someFile
 end projectOverlay_File
+
+
+-->  TextStack
+-
+getprop textstack_HkeyObjectArray
+   put the projectOverlay_Array ["processedHkey.array"] of the target into processedHkeyArray  
+   put hkeyArray_GetStackDepArray (processedHkeyArray) into hkeyObjectArray
+   return hkeyObjectArray
+end textstack_HkeyObjectArray
 
 
 -->  TextStack | Folders

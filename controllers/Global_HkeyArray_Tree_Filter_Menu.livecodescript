@@ -11,7 +11,7 @@ version: 0.1
 
 getprop dep_Objects [treeView]
    put the displayed_Array of treeView into hKeyArray
-   put hkeyArray_GetDepArray (hkeyArray) into objectArray
+   put hkeyArray_GetStackDepArray (hkeyArray) into objectArray
    return keys (objectArray)
 end dep_Objects
 
@@ -58,7 +58,7 @@ private function _HkeysInMainstack treeView
 end _HkeysInMainstack
 
 command display_ObjectOutline hkeyArray, someTitle, treeView
-   put hkeyArray_GetDepArray (hkeyArray) into objectArray
+   put hkeyArray_GetStackDepArray (hkeyArray) into objectArray
    
    lock screen
    set the tree_Array [1] of the tree_Field of treeView to objectArray
@@ -92,7 +92,7 @@ on menu_RemoveObject treeView, depObject
    deconstructLocalArray overlayFolder, hKey, stackLabel, scriptObject
    
    hkeyArray_RemoveObjectLinks hkeyArray, depObject
-   put hkeyArray_GetDepArray (hkeyArray) into objectArray
+   put hkeyArray_GetStackDepArray (hkeyArray) into objectArray
    
    put merge ("Filtered hkeyArray") into someTitle
    

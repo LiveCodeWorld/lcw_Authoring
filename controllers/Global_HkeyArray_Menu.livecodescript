@@ -24,12 +24,12 @@ local LocalArray
 --> Menu | Props
 -
 getprop menu_Target [tObject]
-   put the display_View of tObject into displayView
-   put displayView into LocalArray ["displayView"]
+   put the display_View of tObject into dView
+   put dView into LocalArray ["dView"]   
    --
-   put the displayed_Hkey of displayView into hKey
+   put the displayed_Hkey of dView into hKey
    --
-   put the displayed_Data of displayView into hkeyArray
+   put the displayed_Data of dView into hkeyArray
    put hkeyArray into LocalArray ["hkeyArray"]
    
    hkeyLine_Deconstruct hKey, hName, hType, hObject
@@ -47,52 +47,52 @@ getprop menu_CheckTarget [hKey]
    return exists (hObject)
 end menu_CheckTarget
 
--- getprop disabled_FetchHandler [displayView]
-   _SetHkeyLine displayView, hKeyLine
-   if hKeyLine is empty then
-      return true
-   else
-      return false
-   end if
+-- getprop disabled_FetchHandler [dView]
+_SetHkeyLine dView, hKeyLine
+if hKeyLine is empty then
+   return true
+else
+   return false
+end if
 end disabled_FetchHandler
 
--- getprop disabled_DisplayHandlerDeps [displayView]
-   _SetHkeyLine displayView, hKeyLine
-   put hkey_FetchCalls (hKeyLine) into hCalls
-   return hCalls is empty
+-- getprop disabled_DisplayHandlerDeps [dView]
+_SetHkeyLine dView, hKeyLine
+put hkey_FetchCalls (hKeyLine) into hCalls
+return hCalls is empty
 end disabled_DisplayHandlerDeps
 
--- getprop disabled_DisplayHandlerDeps [displayView]
-   put the hilited_Element of displayView into pathItems
-   
-   switch item 1 of pathItems
-      case "Missing"
-         return true
-      case "Handlers"
-         if the number of items of pathItems = 1 then return true
-         break
-      case "Calls"
-         if the number of items of pathItems < 4 then return true
-         break
-   end switch
-   return false
+-- getprop disabled_DisplayHandlerDeps [dView]
+put the hilited_Element of dView into pathItems
+
+switch item 1 of pathItems
+   case "Missing"
+      return true
+   case "Handlers"
+      if the number of items of pathItems = 1 then return true
+      break
+   case "Calls"
+      if the number of items of pathItems < 4 then return true
+      break
+end switch
+return false
 end disabled_DisplayHandlerDeps
 
--- getprop disabled_AddToDictionary [displayView]
-   put the hilited_Element of displayView into pathItems
-   put item 1 of pathItems = "Missing" into isMissing
-   if isMissing is false then return true
-   
-   put the number of items of pathItems > 2 into isLong
-   if isLong is false then return true
-   
-   put item 3 of pathItems into shortHkeyLine
-   put word 2 of shortHkeyLine into ignoreTerm
-   
-   put ide_IsDictionaryTerm (ignoreTerm) into isInDictionary
-   if isInDictionary is true then return true
-   
-   return false
+-- getprop disabled_AddToDictionary [dView]
+put the hilited_Element of dView into pathItems
+put item 1 of pathItems = "Missing" into isMissing
+if isMissing is false then return true
+
+put the number of items of pathItems > 2 into isLong
+if isLong is false then return true
+
+put item 3 of pathItems into shortHkeyLine
+put word 2 of shortHkeyLine into ignoreTerm
+
+put ide_IsDictionaryTerm (ignoreTerm) into isInDictionary
+if isInDictionary is true then return true
+
+return false
 end disabled_AddToDictionary
 
 private command _DeconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scriptObject
@@ -102,10 +102,10 @@ private command _DeconstructLocalArray @overlayFolder, @hKey, @stackLabel, @scri
    put LocalArray ["scriptObject"] into scriptObject
 end _DeconstructLocalArray
 
-private command _SetHkeyLine displayView, @hKeyLine
-   put the displayed_Object of displayView into stackObject
-   put the selected_Value of displayView into selectedValue
-   put the hilited_Element of displayView into pathItems
+private command _SetHkeyLine dView, @hKeyLine
+   put the displayed_Object of dView into stackObject
+   put the selected_Value of dView into selectedValue
+   put the hilited_Element of dView into pathItems
    
    if item 1 of pathItems = "Calls" then
       put item 4 of pathItems into hKeyLine
@@ -128,23 +128,64 @@ end _SetHkeyLine
 -
 on menu_DisplayHkeyDepArray hKey
    put LocalArray ["hkeyArray"] into hkeyArray
-   put hkeyArray_GetDepArray (hkeyArray) into hkeyDepArray
+   put hkeyArray_GetStackDepArray (hkeyArray) into hkeyDepArray
    --
    display_Data hkeyDepArray, hKey, "hkeyDepArray"
-   put the result into displayView
+   put the result into dView
    --
-   display_SetInteractions displayView, "DepObjects | Tree", mDoubleUp
+   display_SetInteractions dView, "DepObjects | Tree", mDoubleUp
    --
    set the displayed_Hkey of indexView to hKey
    set the displayed_HkeyArray of indexView to hkeyArray
    set the displayed_HkeyDepArray of indexView to hkeyDepArray
    --
-   return displayView
+   return dView
 end menu_DisplayHkeyDepArray
 
-on submenu_Show
+on menu_DisplayStoredDepArray hKey
+   display_HkeyDepArray hKey
+end menu_DisplayStoredDepArray
+
+on submenu_HkeyArray
    return "Global | HkeyArray | Tree | Menu"
-end submenu_Show
+end submenu_HkeyArray
+
+on menu_Show hKey, showHow
+   put LocalArray ["dView"] into dView
+   put the strip_MissingProps of dView into stripMissingProps
+   put the title_Text of dView into hKey
+   --
+   put _HkeyArray (sObject) into hkeyArray
+   put hkeyArray_DisplayData (hkeyArray, showHow, stripMissingProps, hKey) into dData
+   --
+   set the displayed_Data of dView to dData
+   set the show_How of dView to showHow
+end menu_Show
+
+private function _HkeyArray hKey
+   return LocalArray ["hkeyArray"]
+end _HkeyArray
+
+getprop show_Param
+   put LocalArray ["dView"] into dView
+   put the show_How of dView into showHow
+   if showHow is empty then put "projects" into showHow
+   return showHow
+end show_Param
+
+getprop show_Params
+   return "projects,stacks,hKeys,depKeys,-,hkeyArray"
+end show_Params
+
+private function _ScriptObject
+   put LocalArray ["dView"] into dView
+   put the title_Text of dView into sObject
+   if exists (sObject) then
+      return sObject
+   else
+      return empty
+   end if
+end _ScriptObject
 
 on menu_HkeyRefresh hKey
    display_HkeyArray hKey
@@ -183,21 +224,21 @@ end submenu_Dev
 --> Dev | Menu
 -
 on _FetchHandler hKey
-   _SetHkeyLine displayView, hKeyLine
+   _SetHkeyLine dView, hKeyLine
    put hkey_FetchHandler (hKeyLine)
 end _FetchHandler
 
 on _DisplayHandlerDeps hKey
-   _SetHkeyLine displayView, hKeyLine
+   _SetHkeyLine dView, hKeyLine
    display_HandlerDeps hKeyLine
 end _DisplayHandlerDeps
 
-on _AddToDictionary displayView
+on _AddToDictionary dView
    breakpoint
    
-   put the displayed_Object of displayView into stackObject
-   put the selected_Value of displayView into selectedValue
-   put the hilited_Element of displayView into pathItems
+   put the displayed_Object of dView into stackObject
+   put the selected_Value of dView into selectedValue
+   put the hilited_Element of dView into pathItems
    
    if selectedValue is an array then
       put line 1 of the keys of selectedValue into pShortCall
@@ -226,7 +267,7 @@ end _AddToDictionary
 on _
 end _
 
-on _RecreateOverlay displayView, overlayName
+on _RecreateOverlay dView, overlayName
    set the cursor to watch
    
    local pImageView, pResizeStyle
@@ -238,16 +279,16 @@ on _RecreateOverlay displayView, overlayName
    display_Overlay overlayFolder, overlayName, pImageView, pResizeStyle, stackLabel
 end _RecreateOverlay
 
-on _SaveDisplayedOverlayArray displayView, graphStyle
-   put the displayed_Object of displayView into scriptObject
+on _SaveDisplayedOverlayArray dView, graphStyle
+   put the displayed_Object of dView into scriptObject
    
-   put the title_Text of displayView into hKey
-   put the displayed_Array of displayView into hKeyArray
+   put the title_Text of dView into hKey
+   put the displayed_Array of dView into hKeyArray
    
-   -- put the displayed_OverlayFolder of displayView into overlayFolder
+   -- put the displayed_OverlayFolder of dView into overlayFolder
    put library_HkeyFolder (hKey) into overlayFolder
    
-   -- put the displayed_OverlayName of displayView into overlayName
+   -- put the displayed_OverlayName of dView into overlayName
    put lcw_Ask ("What name would you like to give this overlay?", graphStyle) into overlayName
    
    put overlay_GetData (overlayFolder) into overlayData
@@ -263,22 +304,22 @@ on _SaveDisplayedOverlayArray displayView, graphStyle
    display_OverlayData overlayFolder, hKey
 end _SaveDisplayedOverlayArray
 
-on _SetOverlayObject displayView
-   put the displayed_Object of displayView into scriptObject
+on _SetOverlayObject dView
+   put the displayed_Object of dView into scriptObject
    overlay_SetOverlayObject overlayFolder, scriptObject
 end _SetOverlayObject
 
-on _ExportScriptArray displayView
-   put the displayed_Array of displayView into hKeyArray
-   put the displayed_Object of displayView into scriptObject
+on _ExportScriptArray dView
+   put the displayed_Array of dView into hKeyArray
+   put the displayed_Object of dView into scriptObject
    -- set the script_OverlayData of scriptObject
-   put the displayed_OverlayName of displayView into overlayName
+   put the displayed_OverlayName of dView into overlayName
    set the script_LinkArray [overlayName] of scriptObject to hKeyArray
    put the result into someFile
    finder_Reveal someFile
 end _ExportScriptArray
 
-on _RevealOverlayFolder displayView
+on _RevealOverlayFolder dView
    put LocalArray ["overlayFolder"] into overlayFolder
    finder_Reveal overlayFolder
 end _RevealOverlayFolder
