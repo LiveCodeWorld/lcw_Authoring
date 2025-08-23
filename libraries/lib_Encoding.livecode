@@ -1,0 +1,938 @@
+﻿script "lib_Encoding"
+--> MetaData
+-
+copyright: David Bovill
+license: GPLv3
+name: lib_Encoding
+type: script library
+version: 0.3
+
+/*
+This library is a collection of handlers that encode and decode strings.
+In particular we focus on getting into and out of utf8 for XML and JSON.
+
+This all needs sorting and researching and organising, with some good documentation written.
+We also for now include general text processing handlers
+that would be used by any library that needs to manipulate scaped text.
+
+command file_SaveTempText someText, pFileExt
+   if pFileExt is empty then put "txt" into pFileExt
+   put the tempname & "." & pFileExt into someFile
+   put someText into url ("file:" & someFile)
+   return someFile
+end file_SaveTempText
+*/
+
+
+--> Working on
+-
+
+
+--> HTML | Tidy
+-
+/*
+Everything below here came from lib_FedWikiPedia
+*/
+
+function html_FetchTidy someURL
+   put "curl -s" && someURL && "| tidy -asxhtml --quiet yes --tidy-mark no --show-warnings false --show-errors 0" into someShell
+   put shell (someShell) into someXHTML
+   return someXHTML
+end html_FetchTidy
+
+command html_Tidy @someHtml
+   put the tempname & ".html" into inputFile 
+   put someHtml into url ("file:" & inputFile)
+   
+   put "tidy --force-output true --char-encoding utf8 --input-encoding utf8 --output-encoding utf8 --output-xml true -asxml -m" && inputFile into someShell
+   put shell (someShell) into shellResult   
+   put url ("file:" & inputFile) into someHtml
+end html_Tidy
+
+command html_FetchScraped someURL, @tidyXML, @xmlArray, @treeID
+   put html_FetchTidy (someURL) into tidyXML
+   put revXMLCreateTree (tidyXML, false, true, false) into treeID
+   xml_ExtractEncoding tidyXML, versionMatch, theXMLEncoding
+   put xml_ArrayFromID (treeID, theXMLEncoding) into xmlArray
+end html_FetchScraped
+
+
+--> UTF8
+-
+function text_HtmlToUtf8 someHTML
+   set the htmltext of the templatefield to someHTML
+   put the unicodetext of the templatefield into someUTF16
+   put unidecode (someUTF16, "UTF8") into utf8Text
+   return utf8Text
+end text_HtmlToUtf8
+
+function text_ConvertHtml someHTML
+   set the htmltext of the templatefield to someHTML
+   put the text of the templatefield into someText
+   return someText
+end text_ConvertHtml
+
+function text_ConvertUtf8 someUTF16
+   set the unicodetext of the templatefield to someUTF16
+   put the text of the templatefield into someText
+   return someText
+end text_ConvertUtf8
+
+function utf8_Encode someText
+   put unidecode (uniencode (someText), "UTF8") into encodedText
+   return encodedText
+end utf8_Encode
+
+function utf8_Decode utf8Text
+   -- put unidecode (uniencode (utf8Text, "UTF8")) into utf8Text
+   put uniencode (utf8Text,"UTF8") into someU16
+   put unidecode (someU16, "ANSI") into someText
+   return someText
+end utf8_Decode
+
+command text_Utf8Decode @utf8Text
+   put unidecode(uniencode (utf8Text, "UTF8")) into utf8Text
+   -- put uniencode(utf8Text,"UTF8") into someU16
+   -- put unidecode(someU16, "ANSI") into utf8Text
+end text_Utf8Decode
+
+command text_Utf8Encode @someText
+   -- put unidecode(uniencode(someText),"UTF8") into someText
+   put utf8_Encode (someText) into someText
+end text_Utf8Encode
+
+function text_Utf8ToHtml someUtf8, someField
+    lock screen
+    put the htmltext of someField into oHtml
+    put uniencode (someUtf8, "UTF8") into someU16
+    set the unicodetext of someField to someU16
+    put the htmltext of someField into someHtml
+    delete char 1 to 3 of someHtml
+    set the htmltext of someField to oHtml
+    unlock screen
+    delete char -4 to -1 of someHtml
+    return someHtml
+end text_Utf8ToHtml
+
+function json_Utf8Encode pString
+   return json_EncodeString (pString)
+end json_Utf8Encode
+
+
+--> Encoding | HTML | Entities
+-
+function html_ReplaceEntities someHtml
+   -- pulled out "text_ReplaceHtmlEntities"
+   text_ReplaceHtmlEntities someHtml
+   return someHtml
+end html_ReplaceEntities
+
+command text_HtmlEntityEscape @someText, pNotQuotes
+   local sNum, eNum
+   put 0 into countNum
+   put "(&[^;]+;)" into someReg
+   
+   put html_EntityList (pNotQuotes) into htmlEntities
+   put html_EntityCharNums (pNotQuotes) into entityCharNums
+   set the wholematches to true
+   repeat
+      get matchchunk (someText, someReg, sNum, eNum)
+      if sNum is not a number then return empty -- breakpoint -- bug
+      if it is false then return countNum
+      
+      put char sNum to eNum of someText into foundEntity
+      if char 1 to 2 of foundEntity = "&#" then
+         put char 3 to -2 of foundEntity into cNum
+         if cNum is not a number then
+            -- breakpoint -- bug
+            return empty
+         end if
+      else
+         put itemOffset (foundEntity, htmlEntities) into itemNum
+         if itemNum is 0 then
+            -- next repeat -- infinite loop
+         end if
+         put item itemNum of entityCharNums into cNum
+      end if
+      put numToChar (cNum) into eChar
+      --
+      put eChar into char sNum to eNum of someText
+      --
+      add 1 to countNum
+   end repeat
+   return countNum
+end text_HtmlEntityEscape
+
+function html_EntityList pNotQuotes
+   /*
+   Updated to add &quote;
+   Special characters (whose ASCII value is greater than 127) are encoded as HTML entities.
+   Revolution recognizes the following named entities:
+   */
+   get "&Aacute;,&aacute;,&Acirc;,&acirc;,&acute;,&AElig;,&aelig;,&Agrave;,&agrave;,&Aring;,&aring;,&Atilde;,&atilde;,&Auml;,&auml;,&brvbar;,&Ccedil;,&ccedil;,&cedil;,&cent;,&copy;,&curren;,&deg;,&divide;,&Eacute;,&eacute;,&Ecirc;,&ecirc;,&Egrave;,&egrave;,&ETH;,&eth;,&Euml;,&euml;,&frac12;,&frac14;,&frac34;,&gt;,&Iacute;,&iacute;,&Icirc;,&icirc;,&iexcl;,&Igrave;,&igrave;,&iquest;,&Iuml;,&iuml;,&laquo;,&lt;,&macr;,&micro;,&middot;,&nbsp;,&not;,&Ntilde;,&ntilde;,&Oacute;,&oacute;,&Ocirc;,&ocirc;,&Ograve;,&ograve;,&ordf;,&ordm;,&Oslash;,&oslash;,&Otilde;,&otilde;,&Ouml;,&ouml;,&para;,&plusmn;,&pound;,&raquo;,&reg;,&sect;,&shy;,&sup1;,&sup2;,&sup3;,&szlig;,&THORN;,&thorn;,&times;,&Uacute;,&uacute;,&Ucirc;,&ucirc;,&Ugrave;,&ugrave;,&uml;,&Uuml;,&uuml;,&Yacute;,&yacute;,&yen;,&yuml"
+   --
+   put "&amp;" & comma before it
+   if pNotQuotes is not true then
+      put "&quot;" & comma before it
+   end if
+   return it
+end html_EntityList
+
+function html_EntityCharNums pNotQuotes
+   get "231,135,229,137,171,174,190,203,136,129,140,204,139,128,138,3,130,141,252,162,169,219,161,214,131,142,230,144,233,143,15,19,232,145,12,11,14,62,234,146,235,148,193,237,147,192,236,149,199,60,248,181,225,202,194,132,150,238,151,239,153,241,152,187,188,175,191,205,155,133,154,166,177,163,200,168,164,4,7,5,6,167,18,21,16,242,156,243,158,244,157,172,134,159,17,20,180,216"
+   --
+   put 38 & comma before it
+   if pNotQuotes is not true then
+      put 34 & comma before it
+   end if
+   return it
+end html_EntityCharNums
+
+command text_ReplaceHtmlEntities @someText
+   -- uses simple "replace"
+   -- Replace all the html entities that Rev understands with their character equivalents.
+   put html_EntityList() into htmlEntities
+   put html_EntityCharNums() into entityCharNums
+   repeat with ii = 1 to the number of items of htmlEntities
+      put item ii of entityCharNums into entityCharNum
+      put numtochar (entityCharNum) into someChar
+      replace item ii of htmlEntities with someChar in someText
+   end repeat
+   return htmlEntities
+end text_ReplaceHtmlEntities
+
+command text_EntityEscape @someText
+   -- fast and dumb
+   text_Utf8Encode someText
+   -- maybe some others need escaping, maybe none of these are actually needed
+   replace "%3A" with ":" in someURL
+   replace "%26" with "&" in someURL
+   replace "%3D" with "=" in someURL
+   xml_Escape someText
+end text_EntityEscape
+
+
+--> Encoding
+-
+command sitemap_EntityEscape @someURL
+   -- see http://www.sitemaps.org/protocol.html#escaping
+   text_Utf8Encode someURL
+   set the itemdelimiter to "/"
+   repeat with itemNum = 1 to the number of items of someURL
+      put urlencode (item itemNum of someURL) into item itemNum of someURL
+   end repeat
+   -- maybe some others need escaping, maybe none of these are actually needed
+   replace "%3A" with ":" in someURL
+   replace "%26" with "&" in someURL
+   replace "%3D" with "=" in someURL
+   xml_Escape someURL
+end sitemap_EntityEscape
+
+--> JSON | Encode
+-
+function json_Decode pString
+   switch pString
+      case "false"
+         return "false"
+         break
+      case "true"
+         return "true"
+         break
+      case "null"
+         return empty
+         break
+      default
+         if pString is a number then
+            return pString
+         else
+            replace "\" & quote with quote in pString
+            replace "\\" with "\" in pString
+            replace "\b" with numtochar(8) in pString
+            replace "\t" with numtochar(9) in pString
+            replace "\f" with numtochar(12) in pString
+            replace "\r" with numtochar(13) in pString
+            replace "\n" with numtochar(10) in pString
+            
+            -- some more common unicode escapees
+            replace "\u0022" with quote in pString
+            replace "\u005C" with "\" in pString
+            -- any others
+            if "\u" is in pString then
+               put unicodeEscapes(pString) into pString
+            end if
+            
+            if not sOutputUnicode then
+               return utf8decode(pString)
+            else
+               return pString
+            end if
+         end if
+   end switch
+end json_Decode
+
+private function unicodeEscapes pString
+   put false into inEsc
+   repeat for each char c in pString
+      add 1 to count
+      put c after buffer
+      
+      if count < 2 then next repeat
+      
+      if buffer is "\u" then put true into inEscape
+      
+      if inEscape then 
+         if length(buffer) < 6 then 
+            next repeat 
+         else 
+            -- TO DEAL WITH DIACRITICS : 
+            -- TKD (26-07-2012): The output of this should be UTF-8. 
+            -- The original code returned platform specific encoding. On Windows
+            -- this worked fine as the code is the same as UTF-8. On Mac this is
+            -- not correct. The code did not take into account integers > 255.
+            --            if platform() is "MacOS" then 
+            --               put isotomac(numtochar(baseconvert(char 3 to 6 of buffer, 16, 10))) into buffer 
+            --            else 
+            --               put numtochar(baseconvert(char 3 to 6 of buffer, 16, 10)) into buffer 
+            --            end if 
+            set the useUnicode to true
+            try
+               # might not be a valid conversion (think C:\Users\...)
+               put unidecode(numToChar(baseconvert(char 3 to 6 of buffer, 16, 10)), "utf8") into buffer
+            catch e
+            end try
+            set the useUnicode to false
+            
+            put buffer after nString
+            put empty into buffer
+            put false into inEscape
+            put 0 into count
+         end if 
+      else 
+         put char 1 of buffer after nString 
+         delete char 1 of buffer 
+      end if 
+      
+   end repeat
+   put buffer after nString
+   return nString
+end unicodeEscapes
+
+private function json_EncodeValue pString
+   switch pString
+      case true
+         return "true"
+         break
+      case false
+         return "false"
+         break
+      case "null"
+         return "null"
+         break
+      case empty
+         return quote & quote
+         break
+      default
+         if pString is not a number OR pString contains NULL OR the last char of word 1 to -1 of pString is "." then 
+            -- TKD Things like "3." or unicode ". " (period followed by NULL) need to be encoded by LiveCode says it is a number
+            return kwote (json_EncodeString (pString))
+         else
+            return pString
+         end if
+         break
+   end switch
+end json_EncodeValue
+
+function json_EncodeString pString
+   replace "\" with "\\" in pString
+   replace quote with "\u0022" in pString
+   replace numtochar(8) with "\b" in pString
+   replace numtochar(9) with "\t" in pString
+   replace numtochar(10) with "\n" in pString
+   replace numtochar(12) with "\f" in pString
+   replace numtochar(13) with "\r" in pString
+   
+   repeat for each item i in "0,1,2,3,4,5,6,7,11,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31"
+      replace numtochar(i) with "\u" & format("%04X", i) in pString
+   end repeat
+   
+   if sUnicodeInput then
+      return pString
+   else
+      # TKD: This shouldn't be necessary. If not UTF8 then it is platform encoded and
+      #          utf8encode will translate it to UTF8. That is what JSON wants. [Untested]
+      --      -- TO DEAL WITH DIACRITICS : 
+      --      if platform() is "MacOS" then 
+      --         repeat with i=129 to 255 
+      --            put numtochar(i) into c 
+      --            put format("%04x",chartonum(mactoiso(c))) into tHexEncode 
+      --            replace c with "\u" & tHexEncode in pString 
+      --         end repeat 
+      --      else 
+      --         repeat with i=129 to 255 
+      --            replace numtochar(i) with "\u" & format("%04x", i) in pString 
+      --         end repeat 
+      --      end if
+      
+      return utf8encode (pString)
+   end if
+end json_EncodeString
+
+private function json_ToUtf8 @pJson
+   local tNulls = "1111"
+   
+   repeat with n = 1 to 4
+      if (byte n of pJson is null) then put 0 into char n of tNulls
+   end repeat
+   
+   put (char 1 of (binaryencode("I",1)) is null) into bigEndian
+   
+   switch tNulls
+      case "1111"  -- UTF-8
+         return pJson
+         break
+      case "0101"  -- UTF-16BE
+         if bigEndian then
+            return utf8encode (pJson, true)
+         else
+            return utf8encode (swapEndianness(pJson), true)
+         end if
+         break
+      case "1010"  -- UTF-16LE
+         if not bigEndian then
+            return utf8encode (pJson, true)
+         else
+            return utf8encode (swapEndianness(pJson), true)
+         end if
+         break
+      case "0001"  -- UTF-32BE
+         return "libJson-error: 4 byte unicode, can't decode"
+         break
+      case "1000"  -- UTF-32LE
+         return "libJson-error: 4 byte unicode, can't decode"
+         break
+   end switch
+end json_ToUtf8
+
+private function swapEndianness pString, pSize
+   if pSize is empty then put 2 into pSize
+   repeat with n = 1 to length(pString) step pSize
+      repeat with s = pSize - 1 down to 0
+         put byte n + s of pString  after nString
+      end repeat
+   end repeat
+   return nString
+end swapEndianness
+
+private function utf8encode pString, pIsUnicode
+   if pIsUnicode then
+      return unidecode (pString, "UTF8")
+   else
+      return unidecode (uniencode (pString),"UTF8")
+   end if
+end utf8encode
+
+private function utf8decode pString, pToUnicode
+   if pToUnicode then
+      return uniencode(pString,"UTF8")
+   else
+      return unidecode(uniencode(pString,"UTF8"))
+   end if
+end utf8decode
+
+
+--> Xml | Escape
+-
+command xml_Escape @someText
+    -- was "text_XmlEscape", "xmlSafeText"
+    
+    -- chardata regExp:  [^<&]* - ([^<&]* ']]>' [^<&]*)
+    /*
+    The ampersand character (&) and the left angle bracket (<) MUST NOT appear in their literal form,
+    except when used as markup delimiters, or within a comment, a processing instruction, or a CDATA section.
+    if they are needed elsewhere, they MUST be escaped using either numeric character references
+    or the strings "&amp;" and "&lt;" respectively. 
+    The right angle bracket (>) may be represented using the string "&gt;", 
+    and MUST, for compatibility, be escaped using either "&gt;" or a character reference
+    when it appears in the string "]]>" in content, when that string is not marking the end of a CDATA section.
+    */
+    
+    replace "&" with "&amp;" in someText
+    replace "<" with "&lt;" in someText
+    replace ">" with "&gt;" in someText
+    
+    /*
+    To allow attribute values to contain both single and double quotes, 
+    the apostrophe or single-quote character (') may be represented as
+    "&apos;", and the double-quote character (") as "&quot;".
+    */
+    
+    replace "'" with "&apos;" in someText
+    replace quote with "&quot;" in sometext
+    
+    -- do tabs as well?
+    replace tab with "&#9;" in someText
+end xml_Escape
+
+command xml_UnEscape @someText
+   -- do tabs as well?
+   replace "&#9;" with tab in someText
+   
+   replace "&amp;" with "&" in someText
+   replace "&lt;" with "<" in someText
+   replace "&gt;" with ">" in someText
+   
+   replace "&apos;" with "'" in someText
+   replace "&quot;" with quote in sometext
+end xml_UnEscape
+
+command xml_SetTagSafe @tagName
+    -- check xml stuff 
+    -- this handler should remove any invalid chars in an xmL tag name
+    -- ideally in a way in which it can be restored automatically!
+    
+    replace space with "_" in  tagName
+    -- put wiki_ConstructID(tagName) into tagName
+end xml_SetTagSafe
+
+command xml_SafeEncodeNodeContents @nodeContents
+   xml_Escape nodeContents
+   put unidecode(uniencode(nodeContents,"UTF8"),"ANSII") into nodeContents
+   
+   -- Remove byte order mark from UTF8 text
+   put numtochar(239) & numtochar(187) & numtochar(191) into testBomHeader
+   if char 1 to 3 of utf8Text = testBomHeader then
+      delete char 1 to 3 of tVar
+   end if
+end xml_SafeEncodeNodeContents
+
+function xml_EncodeString pString, pInEncoding, pOutEncoding
+   -- Helper function for converting the encoding of strings when converting to and from XML.
+   
+   ## convert utf-8 to utf8 for uniencode/decode
+   replace "-" with empty in pInEncoding
+   replace "-" with empty in pOutEncoding
+   
+   if pInEncoding is not empty then
+      -- if pOutEncoding is empty then pString will be converted to the current platform encoding
+      return unidecode(uniencode(pString, pInEncoding), pOutEncoding)
+   else
+      if pOutEncoding is not empty then
+         -- if pInEncoding is empty then pString is assumed to be in the current platform encoding
+         return unidecode(uniencode(pString, pInEncoding), pOutEncoding)
+      else
+         return pString
+      end if
+   end if
+end xml_EncodeString
+
+
+command text_UnixToMac @someText
+   -- was called "text_MacToUnix"
+   /*
+   Rev uses unix style text internally (numToChar(10) for line endings)
+   That is "fld "Text" contains numtochar(10) = true"
+   
+   If written to a file on a Mac, using URL "file:", they're automatically translated to Macs native numToChar(13).
+   if using URL "binfile:", no translation happens, so numToChar(10) is preserved. 
+   */
+   if the platform = "MacOS" then
+      replace numtochar(13) with numtochar(10) in someText
+   end if
+end text_UnixToMac
+
+command text_MacToUnix @someText
+    -- was called "text_MacToUnix"
+    -- rev does this automatically by itself (but may need for CGI's or returning data from a unix server)
+    replace numtochar(10) with numtochar(13) in someText
+end text_MacToUnix
+
+command text_PListEscape @someText
+    /*
+    \ a backslash character
+    " a quote character
+    b a backspace character
+    n a newline character
+    r a carriage return character
+    t a tab character
+    OOO (three octal digits) an arbitrary ascii character
+    UXXXX (where X is a hexadecimal digit) a an arbitrary unicode character
+    */
+    
+    replace "\" with "\\" in someText
+    replace quote with ("\" & quote) in someText
+    replace numtochar(8) with ("\b") in someText
+    replace numtochar(10) with ("\n") in someText
+    replace numtochar(13) with ("\r") in someText
+    replace tab with ("\t") in someText
+end text_PListEscape
+
+function text_SwapEOL pText, pWhat
+    /*
+    Swap Ends of Line 
+    Does a swap between cr and "¬". This is necessary as the matchtext and replacetext functions only look for 
+    a match within a line, when using regular expressions
+    */
+    switch pWhat
+        case "remove"
+            replace cr with xEOL in pText
+            break
+        case "restore"
+            replace xEOL with cr in pText
+            break
+    end switch
+    return pText
+end text_SwapEOL
+
+
+--> Encoding | Text
+-
+command text_StripReg @wikiText, someReg, pReplaceText
+   local refStart, refEnd
+   put 0 into indexNum
+   repeat
+      get matchchunk (wikiText, someReg, sNum, eNum)
+      if sNum is not a number then
+         put the result into testResult
+         -- breakpoint
+         exit repeat -- regExp bug???
+      end if
+      
+      if it is true then
+         -- this bit not needed (remove for speed)
+         -- put char refStart to refEnd of wikiText into someTest
+         put sNum into stripResultArray [indexNum]["sNum"]
+         put eNum into stripResultArray [indexNum]["eNum"]
+         add 1 to indexNum
+         --
+         -- delete char sNum to eNum of wikiText
+         put pReplaceText into char sNum to eNum of wikiText
+      else
+         exit repeat
+      end if
+   end repeat
+   return stripResultArray
+end text_StripReg
+
+command text_AddTrailing @someText, someChar
+   if char -1 of someText is not someChar then
+      put someChar after someText
+   end if
+end text_AddTrailing
+
+command text_TopAndTail @someText, pChar
+   if pChar is empty then put quote into pChar
+   if char 1 of someText is pChar then delete char 1 of someText
+   if char -1 of someText is pChar then delete char -1 of someText
+end text_TopAndTail
+
+command text_StipQuoted @someText
+   -- see "text_TopAndTail"
+   put "(" & quote & "[^" & quote & "]*" & quote & ")" into quoteReg
+   text_StripReg someText, quoteReg, "•••"
+end text_StipQuoted
+
+function text_CountStrings someString, someText
+   -- not tested
+   put 0 into charsToSkip
+   put 0 into someCount
+   
+   repeat
+      put offset (someString, someText, charsToSkip) into offsetNum
+      if offsetNum = 0 then
+         return someCount
+      else
+         add 1 to someCount
+         add offsetNum to charsToSkip
+      end if
+   end repeat
+end text_CountStrings
+   
+command text_Utf8Encode @someText
+   -- put unidecode(uniencode(someText),"UTF8") into someText
+   put utf8_Encode (someText) into someText
+end text_Utf8Encode
+
+
+--> Encoding | XML | HTML
+-
+function html_StripTags pHtml
+   -- returns the meaningful text from a web page
+   local tRegex,tPrevText
+   -----
+   replace return with space in pHtml
+   replace numtochar(13) with empty in pHtml
+   replace tab with empty in pHtml
+   -----
+   put replacetext(pHtml,"(?Usi)<SCRIPT.*</SCRIPT>","") into pHtml
+   put replacetext(pHtml,"(?Usi)<STYLE>.*</STYLE>","") into pHtml
+   put replacetext(pHtml,"(?Usi)<\?.*\?>","") into pHtml
+   -----
+   replace "&nbsp;" with space in pHtml
+   replace "<BR>" with return in pHtml
+   replace "<p>" with return in pHtml
+   -----
+   put  "<[^><]*>" into tRegex
+   put replacetext(pHtml,tRegex,"") into pHtml
+   put replacetext(pHtml,tRegex,"") into pHtml
+   -----
+   repeat until tPrevText is pHtml
+      put pHtml into tPrevText
+      put replacetext(pHtml," +",space) into pHtml
+      put replacetext(pHtml,"^ ","") into pHtml
+   end repeat
+   -----
+   replace (space & return) with return in pHtml
+   replace (return & space) with return in pHtml
+   filter pHtml without empty
+   -----
+   put html_ReplaceEntities (pHtml) into pHtml
+   -----
+   return pHtml
+end html_StripTags
+
+
+--> Encoding | XML
+-
+function xml_ToArray pXML, pTranslateKeyBoolean, pStoreEncodedAs, pUseValueKey, pGoodXML
+   -- was "xml_ConvertXmlToArray"
+   local theArray, theResult, theRootNode, treeID
+   local theXMLEncoding
+   
+   ## Create an XML tree from XML text
+   put pGoodXML is true into pGoodXML
+   put revCreateXMLTree (pXML, pGoodXML, true, false) into treeID
+   
+   if treeID is an integer then
+      xml_ExtractEncoding pXML, versionMatch, theXMLEncoding
+      
+      ## Now convert to array.
+      ## The 1st dimension has one key which is the name of the root node.
+      put revXMLRootNode(treeID) into theRootNode
+      if theRootNode is not empty and not (theRootNode begins with "xmlerr,") then
+         put xml_ConvertXMLNodeToArray (treeID, theRootNode, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArray [theRootNode]
+      end if
+      
+      revXMLDeleteTree treeID
+   end if
+   return theArray
+end xml_ToArray
+
+function xml_ArrayFromID treeID, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean
+   xml_ExtractEncoding pXML, versionMatch, theXMLEncoding
+   put revXMLRootNode (treeID) into theRootNode
+   if theRootNode is not empty and not (theRootNode begins with "xmlerr,") then
+      put xml_ConvertXMLNodeToArray (treeID, theRootNode, theXMLEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArray [theRootNode]
+   else
+      return empty
+   end if
+   return theArray
+end xml_ArrayFromID
+
+private function xml_ConvertXMLNodeToArray pTreeID, pNode, pXMLTreeEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean
+   /*
+   Helper function for xml_ToArray.
+   Converts an XML node to a multi-dimensional array.-- Calls itself recursively.
+   */
+   local theArrayA, theAttributes, theChildNode, theKey
+   
+   ## Look for attributes of the node. Store as array in "@attributes" key
+   put revXMLAttributes (pTreeID, pNode, tab, cr) into theAttributes
+   if theAttributes is not empty then
+      put xml_EncodeString (theAttributes, pXMLTreeEncoding, pStoreEncodedAs) into theAttributes
+      split theAttributes by cr and tab -- create array
+      put theAttributes into theArrayA ["@attributes"]
+   end if
+   
+   ## Look for children nodes.
+   set the itemdelimiter to slash
+   put revXMLFirstChild (pTreeID, pNode) into theChildNode
+   if theChildNode is empty or theChildNode begins with "xmlerr," then
+      put xml_EncodeString (revXMLNodeContents (pTreeID, pNode), pXMLTreeEncoding, pStoreEncodedAs) into theValue
+      if word 1 to -1 of theValue is empty and the keys of theArrayA is not empty then
+         ## Empty node that has attributes
+         return theArrayA
+      else if pUseValueKey then
+         ## Force value into @value
+         put theValue into theArrayA ["@value"]
+         return theArrayA
+      else
+         ## Single Node with value: Return value. Attributes are ignored.
+         return theValue
+      end if
+   else
+      ## Child nodes were found. Recursively call self and store result in array.
+      repeat while theChildNode is not empty and not (theChildNode begins with "xmlerr,")
+         put the last item of theChildNode into theKey
+         
+         /*
+         if pTranslateKeyBoolean is true then
+            put the array_KeyTranslation [theKey] of the target into theKey
+            if theKey is empty then next repeat -- this can repeat forever
+         end if 
+         */
+         
+         put xml_ConvertXMLNodeToArray (pTreeID, theChildNode, pXMLTreeEncoding, pStoreEncodedAs, pUseValueKey, pTranslateKeyBoolean) into theArrayA [theKey]
+         put revXMLNextSibling (pTreeID, theChildNode) into theChildNode
+      end repeat
+      
+      return theArrayA
+   end if
+end xml_ConvertXMLNodeToArray
+
+private function xml_EncodeString pString, pInEncoding, pOutEncoding
+   -- Helper function for converting the encoding of strings when converting to and from XML.
+   
+   ## convert utf-8 to utf8 for uniencode/decode
+   replace "-" with empty in pInEncoding
+   replace "-" with empty in pOutEncoding
+   
+   if pInEncoding is not empty then
+      -- if pOutEncoding is empty then pString will be converted to the current platform encoding
+      return unidecode(uniencode(pString, pInEncoding), pOutEncoding)
+   else
+      if pOutEncoding is not empty then
+         -- if pInEncoding is empty then pString is assumed to be in the current platform encoding
+         return unidecode(uniencode(pString, pInEncoding), pOutEncoding)
+      else
+         return pString
+      end if
+   end if
+end xml_EncodeString
+
+command xml_ExtractEncoding someXML, @versionMatch, @xmlEncoding
+   put matchtext(someXML, "<\?xml (.*)encoding=" & quote & "(.*)" & quote & "\?>", versionMatch, xmlEncoding) into theResult
+   if xmlEncoding is empty then put "utf-8" into xmlEncoding
+   return theResult
+end xml_ExtractEncoding
+
+
+--> Deps
+-
+function line_BeginsWith startLineChars, someLines, pLinesToSkip
+   -- probably a faster way of doing this
+   -- find the first line starting with...
+   -- set the wholematches to false
+   -- put lineoffset ("{{", wikiText) into startLineNum -- though I could do this with wholematches
+   
+   if pLinesToSkip is a number then delete line 1 to pLinesToSkip of someLines
+   
+   put CR & startLineChars into startlineChars
+   put CR & someLines into testContainer
+   put offset (startlineChars, testContainer) into startCharNum
+   if startCharNum is 0 then
+      return 0
+   else
+      get char 2 to (startCharNum + the number of chars of startLineChars - 1) of testContainer
+      put the number of lines of it into lineNum
+      return lineNum
+   end if
+end line_BeginsWith
+   
+function date_ConstructWc3Datetime someDate
+   -- extended is true:  1981-04-05T14:30:30-05:00
+   put date_Construct8601 (someDate, true, true) into someDate
+   replace space with empty in someDate
+   return someDate
+end date_ConstructWc3Datetime
+
+command date_Wc3Datetime @revisionDate
+   -- https://www.w3.org/TR/NOTE-datetime
+   
+   replace "T" with return in revisionDate
+   put line 1 of revisionDate into someDate
+   put line 2 of revisionDate into someTime
+   
+   replace "-" with comma in someDate
+   
+   set the itemdelimiter to "+"
+   put item 1 of someTime into colonTime
+   put item 2 of someTime into colonTimeDifference
+   replace ":" with empty in colonTimeDifference
+   put format("%04d", colonTimeDifference) into timeDifference
+   -- put ":" after char 2 of timeDifference
+   
+   replace ":" with comma in colonTime
+   
+   set the itemdelimiter to comma
+   put someDate into someDateItems
+   put colonTime into item 4 of someDateItems
+   
+   put 0 into item 7 of someDateItems
+   
+   convert someDateItems to internet date
+   put timeDifference into char -4 to -1 of someDateItems
+   -- replace space with empty in someDateItems
+   
+   put someDateItems into revisionDate
+end date_Wc3Datetime
+
+function date_Construct8601 someDate, extended, convertToUTC
+   -- extended is true:  1981-04-05T14:30:30-05:00
+   -- extended is false: 19810405T14:30:30-05 00
+   
+   convert someDate to internet date
+   put word -1 of someDate into utcOffset
+   
+   convert someDate to dateItems
+   put item 1 of someDate into y
+   put item 2 of someDate into mons
+   put item 3 of someDate into d
+   put item 4 of someDate into h
+   put item 5 of someDate into mins
+   put item 6 of someDate into s
+   
+   if convertToUTC is true then
+      put char 2 to 3 of utcOffset into extraHours
+      put char 4 to 5 of utcOffset into extraMin
+      
+      if char 1 of utcOffset is "+" then
+         add extraHours to h
+         add extraMin to m
+      else
+         subtract extraHours from h
+         subtract extraMin from m
+      end if
+      
+      if extended is true then
+         put "%04d-%02d-%02dT%02d:%02d:%02d" into baseString
+      else
+         put "%04d%02d%02dT%02d:%02d:%02d" into baseString
+      end if
+      put format(baseString, y, mons, d, h, mins, s) into fDate
+      if char -3 to -1 of fDate = ":00" then delete char -3 to -1 of fDate
+      return fDate & " Z"
+   else
+      if extended is true then
+         put "%04d-%02d-%02dT%02d:%02d:%02d %s" into baseString
+      else
+         put "%04d%02d%02dT%02d:%02d:%02d %s" into baseString
+      end if
+      put format(baseString, y, mons, d, h, mins, s, utcOffset) into fDate
+      return fDate
+   end if
+end date_Construct8601
+
+command date_Convert8601 @revisionDate
+   -- converts to "internet date"
+   replace "T" with return in revisionDate
+   put line 1 of revisionDate into someDate
+   
+   put line 2 of revisionDate into someTime
+   put last char of someTime into timeZoneThing
+   delete last char of someTime
+   
+   replace "-" with comma in someDate
+   
+   set the itemdelimiter to "."
+   put item 1 of someTime into colonTime
+   put item 2 of someTime into colonSeconds
+   replace ":" with comma in colonTime
+   
+   set the itemdelimiter to comma
+   put someDate into someDateItems
+   put colonTime into item 4 of someDateItems
+   
+   put 0 into item 7 of someDateItems
+   convert someDateItems to internet date
+   put someDateItems into revisionDate
+end date_Convert8601

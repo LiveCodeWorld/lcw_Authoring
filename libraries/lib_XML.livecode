@@ -1,0 +1,677 @@
+﻿script "lib_XML"
+--> MetaData
+-
+name: lib_XML
+type: script library
+copyright: David Bovill
+license: GPLv3
+author: David Bovill
+
+/*
+A library for XML and XML related data structures.
+It needs a good tidy.
+*/
+
+
+--> Working on
+-
+
+--> Shell | XML
+-
+function shell_XmlCheck someXML
+   -- or just to look for errors (returns empty or a list of errors)
+   put "tidy -eq -xml " into someShell
+   
+   put the tempname & ".xml" into someFile
+   put someXML into url ("file:" & someFile)
+   
+   shell_AddBashParam someShell, someFile
+   put shell(someShell) into someXML
+   
+   delete file someFile
+   return someXML
+end shell_XmlCheck
+
+function shell_XmlTidy someXML
+   -- to check and indent the text (returns formatted text or a list of errors)
+   put "tidy -iq -xml" into someShell
+   
+   put the tempname & ".xml" into someFile
+   put someXML into url ("file:" & someFile)
+   
+   shell_AddBashParam someShell, someFile
+   put shell(someShell) into someXML
+   
+   delete file someFile
+   return someXML
+end shell_XmlTidy
+
+
+--> XML
+-
+function xml_ConstructTreeArray someXML
+   -- see also "xml_ConstructTreePathArray"
+   local countArray
+   repeat 100  -- just to be safe repeat 100!
+      xml_FirstTagOffsets tagContents, tagName, startTag, endTag, someTag, tagContents
+      put countArray [tagName] + 1 into countArray [tagName]
+      if someTag is empty then
+         return treeArray
+      else
+         delete char 1 to endTag of tagContents
+         
+         put countArray [tagName] into tagNumber
+         put tagContents into treeArray ["_tree"][tagName][tagNumber]
+         
+         put htmlTag_GetOpening (tagName, someXml) into sTag
+         put htmlTag_OpeningToArray (tagName, sTag) into attributeArray
+         put attributeArray into treeArray ["_attribute"][tagName][tagNumber]
+      end if
+   end repeat
+   beep 3
+   return treeArray
+end xml_ConstructTreeArray
+
+function xml_GetAttribute attributeName, someXMLTag, @startAttributeValue, @endAttributeValue
+   -- older non-regexp version below:
+   -- quick hack, should use regular expression.
+   -- bug in that it does not allow single quotes "'"
+   
+   put attributeName & "=" & quote into startString
+   put tab & CRLF & space into whiteSpace
+   
+   put offset(startString, someXMLTag) into startAttributeValue
+   if startAttributeValue is 0 then
+      put 0 into endAttributeValue
+      return empty
+   else if char (startAttributeValue-1) of someXMLTag is not in whiteSpace then
+      put 0 into startAttributeValue
+      put 0 into endAttributeValue
+      return empty
+   else
+      add the length of startString to startAttributeValue
+      put text_OffsetAfter(quote, someXMLTag, startAttributeValue) into endAttributeValue
+      if endAttributeValue is 0 then
+         put 0 into startAttributeValue
+         return empty
+      else
+         subtract 1 from endAttributeValue
+         put char startAttributeValue to endAttributeValue of someXMLTag into attributeValue
+         replace "'" with quote in attributeValue
+         return attributeValue
+      end if
+      -- set the itemDelimiter to quote
+      -- return item 2 of someXMLTag
+   end if
+end xml_GetAttribute
+
+function xml_GetTag tagName, someXml
+   xml_TagOffsets someXML, tagName, startTag, endTag, someTag, tagContents
+   return someTag
+end xml_GetTag
+
+function xml_GetTagContents tagName, someXml
+   xml_TagOffsets someXML, tagName, startTag, endTag, someTag, tagContents
+   return tagContents
+end xml_GetTagContents
+
+command xml_SetTagContents tagName, @someXml, newContents
+   xml_TagOffsets someXML, tagName, startTag, endTag, someTag, tagContents
+   if the result is true then
+      put newContents into char startTag to endTag of someXml
+      return true
+   else
+      return false
+   end if
+end xml_SetTagContents
+
+-- command htmlTag_SetOffsets @startNum, @endNum, someHTML, tagName
+-- Build regex: match an opening tag (with optional attributes), inner content, and closing tag
+-- (?is) enables case-insensitive and dot-all (match newlines) mode
+put "(?is)<" & tagName & "\b[^>]*>.*?</" & tagName & "\s*>" into regExp
+
+# Use matchChunk to find position of full tag block
+if matchChunk (someHTML, regExp, startNum, endNum) then
+   return true
+else
+   put 0 into startNum
+   put 0 into endNum
+   return false
+end if
+end htmlTag_SetOffsets
+
+-- command htmlTag_SetOffsets @startNum, @endNum, someHTML, tagName
+   -- Build regex: match opening tag with optional attributes, content, and matching closing tag
+   put "(?is)<" & tagName & "\b[^>]*>.*?</" & tagName & "\s*>" into regExp
+   
+   -- Use matchChunk with "regex" type to get character positions
+   if matchChunk(someHTML, "regex:" & regExp, tStartChunk, tEndChunk) then
+      put the startChar of tStartChunk into startNum
+      put the endChar of tEndChunk into endNum
+      return true
+   else
+      return false
+   end if
+end htmlTag_SetOffsets
+
+-- command htmlTag_SetOffsets @startNum, @endNum, someHTML, tagName
+   -- super simple version
+   put "<" & tagName into startTag
+   put "</" & tagName & ">" into endTag
+   --
+   put offset (startTag, someHTML) into startNum
+   if startNum is 0 then return false
+   put offset (endTag, someHTML, startNum) into afterEndNum
+   if afterEndNum is 0 then return false
+   --
+   put the number of chars of tagName + 2 into tagBit -- 6
+   put startNum + afterEndNum + tagBit into endNum
+   --
+   return true
+end htmlTag_SetOffsets
+
+command xml_TagOffsets someXML, tagName, @startTag, @endTag, @someTag, @tagContents
+   -- won't work with nested tags of same name
+   -- does not work with svg (needs regExp fix)
+   -- but should work well with single and double tags read over any number of lines
+   
+   put empty into someTag
+   put empty into tagContents
+   
+   -- fixed to find first opening tag (even if a simple tag)
+   -- put "(?Uim)(<\s*" & tagName & "\s*>)|(<\s*" & tagName & "\s*/\s*>)" into openingReg
+   put "(" & ">" & "|" & "\s+.*>" & ")" into someEnding
+   put "(?Uim)(<\s*" & tagName & someEnding & ")" into openingReg
+   if matchchunk(someXML, openingReg, startTag, endOpening) is false then
+      put empty into tagName
+      put empty into startTag
+      put empty into endTag
+      return false
+   end if
+   
+   put char startTag to endOpening of someXML into openingTag
+   put endOpening -1 into beforeEndBracketNum
+   repeat with charNum = beforeEndBracketNum down to 1
+      get char charNum of someXML
+      if it is "/" then
+         -- its a single tag
+         put endOpening into endTag
+         get char startTag to endTag of someXML
+         put word 1 to -1 of it into someTag
+         return true
+      else if it is space then
+         next repeat
+      else
+         exit repeat
+      end if
+   end repeat
+   
+   put someXML into testXML
+   delete char 1 to endOpening of testXML
+   put "(?Uim)(<\s*/" & tagName & "\s*>)" into closingReg
+   
+   if matchchunk(testXML, closingReg, startClosing, endClippedTag) is false then
+      -- something seriously wrong
+      put empty into tagName
+      put empty into startTag
+      put empty into endTag
+      return false
+   else
+      put endClippedTag + endOpening + 0 into endTag
+      get char startTag to endTag of someXML
+      put word 1 to -1 of it into someTag
+      
+      get char (endOpening+1) to (startClosing+endOpening-1) of someXML
+      put word 1 to -1 of it into tagContents
+      return true
+   end if
+end xml_TagOffsets
+
+command xml_AddHeaderLine @someXml, pXmlVersion, pXmlEncoding
+   if pXmlVersion is empty then put "1.0" into pXmlVersion
+   if pXmlEncoding is empty then put "UTF-8" into pXmlEncoding
+   -- put format("<?xml version=\"1.0\" encoding=\"%s\"?>%s", pXmlEncoding, theXML) into theXML
+   put "<?xml version=" & kwote(pXmlVersion) && "encoding=" & kwote(pXmlEncoding) & "?>" & CR before someXml
+end xml_AddHeaderLine
+
+command xml_ExtractEncoding someXML, @versionMatch, @xmlEncoding
+   put matchtext (someXML, "<\?xml (.*)encoding=" & quote & "(.*)" & quote & "\?>", versionMatch, xmlEncoding) into theResult
+   if xmlEncoding is empty then put "utf-8" into xmlEncoding
+   return theResult
+end xml_ExtractEncoding
+
+
+--> XML | Construct
+-
+function xml_Enclose someString, tagName, pIndent, pAttributeName, pAttributeValue
+   -- same as "xml_Tag" but slower and prettier output
+   put "<" & tagName into taggedText
+   put 2 into attributNum
+   get the paramcount
+   put it/2 - 1 into attributeCount
+   repeat attributeCount
+      put 2 * attributNum into paramNum
+      put param (paramNum) into attributeName
+      put param (paramNum+1) into attributeValue
+      if attributeValue is not empty then
+         put space & attributeName & "=" & kwote (attributeValue) after taggedText
+      end if
+      add 1 to attributNum
+   end repeat
+   
+   if someString is empty then
+      put "/>" after taggedText
+   else if pIndent is true then
+      put ">" & CR & outline_IncreaseIndent(word 1 to -1 of someString) & CR & "</" & word 1 of tagName & ">" after taggedText
+   else
+      put ">" & word 1 to -1 of someString & "</" & word 1 of tagName & ">" after taggedText
+   end if
+   return taggedText
+end xml_Enclose
+
+function xml_ConstructOpeningTag tagName, attributeName, attributeValue
+   -- was "construct_SimpleTag" before "encloseInTag"
+   put "<" & tagName into taggedText
+   put (the paramcount - 1)/2  into attributeCount
+   repeat with attributeNum = 1 to attributeCount
+      put param(2*attributeNum) into attributeName
+      put param(2*attributeNum + 1) into attributeValue
+      put space & attributeName & "=" & kwote(attributeValue) after taggedText
+      add 1 to attributNum
+   end repeat
+   put ">" after taggedText
+   return taggedText
+end xml_ConstructOpeningTag
+
+function xml_ConstructSimpleTag tagName, attributeName, attributeValue
+   -- was "construct_SimpleTag" before "encloseInTag"
+   put "<" & tagName into taggedText
+   put (the paramcount - 1)/2  into attributeCount
+   repeat with attributeNum = 1 to attributeCount
+      put param(2*attributeNum) into attributeName
+      put param(2*attributeNum + 1) into attributeValue
+      put space & attributeName & "=" & kwote(attributeValue) after taggedText
+      add 1 to attributNum
+   end repeat
+   put "/>" after taggedText
+   return taggedText
+end xml_ConstructSimpleTag
+
+
+--> XML | Tag | RegExp
+-
+function html_GetImageTag sHTML
+   return htmlTag_Get ("img", sHTML)
+end html_GetImageTag
+
+
+--> XML | Tag | Simple
+-
+function xml_GetPlainTagContents tagName, someXml
+   -- this version is for constructed tags without white space, or parameters, or nesting
+   put merge("(?Usmi)<[[tagName]]>(.*)</[[tagName]]>") into someReg
+   if matchtext(someXML, someReg, tagContent) is false then
+      return empty
+   else
+      return word 1 to -1 of tagContent
+   end if
+end xml_GetPlainTagContents
+
+function xml_GetSimpleTagContents  tagName, someXml
+   -- simple non-whitespace version
+   put xml_GetSimpleTag (tagName, someXml, 0) into someTag
+   if someTag is empty then return empty
+   
+   get the number of chars of tagName
+   put it + 3 into startChar
+   put it + 4 into backChar
+   return char startChar to - backChar of someTag
+end xml_GetSimpleTagContents
+
+function xml_GetSimpleTag tagName, someXml, startAfterCharNum
+   -- was "xml_GetTag"
+   -- simple non-whitespace version
+   put "<" & tagName & ">" into startTag
+   put "</" & tagName & ">" into endTag
+   text_SetOffsets startTag, endTag, someXml, startChar, endChar, startAfterCharNum
+   if startChar = 0 or endChar = 0 then return empty
+   put char startChar to endChar of someXml into someTag
+   return someTag
+end xml_GetSimpleTag
+
+
+--> XML | First Tag
+-
+function xml_FirstTagName someXML
+   put "(?im)<\s*(\w+)[ />]" into someReg
+   if matchtext(someXML, someReg, tagName) is false then
+      return empty
+   else
+      return tagName
+   end if
+end xml_FirstTagName
+
+function xml_FirstTag someXML
+   -- won't work with nested tags of same name
+   -- but should work well with single and double tags sread over any number of lines
+   
+   xml_FirstTagOffsets someXML, tagName, startTag, endTag, someTag, tagContents
+   if the result is false then
+      return empty
+   else
+      return someTag
+   end if
+   
+   put xml_FirstTagName(someXML) into tagName
+   if tagName is empty then
+      return empty
+   else 
+      put "(?im)(<\s*" & tagName & "\s+[^>]*\s*>)" into openingReg
+      if matchchunk(someXML, openingReg, startTag, endOpening) is false then
+         -- something seriously wrong
+         breakpoint
+         return empty
+      else
+         repeat with charNum = (endOpening-1) down to 1
+            get char charNum of someXML
+            if it is "/" then
+               -- its a single tag
+               put char startTag to endOpening of someXML into someTag
+               return someTag
+            else if it is space then
+               next repeat
+            else
+               exit repeat
+            end if
+         end repeat
+         
+         put someXML into testXML
+         delete char 1 to endOpening of testXML
+         put "(?im)(<\s*/" & tagName & "\s*>)" into closingReg
+         
+         if matchchunk(testXML, closingReg, startClosing, endClippedTag) is false then
+            -- something seriously wrong
+            breakpoint
+            return empty
+         else
+            put endClippedTag + endOpening + 0 into endTag
+            put char startTag to endTag of someXML into someTag
+            return someTag
+         end if
+      end if
+   end if
+end xml_FirstTag
+
+command xml_FirstTagOffsets someXML, @tagName, @startTag, @endTag, @someTag, @tagContents
+   -- won't work with nested tags of same name
+   -- but should work well with single and double tags sread over any number of lines
+   
+   put empty into someTag
+   put empty into tagContents
+   
+   put xml_FirstTagName (someXML) into tagName
+   if tagName is empty then
+      return false
+   else 
+      xml_TagOffsets someXML, tagName, startTag, endTag, someTag, tagContents
+      return the result
+   end if
+end xml_FirstTagOffsets
+
+on xml_FirstTagOffsets someXML, @tagName, @startCharNum, @endCharNum
+   -- extractFirstXmlTag
+   put xml_FirstTagName(someXML) into tagName
+   if tagName is empty then
+      put empty into startCharNum
+      put empty into endCharNum
+   else
+      put "(?im)(<\s*" & tagName & "\s+[^>]*\s*/\s*>.*<\s*" & tagName & "\s*/\s*>)" into doubleReg
+      
+      put "(?im)(<\s*" & tagName & "\s+[^>]*\s*>)" into singleReg
+      put singleReg & "|" & doubleReg into someReg
+      
+      if matchtext(someXML, someReg, someTag) is false then
+         return empty
+      else
+         return someTag
+      end if
+   end if
+end xml_FirstTagOffsets
+
+
+--> XML | Old
+-
+function xml_TagRegEx tagName
+   -- not complete
+   return merge("(?Usmi)<[[tagName]].*</[[tagName]]>")
+   return merge("(?Usi)<[[tagName]].*</[[tagName]]>")
+end xml_TagRegEx
+
+function xml_Nodes someXml, startNode, includeChildCount
+   put xml_NodeOutline(someXml, startNode, includeChildCount) into nodeOutline
+   put outline_ToPathIndex(nodeOutline) into nodeIndex
+   return nodeIndex
+end xml_Nodes
+
+function xml_ReplaceChildCount treeOutline
+   -- put "." into notabracket
+   -- put "\d*" into notabracket	# a digit
+   put "[^\]]*" into notabracket
+   put "\[" & notabracket & "\]" into matchExpression
+   get replacetext(treeOutline, matchExpression, empty)
+   return it
+end xml_ReplaceChildCount
+
+
+--> Xml | Tidy
+-
+function xml_StripInitialTabs someXML
+   put text_SwapEOL(someXML, "remove") into someXML 
+   put replacetext(someXML, "¬[\t ]+","¬") into someXML
+   put replacetext(someXML, "^¬","") into someXML
+   return (text_SwapEOL(someXML, "restore") )
+end xml_StripInitialTabs
+
+function xml_MakePretty someXML, tidyHow
+   if tidyHow is empty then put "perfect" into tidyHow
+   switch tidyHow
+      case "perfect"
+         put revXMLCreateTree(someXML, true, true, false) into treeID
+         if treeID is a number then
+            put revXMLText(treeID, "", true) into someXML
+            revXMLDeleteTree treeID
+            xml_TidySpace someXML
+            return someXML
+         else
+            return treeID
+         end if
+         break
+      case "external"
+         put revXMLCreateTree (someXML, true, true, false) into treeID
+         if treeID is a number then
+            put revXMLText(treeID, "", true) into someXML
+            revXMLDeleteTree treeID
+            return someXML
+         else
+            return treeID
+            return someXML
+         end if
+      case "flat"
+         put revXMLCreateTree(someXML, true, true, false) into treeID
+         if treeID is a number then
+            put revXMLText(treeID, "") into someXML
+            revXMLDeleteTree treeID
+            return someXML
+         else
+            put shell_XmlCheck(someXML)
+            return treeID
+            return someXML
+         end if
+      case "shell"
+         put shell_XmlTidy (someXML) into someXML
+         -- xml_TidySpace someXML
+         return someXML
+         break
+      case "broken"
+         -- missing function repeatOffset
+         put offset(">", someXML) into endStartTag
+         put repeatOffset("<", someXML, "last") into startEndTag
+         if endStartTag = 0 or startEndtag = 0 then return someXML
+         
+         if char (endStartTag + 1) of someXML <> return then
+            get ">" & return & indentSpace
+            put the length of it into insertTextLength
+            add insertTextLength to startEndtag
+            put it into char endStartTag of someXML
+         end if
+         
+         if char (startEndtag - 2) of someXML <> return then
+            get indentSpace & return & "<"
+            put it into char (startEndtag - 1) of someXML
+         end if
+         return someXML
+      default
+         if indentSpace is empty then put tab into indentSpace
+         replace "><" with ">" & CR & tab & "<" in someXML
+         return someXML
+   end switch
+end xml_MakePretty
+
+on xml_TidySpace @someXML
+   -- bug as there can be two spaces in the xml.
+   replace space & space with tab in someXML    -- tidy indents by 2 spaces, but I prefer tabs
+end xml_TidySpace
+
+
+--> XML | Rev External
+-
+function xml_ExtractTable xHtml, tableID, pStartNode
+   put revXMLCreateTree (xHtml, true, true, false) into xmlID
+   put xml_ExtractTableFromID (xmlID, tableID, pStartNode) into someXML
+   revXMLDeleteTree xmlID
+   return someXML
+end xml_ExtractTable
+
+function xml_ExtractTableFromID xmlID, tableID, pStartNode
+   if pStartNode is empty then
+      -- could use body
+      put revXMLRootNode (xmlID) into pStartNode
+   end if
+   
+   put revXMLMatchingNode (xmlID, pStartNode, "table", "id", tableID, -1) into foundNode
+   
+   if foundNode is empty then
+      put empty into someXML
+   else
+      put revXMLText (xmlID, foundNode, true) into someXML
+   end if
+   revXMLDeleteTree xmlID
+   return someXML
+end xml_ExtractTableFromID
+
+command xml_CreateTree rootNode, @treeID
+   put xml_Tag(empty, rootNode) into someXml
+   put revXMLCreateTree(someXml, true, true, false) into treeID
+   return treeID
+end xml_CreateTree
+
+function xml_Tag someString, tagName
+   -- see also "xml_Enclose"
+   -- was "encloseInTag", "xml_ConstructTag"
+   
+   put "<" & tagName into taggedText
+   put 2 into attributNum
+   get the paramcount
+   put it/2 - 1 into attributeCount
+   repeat attributeCount
+      put 2 * attributNum into paramNum
+      put param (paramNum - 1) into attributeName
+      put param(paramNum) into attributeValue
+      put space & attributeName & "=" & kwote(attributeValue) after taggedText
+      add 1 to attributNum
+   end repeat
+   
+   put ">" & someString & "</" & word 1 of tagName & ">" after taggedText
+   return taggedText
+end xml_Tag
+
+function xml_Nodes someXml, startNode, includeChildCount
+   put xml_NodeOutline(someXml, startNode, includeChildCount) into nodeOutline
+   put outline_ToPathIndex(nodeOutline) into nodeIndex
+   return nodeIndex
+end xml_Nodes
+
+function xml_NodeOutline someXml, startNode, includeChildCount
+   put revXMLCreateTree(someXml, false, true, false) into treeID
+   -- put xmlTree_NodeOutline(treeID, startNode, includeChildCount) into nodeOutline
+   if startNode is empty then put revXMLRootNode (treeID) into startNode
+   put revXMLTree (treeID, startNode, CR, tab, includeChildCount, -1) into nodeOutline
+   revXMLDeleteTree treeID
+   return nodeOutline
+end xml_NodeOutline
+
+function xml_GetNodeContents someXml, someNode
+   put revXMLCreateTree(someXml, false, true, false) into treeID
+   put revXMLNodeContents(treeID, someNode) into nodeContents
+   revXMLDeleteTree treeID
+   return nodeContents
+end xml_GetNodeContents
+
+on xml_SetNodeContents @someXml, someNode, nodeContents
+   put revXMLCreateTree(someXml, false, true, false) into treeID
+   revPutIntoXMLNode treeID, someNode, nodeContents
+   put the result into theResult
+   if char 1 to 6 of theResult is "xmlerr" then
+      xmlTree_AddNode someNode, nodeContents, treeID
+      put the result into theResult
+      if char 1 to 6 of theResult is not "xmlerr" then
+         put revXMLText(treeID) into someXml
+      end if
+   else
+      put revXMLText(treeID) into someXml
+   end if
+   revXMLDeleteTree treeID
+   return theResult
+end xml_SetNodeContents
+
+function xml_GetNodeArray someXml, startNode, includeChildCount
+   local nodeArray
+   put revXMLCreateTree(someXml, false, true, false) into treeID
+   if nodeIndex is empty then put xmlTree_OutlineNodes(treeID, startNode, includeChildCount) into nodeIndex
+   repeat for each line someNode in nodeIndex
+      put revXMLNodeContents(treeID, someNode) into nodeContents
+      put nodeContents into nodeArray [someNode]
+   end repeat
+   revXMLDeleteTree treeID
+   return nodeArray
+end xml_GetNodeArray
+
+function xml_GetShortNodeArray someXml, startNode, depth, includeChildCount
+   put revXMLCreateTree(someXml, false, true, false) into treeID
+   if startNode is empty then put revXMLRootNode(treeID) into startNode
+   put revXMLChildContents(treeID, startNode, tab, CR, includeChildCount, depth) into nodeArray
+   split nodeArray with CR and tab
+   revXMLDeleteTree treeID
+   return nodeArray
+end xml_GetShortNodeArray
+
+on xml_AddNodeArray @someXml, nodeArray
+   -- can have many "someNode, nodeContents" params pairs
+   
+   put revXMLCreateTree(someXml, false, true, false) into treeID
+   repeat for each key someNode in nodeArray
+      put nodeArray [someNode] into nodeContents
+      xmlTree_AddNode someNode, nodeContents, treeID
+   end repeat
+   put revXMLText(treeID) into someXml
+   revXMLDeleteTree treeID
+   return the result
+end xml_AddNodeArray
+
+function xml_ExtractNode someNode, someXML
+   if someXML is empty then return empty
+   put revXMLCreateTree (someXML, true, true, false) into treeID
+   put revXMLText (treeID, someNode) into nodeXml
+   revXMLDeleteTree treeID
+   return nodeXml
+end xml_ExtractNode
