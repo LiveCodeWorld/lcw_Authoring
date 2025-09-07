@@ -17,7 +17,7 @@ command view_InsertFromPath viewPath, groupOrCard, pLocOrRect
    end if
    
    -- put view_NameToFile (viewPath) into viewFile
-   put default_FirstStackControl(viewPath) into templateObject
+   put default_FirstStackControl (viewPath) into templateObject
    put the stack_File of templateObject into viewFile
    --
    if exists (templateObject) is false then
@@ -69,6 +69,18 @@ command view_InsertObject someObject, viewOrCard, pLocOrRect, pDontSelect
    unlock screen
    return viewInstance
 end view_InsertObject
+
+setprop view_Swap [sendReplace] vName
+   view_NormalizeName vName
+   put module_GetObject (vName) into anotherView
+   if exists (anotherView) is false then
+      return "Error: cannot find view:" && vName
+   end if
+   --
+   set the view_Replacement [sendReplace] of the target to anotherView
+   put the result into copiedView
+   return copiedView
+end view_Swap
 
 setprop view_Replacement [sendReplace] anotherView
    if exists (anotherView) is false then return empty
@@ -147,27 +159,6 @@ setprop view_Insert [someRect] viewPath
    put the result into createdView
    return createdView
 end view_Insert
-
-
---> View | Update | Props
--
-setprop view_Swap [sendReplace] vName
-   view_NormalizeName vName
-   put default_FirstStackControl (vName) into anotherView
-   if exists(anotherView) is false then
-      beep
-      return merge("Error: cannot find view '[[vName]]'.")
-   end if
-   set the view_Replacement [sendReplace] of the target to anotherView
-   put the result into copiedView
-   
-   -- refresh display
-   set the wholematches to true
-   if "opn_ViewOutline" is among the lines of the openstacks then
-      set the displayed_ViewOutline of stack "opn_ViewOutline" to the displayed_ViewOutline of stack "opn_ViewOutline"
-   end if
-   return copiedView
-end view_Swap
 
 
 --> Control

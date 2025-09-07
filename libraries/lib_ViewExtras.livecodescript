@@ -398,7 +398,7 @@ getprop template_CardBehavior
 end template_CardBehavior
 
 getprop template_Card
-   put the view_ModuleObject of mTarget into templateObject
+   put the module_Object of mTarget into templateObject
    put the the card_Object of templateObject into someObject
    return someObject
 end template_Card
@@ -606,8 +606,8 @@ end view_GetTemplateCard
 --> View Template | Icons
 -
 /*
-A view_ModuleObject is a view library stack, that uses a behavior shared with other view library stacks.
-These other view library stacks should share the same view (the view_ModuleObject),
+A module_Object is a view library stack, that uses a behavior shared with other view library stacks.
+These other view library stacks should share the same view (the module_Object),
 but differ only in exposed public properites of the view.
 */
 
@@ -947,7 +947,7 @@ end view_DoParamProp
 getprop view_IsTemplate [vName]
    put the long id of the target into targetObject
    if vName is empty then
-      put the view_ModuleObject of targetObject into templateObject
+      put the module_Object of targetObject into templateObject
    else
       put default_FirstStackControl (vName) into templateObject
    end if
@@ -1409,7 +1409,7 @@ getprop view_IsOld
    put the long id of the target into someView
    
    put the object_Version of someView into thisVersion
-   put the view_ModuleObject of someView into libraryObject
+   put the module_Object of someView into libraryObject
    if exists (libraryObject) is false then return "Error: library object does not exist. Maybe target is not a view?"
    
    put the object_Version of libraryObject into libraryVersion

@@ -74,21 +74,6 @@ getprop checked_SetDefaultBehavior [sView]
    return the long id of dObject = the long id of bObject
 end checked_SetDefaultBehavior
 
-on menu_SetViewBehaviorStackNames mView
-   put the uOPN ["view_BehaviorStackNames"] of mView into vStackNames
-   --
-   behavior_SetStackNames vStackNames, mView
-   put the result into bObjects
-   put bObjects
-end menu_SetViewBehaviorStackNames
-
-on menu_ClearBehaviors mView
-   -- set the view_BehaviorStackNames of sObject to empty
-   -- set the behavior_Objects of sObject to empty
-   
-   behavior_SafeClear mView
-end menu_ClearBehaviors
-
 getprop checked_ClearBehaviors [sObject]
    get the behavior_Objects of sObject
    return it is empty
@@ -180,15 +165,27 @@ end menu_AskEditViewBehaviorStackNames
 private on _
 end _
 
+on menu_SetViewBehaviorStackNames mView
+   breakpoint
+   put the uOPN ["view_BehaviorStackNames"] of mView into vStackNames
+   --
+   behavior_SetStackNames vStackNames, mView
+   put the result into bObjects
+   put bObjects
+end menu_SetViewBehaviorStackNames
+
 on menu_StoreDefaultBehaviorStackNames mView
-   put the module_Name of mView into mName
-   if mName is empty then
-      breakpoint
-      --  put project_ListBehaviorStackNames ("all") into bNames
-   end if
-   put module_ListBehaviorStackNames (mName) into mBehaviorStackNames
+   /*
+   behavior_ViewWikiBrowser
+   behavior_WikiFlagJavascript
+   behavior_WikiJavascript
    
-   # Store
+   -- put the module_Name of mView into mName
+   -- put module_ListBehaviorStackNames (mName) into mBehaviorStackNames
+   */
+   
+   put the default_ModuleBehaviorNames of mView into mBehaviorStackNames
+   breakpoint
    set the view_BehaviorStackNames of mView to mBehaviorStackNames
 end menu_StoreDefaultBehaviorStackNames
 
@@ -200,6 +197,7 @@ on menu_ClearModuleBehaviors mView
    
    # Clear
    module_ClearBehaviors mName
+   -- behavior_SafeClear mView
 end menu_ClearModuleBehaviors
 
 on menu_DisplayBehaviorStackNames mView

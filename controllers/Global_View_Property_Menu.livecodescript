@@ -92,7 +92,7 @@ on menu_ViewOutline someView
 end menu_ViewOutline
 
 on menu_TemplateOutline someView
-   put the view_ModuleObject of someView into templateObject
+   put the module_Object of someView into templateObject
    display_ViewOutline templateObject
 end menu_TemplateOutline
 
